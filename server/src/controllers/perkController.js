@@ -70,7 +70,40 @@ export async function createPerk(req, res, next) {
 // TODO
 // Update an existing perk by ID and validate only the fields that are being updated 
 export async function updatePerk(req, res, next) {
-  
+  try {
+    const updatePerkSchema = Joi.object({
+  title: Joi.string().min(2),
+  description: Joi.string().min(2),
+  category: Joi.string().valid('food', 'tech', 'travel', 'fitness', 'other'),
+  discountPercent: Joi.number().min(0).max(100),
+  merchant: Joi.string().allow('')
+});
+    const perk = await Perk.findById(req.params.id);
+    if (!perk) {
+      return res.status(404).json({ message: "Perk not found" });
+    }
+
+    // validate only fields sent in req.body
+    const { value, error } = updatePerkSchema.validate(req.body, {
+      abortEarly: false, // show all errors, not just first
+      stripUnknown: true // remove fields not in schema
+    });
+
+    if (error) {
+      return res.status(400).json({
+        message: "Validation failed",
+        errors: error.details.map(e => e.message)
+      });
+    }
+
+    // apply only the validated fields
+    Object.assign(perk, value);
+
+    await perk.save();
+    res.json(perk);
+  } catch (e) {
+    next(e);
+  }
 }
 
 
