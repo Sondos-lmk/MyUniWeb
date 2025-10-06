@@ -28,7 +28,7 @@ const workshopSchema = new mongoose.Schema({
       'Architecture',
     ],
   },
-  professorsParticipating: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Professor' }],
+  professorsParticipating: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }],
   extraRequiredResource: { type: String },
 });
 

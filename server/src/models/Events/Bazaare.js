@@ -8,7 +8,7 @@ const bazaarSchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   registrationDeadline: { type: Date, required: true },
-  vendors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' }],
+  vendors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }],
 });
 
 export const Bazaar = Event.discriminator('bazaar', bazaarSchema);

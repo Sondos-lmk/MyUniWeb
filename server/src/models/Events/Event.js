@@ -13,7 +13,7 @@ const eventSchema = new mongoose.Schema(
       enum: ['pending', 'approved', 'rejected', 'completed'],
       default: 'pending',
     },
-    organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Users', required: true },
   },
   baseOptions
 );
