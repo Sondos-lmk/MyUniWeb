@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const baseOptions = {
   discriminatorKey: 'role', // model name stored in documents
-  collection: 'users',
+  collection: 'Users',
   timestamps: true,
 };
 
