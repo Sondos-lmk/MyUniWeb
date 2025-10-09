@@ -15,4 +15,17 @@ export function requireAuth(req, res, next) {
   }
 }
 
+// Ensure the authenticated user is an Events Officer
+export function requireEventOfficer(req, res, next) {
+  // requireAuth should run before this so req.user exists; otherwise block
+  if (!req.user) return res.status(401).json({ message: 'Missing authentication' });
+
+  // role stored in token payload should match the user model enum ("eventOfficer")
+  if (req.user.role !== 'eventOfficer') {
+    return res.status(403).json({ message: 'Forbidden: requires Events Officer role' });
+  }
+
+  return next();
+}
+
 
