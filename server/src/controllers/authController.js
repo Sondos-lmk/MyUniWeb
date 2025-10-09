@@ -6,7 +6,8 @@ import { User } from '../models/Users/User.js';
 const registerSchema = Joi.object({
   name: Joi.string().min(2).max(60).required(),
   email: Joi.string().email().required(),
-  password: Joi.string().min(6).required()
+  password: Joi.string().min(6).required(),
+  role: Joi.string().valid('student', 'staff', 'professor', 'vendor', 'admin', 'eventOfficer').default('student')
 });
 
 export async function register(req, res, next) {
@@ -18,12 +19,12 @@ export async function register(req, res, next) {
     if (existing) return res.status(409).json({ message: 'Email already used' });
 
     const passwordHash = await bcrypt.hash(value.password, 10);
-    // Ensure role defaults to 'user' if not set
+    // Use the role from request body, default to 'student' if not provided
     const user = await User.create({ 
       name: value.name, 
       email: value.email, 
       passwordHash, 
-      role: 'student' 
+      role: value.role || 'student' 
     });
     const token = signToken(user);
     res.status(201).json({ token, user: publicUser(user) });
