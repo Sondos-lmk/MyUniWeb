@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import Joi from 'joi';
 
-import { User } from '../models/User.js';
+import { User } from '../models/Users/User.js';
 import { Student } from '../models/Student.js';
 import { Staff } from '../models/Staff.js';
 import { Professor } from '../models/Professor.js';
