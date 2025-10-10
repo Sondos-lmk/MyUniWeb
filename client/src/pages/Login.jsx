@@ -1,34 +1,67 @@
-import { useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import API from '../services/api';
 
 export default function Login() {
-  const { login } = useAuth()
-  const nav = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [message, setMessage] = useState('');
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
+  const handleChange = e => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async e => {
+    e.preventDefault();
     try {
-      await login(email, password)
-      nav('/perks')
+      console.log('Login Attempt:', formData);
+      const res = await API.post('/auth/login', formData);
+      console.log('Login Response:', res.data);
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('role', res.data.role);
+      setMessage('Login successful!');
+      if (res.data.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Login failed')
+      console.error('Login Error:', err.response?.status, err.response?.data);
+      setMessage(err.response?.data?.message || 'Login failed');
     }
-  }
+  };
 
   return (
-    <div className="max-w-md mx-auto card">
-      <h1 className="text-xl font-semibold mb-4">Login</h1>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <input className="input" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input className="input" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-        {error && <div className="text-red-600 text-sm">{error}</div>}
-        <button className="btn" type="submit">Login</button>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md w-96">
+        <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
+        <input
+          name="email"
+          type="email"
+          placeholder="Email"
+          onChange={handleChange}
+          className="w-full mb-2 p-2 border rounded"
+          required
+        />
+        <input
+          name="password"
+          type="password"
+          placeholder="Password"
+          onChange={handleChange}
+          className="w-full mb-2 p-2 border rounded"
+          required
+        />
+        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+          Login
+        </button>
+        <p className="text-center text-sm text-gray-600 mt-2">
+          Don’t have an account? <Link to="/signup" className="text-blue-500 hover:underline">Sign up</Link>
+        </p>
+        {message && <p className="text-center text-sm text-red-600 mt-2">{message}</p>}
       </form>
     </div>
-  )
+  );
 }

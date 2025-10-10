@@ -1,49 +1,46 @@
-import { Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom'
-import Login from './pages/Login.jsx'
-import Register from './pages/Register.jsx'
-import Perks from './pages/Perks.jsx'
-import PerkForm from './pages/PerkForm.jsx'
-import { useAuth } from './hooks/useAuth.js'
-import ProtectedRoute from './components/ProtectedRoute.jsx'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import Signup from './pages/Signup';
+import Verify from './pages/Verify';
+import Login from './pages/Login';
+import AdminDashboard from './pages/AdminDashboard';
+import NotFound from './pages/NotFound';
+import Dashboard from './pages/Dashboard';
 
-export default function App() {
-  const { user, logout } = useAuth()
+
+
+function ProtectedRoute({ children, allowedRole }) {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  console.log('ProtectedRoute - token:', !!token, 'role:', role); // Debug: Check auth
+  if (!token || role !== allowedRole) {
+    console.log(`ProtectedRoute redirecting to /, token: ${!!token}, role: ${role}`); // Debug
+    return <Navigate to="/" />;
+  }
+  return children;
+}
+
+function App() {
   return (
-    <div className="container">
-      <nav className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="font-semibold">Campus Life & Perks</Link>
-          {user && <Link to="/perks" className="text-sm">Perks</Link> }
-          {user && <Link to="/perks/new" className="text-sm">Create Perk</Link>}
-        </div>
-        <div className="flex items-center gap-2">
-          {!user ? (
-            <>
-              <Link to="/login" className="btn">Login</Link>
-              <Link to="/register" className="btn">Register</Link>
-            </>
-          ) : (
-            <>
-              <span className="text-sm">Logged in as <b>{user.name}</b></span>
-              <button onClick={logout}  className="btn">Logout</button>
-            </>
-          )}
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-gray-50">
       <Routes>
-        <Route path="/" element={<Navigate to="/perks" />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/perks" element={<Perks />} />
-        <Route path="/perks/new" element={
-          <ProtectedRoute><PerkForm /></ProtectedRoute>
-        } />
-        <Route path="/perks/:id" element={
-          <ProtectedRoute><PerkForm /></ProtectedRoute>
-        } />
-        <Route path="*" element={<div>Not Found</div>} />
+        <Route path="/" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/verify/:token" element={<Verify />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="*" element={<NotFound />} />
+        
+
       </Routes>
     </div>
-  )
+  );
 }
+
+export default App;
