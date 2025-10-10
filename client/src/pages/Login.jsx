@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import API from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Login() {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -17,20 +18,15 @@ export default function Login() {
   const handleSubmit = async e => {
     e.preventDefault();
     try {
-      console.log('Login Attempt:', formData);
-      const res = await API.post('/auth/login', formData);
-      console.log('Login Response:', res.data);
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('role', res.data.role);
+      const res = await login(formData.email, formData.password);
       setMessage('Login successful!');
-      if (res.data.role === 'admin') {
+      if (res.user.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/dashboard');
       }
     } catch (err) {
-      console.error('Login Error:', err.response?.status, err.response?.data);
-      setMessage(err.response?.data?.message || 'Login failed');
+      setMessage(err?.response?.data?.message || 'Login failed');
     }
   };
 
