@@ -11,7 +11,9 @@ import { TA } from '../models/Users/TA.js';
 import { EventOfficer } from '../models/Users/EventsOfficer.js';
 import { sendEmail } from '../utils/email.js';
 
+
 // Base schema including confirmPassword
+
 const baseUserSchema = Joi.object({
   name: Joi.string().min(2).required(),
   email: Joi.string().email().required(),
