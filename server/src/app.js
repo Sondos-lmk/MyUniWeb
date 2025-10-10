@@ -1,14 +1,27 @@
 import express from 'express';
 import morgan from 'morgan';
 import perkRoutes from './routes/perks.js';
+import authRoutes from './routes/auth.js';
+import adminRoutes from './routes/admin.js';
+import cors from 'cors';
 
 const app = express();
 
 app.use(morgan('dev'));
 app.use(express.json());
 
+
+app.use(cors({
+  origin: 'http://localhost:5000',
+  credentials: true,
+}));
+
+
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/perks', perkRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+
 
 // Not found
 app.use((req, res, next) => {
@@ -20,5 +33,7 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 500).json({ message: err.message || 'Server Error' });
 });
+
+
 
 export default app;
