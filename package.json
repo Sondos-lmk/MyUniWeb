@@ -10,9 +10,6 @@
     "dev": "concurrently -n server,client -c blue,magenta \"npm:dev --workspace server\" \"npm:dev --workspace client\""
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.21",
-    "concurrently": "^8.2.2",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.14"
+    "concurrently": "^8.2.2"
   }
 }
