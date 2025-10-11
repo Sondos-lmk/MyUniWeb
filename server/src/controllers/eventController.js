@@ -282,39 +282,63 @@ export const rejectEvent = async (req, res) => {
 // ----------------------
 // CREATE WORKSHOP BY PROFESSOR
 // ----------------------
-export const createProfessorWorkshop = async (req, res) => {
+export const createWorkshop = async (req, res) => {
   try {
-    const { type } = req.body;
-    
-    // Ensure only workshops can be created by professors
-    if (type !== 'workshop') {
-      return res.status(400).json({ error: 'Professors can only create workshops' });
+    // Ensure only professors can create workshops
+    if (req.user.role !== "professor") {
+      return res.status(403).json({ message: "Access denied. Professors only." });
     }
 
-    const schema = getValidationSchema(type);
-    
-    // Set organizerId from authenticated professor
-    req.body.organizerId = req.user.id || req.user._id;
-    
-    // Force status to 'pending' for professor-created workshops
-    req.body.status = 'pending';
-    
-    const { error, value } = schema.validate(req.body);
+    const {title,desc,location,startDate,endDate,registrationDeadline,requiredBudget,fundraisingSource,fullAgenda,responsibleFaculty,professorsParticipating,extraRequiredResource,capacity,} = req.body;
 
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
+    // Validate required fields
+    if (
+      !title ||
+      !location ||
+      !startDate ||
+      !endDate ||
+      !registrationDeadline ||
+      !requiredBudget ||
+      !fundraisingSource ||
+      !fullAgenda ||
+      !responsibleFaculty ||
+      !capacity
+    ) {
+      return res.status(400).json({ message: "Please fill in all required fields." });
     }
 
-    const Model = getEventModel(type);
-    const newWorkshop = new Model(value);
-    await newWorkshop.save();
-
-    res.status(201).json({ 
-      message: 'Workshop submitted successfully and is pending approval', 
-      workshop: newWorkshop 
+    const workshop = new Workshop({
+      title,
+      desc,
+      location,
+      startDate,
+      endDate,
+      registrationDeadline,
+      requiredBudget,
+      fundraisingSource,
+      fullAgenda,
+      responsibleFaculty,
+      professorsParticipating,
+      extraRequiredResource,
+      capacity,
+      createdBy: req.user._id,
+      createdBy: req.user._id,
+      organizerId: req.user._id,
+      status: "pending", // pending approval
     });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    await workshop.save();
+
+    res.status(201).json({
+      message: "Workshop created successfully and is pending approval.",
+      workshop,
+    });
+  } catch (error) {
+    console.error("Error creating workshop:", error);
+    res.status(500).json({
+      message: "Server error while creating workshop.",
+      error: error.message,
+    });
   }
 };
 

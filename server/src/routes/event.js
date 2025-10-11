@@ -7,7 +7,7 @@ import {
   deleteEvent,
   approveEvent,
   rejectEvent,
-  createProfessorWorkshop,
+  createWorkshop,
   getPendingWorkshops,
   getProfessorWorkshops,
 } from '../controllers/eventController.js';
@@ -25,7 +25,7 @@ router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
 router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
 // Professor-specific routes
-router.post('/professor/workshop', requireAuth, requireProfessor, createProfessorWorkshop);
+router.post('/professor/workshop', requireAuth, requireProfessor, createWorkshop);
 router.get('/professor/my-workshops', requireAuth, requireProfessor, getProfessorWorkshops);
 
 // Events Officer routes for managing professor workshops
