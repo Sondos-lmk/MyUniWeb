@@ -13,6 +13,7 @@ import cors from 'cors';
 
 import userRoutes from './routes/userRoutes.js';
 
+
 const app = express();
 
 app.use(morgan('dev'));
@@ -31,13 +32,13 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/perks', perkRoutes);
 
 app.use('/api/users', userRoutes);   // 👈 added for admin/user endpoints
+app.use('/api/events', eventRoutes); // 👈 added for events logic
 
 app.use('/api/auth', authRoutes);
 
 app.use('/api/admin', adminRoutes);
 
 
-app.use('/api/event', eventRoutes);
 
 
 

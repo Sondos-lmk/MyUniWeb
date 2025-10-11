@@ -3,7 +3,6 @@ import Signup from './pages/Signup';
 import Verify from './pages/Verify';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
-import EventsOfficeDashboard from './pages/EventsOfficeDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
 
@@ -32,14 +31,6 @@ function App() {
           element={
             <ProtectedRoute allowedRole="admin">
               <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/events-office"
-          element={
-            <ProtectedRoute allowedRole="eventsOffice">
-              <EventsOfficeDashboard />
             </ProtectedRoute>
           }
         />
