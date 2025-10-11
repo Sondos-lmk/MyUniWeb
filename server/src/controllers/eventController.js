@@ -124,9 +124,36 @@ const getEventModel = (type) => {
     default: return Event;
   }
 };
-// ----------------------
-// CREATE EVENT
-// ----------------------
+
+// [REQ 2] View registered events
+export const getMyRegisteredEvents = async (req, res) => {
+  try {
+    const { userId, role } = req.user; // assuming JWT or session middleware adds this
+    const UserModel = getUserModel(role);
+
+    const user = await UserModel.findById(userId).populate('registeredEvents workshops');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const events = user.registeredEvents?.length ? user.registeredEvents : user.workshops;
+    res.status(200).json(events);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch events', error: error.message });
+  }
+};
+// [REQ 3] Events Officer: Edit Bazaar details
+export const editBazaar = async (req, res) => {
+  try {
+    const { id } = req.params; // bazaar id
+    const updates = req.body;
+
+    const updatedBazaar = await Bazaar.findByIdAndUpdate(id, updates, { new: true });
+    if (!updatedBazaar) return res.status(404).json({ message: 'Bazaar not found' });
+
+    res.status(200).json({ message: 'Bazaar updated successfully', updatedBazaar });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update bazaar', error: error.message });
+
+
 export const createEvent = async (req, res) => {
   try {
     const { type } = req.body;
@@ -183,9 +210,7 @@ export const getEventById = async (req, res) => {
   }
 };
 
-// ----------------------
-// UPDATE EVENT
-// ----------------------
+
 export const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -224,9 +249,8 @@ export const updateEvent = async (req, res) => {
   }
 };
 
-// ----------------------
-// DELETE EVENT
-// ----------------------
+
+
 export const deleteEvent = async (req, res) => {
   try {
     const event = await Event.findByIdAndDelete(req.params.id);
@@ -236,9 +260,7 @@ export const deleteEvent = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-// ----------------------
-// APPROVE EVENT (publish)
-// ----------------------
+
 export const approveEvent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -258,9 +280,7 @@ export const approveEvent = async (req, res) => {
   }
 };
 
-// ----------------------
-// REJECT EVENT
-// ----------------------
+
 export const rejectEvent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -279,9 +299,7 @@ export const rejectEvent = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-// ----------------------
-// CREATE WORKSHOP BY PROFESSOR
-// ----------------------
+
 export const createProfessorWorkshop = async (req, res) => {
   try {
     const { type } = req.body;
@@ -318,9 +336,7 @@ export const createProfessorWorkshop = async (req, res) => {
   }
 };
 
-// ----------------------
-// GET PENDING WORKSHOPS (FOR EVENTS OFFICERS)
-// ----------------------
+
 export const getPendingWorkshops = async (req, res) => {
   try {
     const pendingWorkshops = await Workshop.find({ status: 'pending' })
@@ -333,9 +349,7 @@ export const getPendingWorkshops = async (req, res) => {
   }
 };
 
-// ----------------------
-// GET PROFESSOR'S WORKSHOPS
-// ----------------------
+
 export const getProfessorWorkshops = async (req, res) => {
   try {
     const professorId = req.user.id || req.user._id;
@@ -349,9 +363,7 @@ export const getProfessorWorkshops = async (req, res) => {
   }
 };
 
-// ----------------------
-// REGISTER FOR TRIP
-// ----------------------
+
 export const registerForTrip = async (req, res) => {
   try {
     const { tripId } = req.params;
@@ -390,6 +402,7 @@ export const registerForTrip = async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: err.message });
+
   }
 };
 
