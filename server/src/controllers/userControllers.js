@@ -139,3 +139,14 @@ export const loginUser = async (req,res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Get all users (for Admin or Event Officer)
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-passwordHash'); // exclude passwordHash
+    res.status(200).json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
