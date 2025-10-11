@@ -12,7 +12,7 @@ import eventRoutes from './routes/event.js';
 import cors from 'cors';
 
 import userRoutes from './routes/userRoutes.js';
-import eventRoutes from './routes/eventRoutes.js'; 
+
 
 const app = express();
 
@@ -39,7 +39,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
 
-app.use('/api/event', eventRoutes);
 
 
 
