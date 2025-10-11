@@ -115,20 +115,21 @@ export async function login(req, res) {
     if (!isMatch)
       return res.status(401).json({ message: 'Invalid credentials' });
 
-    // Generate token
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    // ✅ Use your helper function to sign the token
+    const token = signToken(user);
 
     console.log('Login Success:', { email, role: user.role });
-    res.json({ token, role: user.role });
+    res.json({
+      token,
+      role: user.role,
+      user: publicUser(user)
+    });
   } catch (err) {
     console.error('Login Error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 }
+
 
 
 // ---------- VERIFY EMAIL ----------
@@ -156,4 +157,18 @@ export async function verifyEmail(req, res) {
     console.error('Verification Error:', err);
     res.status(500).send('<h1>Server error verifying email</h1>');
   }
+}
+
+export async function me(req, res) {
+  const user = await User.findById(req.user.id).lean();
+  res.json({ user: user && publicUser(user) });
+}
+
+function signToken(user) {
+  const payload = { id: user._id.toString(), name: user.name, role: user.role };
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+}
+
+function publicUser(u) {
+  return { id: u._id?.toString() || u.id, name: u.name, email: u.email, role: u.role };
 }

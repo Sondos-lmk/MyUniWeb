@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 function Dashboard() {
   const navigate = useNavigate();
-  const role = localStorage.getItem('role') || 'unknown';
+  const { user } = useAuth();
+  const role = user?.role || 'unknown';
+  const name= user?.name || 'User';
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -27,7 +30,7 @@ function Dashboard() {
   return (
     <div className="p-10">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Welcome to your dashboard! ({role})</h1>
+        <h1 className="text-2xl font-bold">Welcome to your dashboard! {name} ({role})</h1>
         <button
           onClick={handleLogout}
           className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 logout-button"
