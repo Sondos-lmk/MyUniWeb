@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 export default function Login() {
   const { login, user } = useAuth()
@@ -48,6 +49,16 @@ export default function Login() {
         <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700" type="submit">
           Login
         </button>
+        {/* 👇 Added this section */}
+        <p className="text-center text-sm text-gray-600 mt-3">
+          Don't have an account?{" "}
+          <Link
+            to="/signup"
+            className="text-blue-600 hover:underline font-medium"
+          >
+            Sign up
+          </Link>
+        </p>
       </form>
     </div>
   )

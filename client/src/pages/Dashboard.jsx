@@ -6,10 +6,16 @@ function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const role = user?.role || 'unknown';
-  const name= user?.name || 'User';
+  const name = (() => {
+  if (!user) return 'Loading...';
+  if (role === 'vendor') return user.companyName || 'Vendor';
+  return user.name || 'User';
+})();
+
   const token = localStorage.getItem('token');
 
   useEffect(() => {
+    console.log("User object:", user);
     console.log('Dashboard.jsx mounted, role:', role);
     console.log('localStorage:', { token, role });
     console.log('Button should be visible with class: bg-red-600 logout-button');
@@ -18,7 +24,7 @@ function Dashboard() {
     if (!logoutButton) {
       console.log('Possible CSS issue or wrong component loaded');
     }
-  }, [role]);
+  }, [user]);
 
   const handleLogout = () => {
     console.log('Logging out, role:', role);
