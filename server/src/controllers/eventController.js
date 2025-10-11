@@ -10,6 +10,7 @@ import { Workshop } from '../models/Events/Workshop.js';
 
 // Base event schema (used for common fields)
 const baseEventSchema = Joi.object({
+  type: Joi.string().valid('bazaar', 'booth', 'conference', 'trip', 'workshop', 'gym').required(),
   status: Joi.string().valid('pending', 'approved', 'rejected', 'completed'),
   organizerId: Joi.string().required(),
 });
@@ -135,6 +136,15 @@ export const getMyRegisteredEvents = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const events = user.registeredEvents?.length ? user.registeredEvents : user.workshops;
+    const { type } = req.query;
+    const role = req.user?.role;
+    const Model = type ? getEventModel(type) : Event;
+    const filter = {};
+     if (role === 'vendor') {
+      filter.type = 'bazaar';
+      filter.status = 'approved';
+    } 
+    const events = await Model.find(filter);
     res.status(200).json(events);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch events', error: error.message });
@@ -384,6 +394,57 @@ export const registerForTrip = async (req, res) => {
       await trip.save();
       return res.status(400).json({ error: 'Trip is already full' });
     }
+// // Edit bazaar
+// export const editBazaar = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const updates = req.body;
+//     const updatedBazaar = await Bazaar.findByIdAndUpdate(id, updates, { new: true });
+//     if (!updatedBazaar) return res.status(404).json({ message: 'Bazaar not found' });
+//     res.status(200).json({ message: 'Bazaar updated successfully', updatedBazaar });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Failed to update bazaar', error: error.message });
+//   }
+// };
+// export const createBazaar = async (req, res) => {
+//   try {
+//     const { error, value } = bazaarSchema.validate(req.body);
+//     if (error) return res.status(400).json({ error: error.details[0].message });
+
+//     const newBazaar = new Bazaar(value);
+//     await newBazaar.save();
+
+//     res.status(201).json({ message: 'Bazaar created successfully', bazaar: newBazaar });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// export const createConference = async (req, res) => {
+//   try {
+//     const { error, value } = conferenceSchema.validate(req.body);
+//     if (error) return res.status(400).json({ error: error.details[0].message });
+
+//     // Set organizerId from authenticated user
+//     value.organizerId = req.user.id || req.user._id;
+//     value.status = 'pending'; // Conferences need approval
+
+//     const newConference = new Conference(value);
+//     await newConference.save();
+
+//     res.status(201).json({ 
+//       message: 'Conference created successfully and pending approval', 
+//       conference: newConference 
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+// ✅ Register for a general event (not just trip)
+export const registerForEvent = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+    const userId = req.user.id || req.user._id;
 
     // Check if already registered
     if (trip.registeredStudents.includes(studentId)) {

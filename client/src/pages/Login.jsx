@@ -1,67 +1,65 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import API from '../services/api';
+import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 export default function Login() {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [message, setMessage] = useState('');
+  const { login, user } = useAuth()
+  const nav = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
-  const handleChange = e => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async e => {
-    e.preventDefault();
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
     try {
-      console.log('Login Attempt:', formData);
-      const res = await API.post('/auth/login', formData);
-      console.log('Login Response:', res.data);
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('role', res.data.role);
-      setMessage('Login successful!');
-      if (res.data.role === 'admin') {
-        navigate('/admin');
+      await login(email, password) // uses AuthContext login()
+      if (user?.role === 'admin') {
+        nav('/admin')
       } else {
-        navigate('/dashboard');
+        nav('/dashboard')
       }
     } catch (err) {
-      console.error('Login Error:', err.response?.status, err.response?.data);
-      setMessage(err.response?.data?.message || 'Login failed');
+      setError(err?.response?.data?.message || 'Login failed')
     }
-  };
+  }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md w-96">
-        <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
+    <div className="max-w-md mx-auto card p-6 mt-10 bg-white rounded-xl shadow-md">
+      <h1 className="text-xl font-semibold mb-4 text-center">Login</h1>
+      <form onSubmit={handleSubmit} className="space-y-3">
         <input
-          name="email"
-          type="email"
+          className="w-full border p-2 rounded"
           placeholder="Email"
-          onChange={handleChange}
-          className="w-full mb-2 p-2 border rounded"
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
           required
         />
         <input
-          name="password"
+          className="w-full border p-2 rounded"
           type="password"
           placeholder="Password"
-          onChange={handleChange}
-          className="w-full mb-2 p-2 border rounded"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
           required
         />
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        {error && <div className="text-red-600 text-sm">{error}</div>}
+        <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700" type="submit">
           Login
         </button>
-        <p className="text-center text-sm text-gray-600 mt-2">
-          Don’t have an account? <Link to="/signup" className="text-blue-500 hover:underline">Sign up</Link>
+        {/* 👇 Added this section */}
+        <p className="text-center text-sm text-gray-600 mt-3">
+          Don't have an account?{" "}
+          <Link
+            to="/signup"
+            className="text-blue-600 hover:underline font-medium"
+          >
+            Sign up
+          </Link>
         </p>
-        {message && <p className="text-center text-sm text-red-600 mt-2">{message}</p>}
       </form>
     </div>
-  );
+  )
 }
