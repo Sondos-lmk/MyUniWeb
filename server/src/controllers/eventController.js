@@ -152,6 +152,7 @@ export const editBazaar = async (req, res) => {
     res.status(200).json({ message: 'Bazaar updated successfully', updatedBazaar });
   } catch (error) {
     res.status(500).json({ message: 'Failed to update bazaar', error: error.message });
+  }}
 
 
 export const createEvent = async (req, res) => {
@@ -406,4 +407,4 @@ export const registerForTrip = async (req, res) => {
   }
 };
 
-
+  

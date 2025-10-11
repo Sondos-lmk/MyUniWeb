@@ -12,7 +12,6 @@ import eventRoutes from './routes/event.js';
 import cors from 'cors';
 
 import userRoutes from './routes/userRoutes.js';
-import eventRoutes from './routes/eventRoutes.js'; 
 
 const app = express();
 
@@ -32,7 +31,6 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/perks', perkRoutes);
 
 app.use('/api/users', userRoutes);   // 👈 added for admin/user endpoints
-app.use('/api/events', eventRoutes); // 👈 added for events logic
 
 app.use('/api/auth', authRoutes);
 

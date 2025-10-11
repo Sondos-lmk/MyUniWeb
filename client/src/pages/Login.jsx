@@ -21,7 +21,6 @@ export default function Login() {
       const res = await API.post('/auth/login', formData);
       console.log('Login Response:', res.data);
       localStorage.setItem('token', res.data.token);
-      localStorage.setItem('role', res.data.role);
       setMessage('Login successful!');
       if (res.data.role === 'admin') {
         navigate('/admin');

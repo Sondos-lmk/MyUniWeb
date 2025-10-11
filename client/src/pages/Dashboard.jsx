@@ -1,14 +1,16 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 function Dashboard() {
   const navigate = useNavigate();
-  const role = localStorage.getItem('role') || 'unknown';
+  const { user, logout } = useAuth();
+  const role = user?.role || 'guest';
   const token = localStorage.getItem('token');
 
   useEffect(() => {
     console.log('Dashboard.jsx mounted, role:', role);
-    console.log('localStorage:', { token, role });
+    console.log('localStorage:', { token });
     console.log('Button should be visible with class: bg-red-600 logout-button');
     const logoutButton = document.querySelector('.logout-button');
     console.log('Logout button element:', logoutButton ? 'Found' : 'Not found');
@@ -20,7 +22,7 @@ function Dashboard() {
   const handleLogout = () => {
     console.log('Logging out, role:', role);
     localStorage.removeItem('token');
-    localStorage.removeItem('role');
+   
     navigate('/');
   };
 

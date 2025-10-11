@@ -13,6 +13,7 @@ import {
 } from '../controllers/eventController.js';
 import { requireAuth, requireEventOfficer, requireProfessor } from '../middleware/auth.js';
 
+
 const router = Router();
 
 // Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
@@ -30,5 +31,7 @@ router.get('/professor/my-workshops', requireAuth, requireProfessor, getProfesso
 
 // Events Officer routes for managing professor workshops
 router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWorkshops);
+
+
 
 export default router;
