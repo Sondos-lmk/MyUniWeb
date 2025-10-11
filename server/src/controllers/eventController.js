@@ -123,3 +123,34 @@ const getEventModel = (type) => {
     default: return Event;
   }
 };
+// [REQ 2] View registered events
+export const getMyRegisteredEvents = async (req, res) => {
+  try {
+    const { userId, role } = req.user; // assuming JWT or session middleware adds this
+    const UserModel = getUserModel(role);
+
+    const user = await UserModel.findById(userId).populate('registeredEvents workshops');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const events = user.registeredEvents?.length ? user.registeredEvents : user.workshops;
+    res.status(200).json(events);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch events', error: error.message });
+  }
+};
+// [REQ 3] Events Officer: Edit Bazaar details
+export const editBazaar = async (req, res) => {
+  try {
+    const { id } = req.params; // bazaar id
+    const updates = req.body;
+
+    const updatedBazaar = await Bazaar.findByIdAndUpdate(id, updates, { new: true });
+    if (!updatedBazaar) return res.status(404).json({ message: 'Bazaar not found' });
+
+    res.status(200).json({ message: 'Bazaar updated successfully', updatedBazaar });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update bazaar', error: error.message });
+  }
+};
+
+
