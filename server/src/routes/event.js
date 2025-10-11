@@ -11,10 +11,10 @@ import {
   getPendingWorkshops,
   getProfessorWorkshops,
   getMyRegisteredEvents,
-  editBazaar,
+  // editBazaar,
   registerForEvent,
-  createBazaar,
-  createConference,
+  // createBazaar,
+  // createConference,
 } from '../controllers/eventController.js';
 
 import { requireAuth, requireEventOfficer, requireProfessor } from '../middleware/auth.js';
@@ -28,15 +28,15 @@ router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWor
 
 // 📌 Additional features
 router.get('/my-events', requireAuth, getMyRegisteredEvents);
-router.put('/bazaar/:id', requireAuth, requireEventOfficer, editBazaar);
+// router.put('/bazaar/:id', requireAuth, requireEventOfficer, editBazaar);
 router.post('/register', requireAuth, registerForEvent);
-router.post('/bazaar', requireAuth, requireEventOfficer, createBazaar);
-router.post('/conference', requireAuth, requireEventOfficer, createConference);
+// router.post('/bazaar', requireAuth, requireEventOfficer, createBazaar);
+// router.post('/conference', requireAuth, requireEventOfficer, createConference);
 
 // 📌 General event routes
-router.get('/', getAllEvents);
-router.get('/:id', getEventById);
-router.post('/', requireAuth, requireEventOfficer, createEvent);
+router.get('/', requireAuth, getAllEvents);
+router.get('/:id', requireAuth, getEventById);
+router.post('/', createEvent);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
 router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
