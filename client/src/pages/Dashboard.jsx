@@ -40,6 +40,10 @@ function Dashboard() {
     navigate('/');
   };
 
+  const handleNavigateToEventsOffice = () => {
+    navigate('/events-office');
+  };
+
   return (
     <div className="p-10">
       <div className="flex justify-between items-center mb-4">
@@ -52,6 +56,22 @@ function Dashboard() {
         >
           Logout
         </button>
+      </div>
+      
+      <div className="mb-8">
+        <p className="text-center mb-6">Dashboard content for {role}</p>
+        
+        {/* Role-specific navigation */}
+        {role === 'eventsOffice' && (
+          <div className="text-center">
+            <button
+              onClick={handleNavigateToEventsOffice}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Go to Events Office Dashboard
+            </button>
+          </div>
+        )}
       </div>
 
       {role === 'vendor' && (
