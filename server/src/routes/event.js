@@ -13,6 +13,9 @@ import {
   getMyRegisteredEvents,
   // editBazaar,
   registerForEvent,
+  registerForBazaar,
+  registerBooth,
+  getMyEventApplications,
   // createBazaar,
   // createConference,
 } from '../controllers/eventController.js';
@@ -34,7 +37,10 @@ router.post('/register', requireAuth, registerForEvent);
 // router.post('/conference', requireAuth, requireEventOfficer, createConference);
 
 // 📌 General event routes
-router.get('/', requireAuth, getAllEvents);
+router.get('/', getAllEvents);
+// Fetch all bazaars and booths I registered for
+router.get("/my-applications", requireAuth, getMyEventApplications);
+
 router.get('/:id', requireAuth, getEventById);
 router.post('/', createEvent);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
@@ -44,4 +50,14 @@ router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
 
+// 📌 Bazaar registration
+router.post('/bazaar/:bazaarId/register', requireAuth, registerForBazaar);
+
+// Booth registration
+router.post("/booth/:boothId/register", requireAuth, registerBooth);
+
+
+
 export default router;
+
+
