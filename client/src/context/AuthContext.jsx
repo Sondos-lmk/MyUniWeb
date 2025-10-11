@@ -11,9 +11,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) { setLoading(false); return }
-    api.get('/auth/me', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    })
+    api.get('/auth/me')
       .then(res => setUser(res.data.user || null))
       .catch(() => { localStorage.removeItem('token'); setUser(null) })
       .finally(() => setLoading(false))
