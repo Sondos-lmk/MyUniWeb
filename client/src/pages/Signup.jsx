@@ -60,6 +60,18 @@ export default function Signup() {
       >
         <h2 className="text-2xl font-bold mb-4 text-center">Sign Up</h2>
 
+
+        {/* Show companyName for vendor */}
+        {formData.role === "vendor" && (
+          <input
+            name="companyName"
+            placeholder="Company Name"
+            onChange={handleChange}
+            className="w-full mb-2 p-2 border rounded"
+            required
+          />
+        )}
+
         {/* Show name only for non-vendor roles */}
         {formData.role !== "vendor" && (
           <input
@@ -123,16 +135,7 @@ export default function Signup() {
           />
         )}
 
-        {/* Show companyName for vendor */}
-        {formData.role === "vendor" && (
-          <input
-            name="companyName"
-            placeholder="Company Name"
-            onChange={handleChange}
-            className="w-full mb-2 p-2 border rounded"
-            required
-          />
-        )}
+        
 
         <button
           type="submit"

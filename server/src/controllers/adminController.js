@@ -5,6 +5,7 @@ import { Admin } from '../models/Users/Admin.js';
 import { EventOfficer } from '../models/Users/EventsOfficer.js';
 import { sendEmail } from '../utils/email.js';
 import bcrypt from 'bcryptjs';
+import Joi from 'joi';
 
 // Approve user (set isVerified = true and send verification email)
 export const approveUser = async (req,res)=>{
@@ -26,22 +27,90 @@ export const approveUser = async (req,res)=>{
   }
 };
 
-// Admin creates Admin/EventOfficer
-export const createAdminOrEventOfficer = async (req,res)=>{
-  try{
-    const { name, email, password, role } = req.body;
-    if(!['admin','eventOfficer'].includes(role)) return res.status(400).json({ message: "Invalid role" });
+// validation schema for creating admins/event officers
+const createUserSchema = Joi.object({
+  name: Joi.string().required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().min(6).required(),
+});
 
-    const Model = role==='admin' ? Admin : EventOfficer;
-    const exists = await Model.findOne({ email });
-    if(exists) return res.status(400).json({ message: "User already exists" });
+//admin creates an admin or events officer 
+export const createUserByAdmin = async (req, res) => {
+  try {
+    //Extract the role from the route parameter
+    const { role } = req.params; // example: /admin/create/admin or /admin/create/eventOfficer
 
+    //Validate allowed roles
+    if (!['admin', 'eventOfficer'].includes(role)) {
+      return res.status(400).json({ message: "Invalid role. Must be 'admin' or 'eventOfficer'." });
+    }
+
+    // Validate request body
+    const { error, value } = createUserSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
+    const { name, email, password } = value;
+
+    //Check if user already exists
+    const Model = role === 'admin' ? Admin : EventOfficer;
+    const existingUser = await Model.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: `${role} with this email already exists` });
+    }
+
+    //Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new Model({ name, email, passwordHash: hashedPassword, isVerified: true });
+
+    //Create and save user
+    const newUser = new Model({
+      name,
+      email,
+      passwordHash: hashedPassword,
+      role,
+      isVerified: true // Admins and Event Officers are verified immediately
+    });
+
     await newUser.save();
-    res.status(201).json({ message: `${role} account created`, user: newUser });
-  }catch(err){
+
+    //Respond
+    res.status(201).json({
+      message: `${role} account created successfully.`,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role
+      }
+    });
+
+  } catch (err) {
     console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//admin deleting event officer or other admin by id 
+export const deleteUserByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent self-deletion
+    if (req.user.id === id) {
+      return res.status(400).json({ message: "You cannot delete your own account." });
+    }
+
+    // Check if target user is Admin or EventOfficer
+    const user = await Admin.findById(id) || await EventOfficer.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await user.deleteOne();
+    res.status(200).json({ message: `${user.role} deleted successfully.` });
+  } catch (err) {
+    console.error("Delete user error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

@@ -354,3 +354,4 @@ Content-Type: application/json
 ✅ **Authorization testing**
 
 This guide covers the complete trip management workflow from login to testing all functionality!
+

@@ -4,8 +4,29 @@ import { User } from '../models/Users/User.js';
 import { Staff } from '../models/Users/Staff.js';
 import { Professor } from '../models/Users/Professor.js';
 import { TA } from '../models/Users/TA.js';
+import { Admin } from '../models/Users/Admin.js';
+import { EventOfficer } from '../models/Users/EventsOfficer.js';
+import { Student } from '../models/Users/Student.js';
+import { Vendor } from '../models/Users/Vendor.js';
 import Joi from 'joi'; // ✅ Add Joi for validation
 import { sendEmail } from '../utils/email.js';
+
+function getModelByRole(role) {
+  const roleMap = {
+    admin: Admin,
+    eventsofficer: EventOfficer,
+    professor: Professor,
+    staff: Staff,
+    student: Student,
+    ta: TA,
+    user: User,
+    vendor: Vendor
+  };
+
+  // default fallback
+  return roleMap[role?.toLowerCase()] || User;
+}
+
 
 
 // ✅ Register Schema
@@ -51,10 +72,8 @@ export async function register(req, res) {
     }
 
     // Choose correct model
-    const Model =
-      role === 'staff' ? Staff :
-      role === 'professor' ? Professor :
-      role === 'ta' ? TA : User;
+   const Model = getModelByRole(role); // instead of manually checking all models
+
 
     // Check if email or ID already exists
     if (await Model.findOne({ email }))
@@ -115,20 +134,21 @@ export async function login(req, res) {
     if (!isMatch)
       return res.status(401).json({ message: 'Invalid credentials' });
 
-    // Generate token
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    // ✅ Use your helper function to sign the token
+    const token = signToken(user);
 
     console.log('Login Success:', { email, role: user.role });
-    res.json({ token, role: user.role });
+    res.json({
+      token,
+      role: user.role,
+      user: publicUser(user)
+    });
   } catch (err) {
     console.error('Login Error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 }
+
 
 
 // ---------- VERIFY EMAIL ----------
@@ -156,4 +176,29 @@ export async function verifyEmail(req, res) {
     console.error('Verification Error:', err);
     res.status(500).send('<h1>Server error verifying email</h1>');
   }
+}
+
+export async function me(req, res) {
+  try {
+    const Model = getModelByRole(req.user.role);
+    const user = await Model.findById(req.user.id).lean();
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    res.json({ user: publicUser(user) });
+  } catch (err) {
+    console.error('me() error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+
+
+function signToken(user) {
+  const payload = { id: user._id.toString(), name: user.name, role: user.role, companyName: user.companyName };
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+}
+
+function publicUser(u) {
+  return { id: u._id?.toString() || u.id, name: u.name, email: u.email, role: u.role, companyName: u.companyName };
 }
