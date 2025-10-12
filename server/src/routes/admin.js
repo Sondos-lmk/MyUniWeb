@@ -200,7 +200,7 @@ router.get('/admins', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 //to create event ofiicer and admin(only admin)
- router.post('/create/:role', requireAuth, requireAdmin, createUserByAdmin);
+router.post('/create/:role', requireAuth, requireAdmin, createUserByAdmin);
 
 // Delete admin or event officer (Admin only)
 router.delete('/delete-user/:id', requireAuth, requireAdmin, deleteUserByAdmin);

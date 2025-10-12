@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
-  const [adminForm, setAdminForm] = useState({ name: '', email: '', password: '' });
+  const [adminForm, setAdminForm] = useState({ name: '', email: '', password: '', role: '' });
   const [admins, setAdmins] = useState([]);
   const navigate = useNavigate();
 
@@ -33,7 +33,6 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   // Fetch existing admins
-  useEffect(() => {
     const fetchAdmins = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -53,29 +52,53 @@ const AdminDashboard = () => {
         }
       }
     };
-    fetchAdmins();
+    useEffect(() => {
+      fetchAdmins();
   }, [navigate]);
 
   // Handle admin creation
-  const handleCreateAdmin = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/');
-        return;
-      }
-      const response = await axios.post('http://localhost:4000/api/admin/create-admin', adminForm, {
-        headers: { Authorization: `Bearer ${token}` },
-        });
-      setAdmins([...admins, response.data.admin]);
-      setAdminForm({ name: '', email: '', password: '' });
-      alert('Admin created successfully');
-    } catch (err) {
-      console.error('Error creating admin:', err);
-      alert(err.response?.data?.message || 'Failed to create admin');
+const handleCreateUser = async (e) => {
+  e.preventDefault();
+
+  if (!adminForm.role) {
+    alert("Please select a role (admin or eventofficer)");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/create/${adminForm.role}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: adminForm.name,
+        email: adminForm.email,
+        password: adminForm.password,
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.message || "Failed to create user");
     }
-  };
+
+    alert(`Successfully created ${adminForm.role}: ${data.user.name}`);
+
+    // Reset form
+    setAdminForm({ name: "", email: "", password: "", role: "" });
+
+    // Refresh admin list if needed
+    fetchAdmins && fetchAdmins();
+  } catch (error) {
+    console.error("Error creating user:", error);
+    alert("Error creating user. Check console for details.");
+  }
+};
+
 
   // Handle admin deletion
   const handleDeleteAdmin = async (id) => {
@@ -86,7 +109,7 @@ const AdminDashboard = () => {
         navigate('/');
         return;
       }
-      await axios.delete(`http://localhost:4000/api/admin/delete-admin/${id}`, {
+      await axios.delete(`http://localhost:4000/api/admin/delete-user/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAdmins(admins.filter((admin) => admin._id !== id));
@@ -139,8 +162,8 @@ const AdminDashboard = () => {
 
       {/* Create Admin Form */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">Create Admin Account</h2>
-        <form onSubmit={handleCreateAdmin} className="space-y-4">
+          <h2 className="text-xl font-semibold mb-2">Create Admin/Event Officer Account</h2>
+          <form onSubmit={handleCreateUser} className="space-y-4">
           <div>
             <label className="block">Name</label>
             <input
@@ -162,6 +185,18 @@ const AdminDashboard = () => {
             />
           </div>
           <div>
+            <label className="block">Role</label>
+            <select
+              value={adminForm.role}
+              onChange={(e) => setAdminForm({ ...adminForm, role: e.target.value })}
+              className="border p-2 w-full"
+            >
+              <option value="">Select a role</option>
+              <option value="admin">Admin</option>
+              <option value="eventOfficer">Event Officer</option>
+            </select>
+          </div>
+          <div>
             <label className="block">Password</label>
             <input
               type="password"
@@ -172,7 +207,7 @@ const AdminDashboard = () => {
             />
           </div>
           <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            Create Admin
+            Create Admin/Event officer
           </button>
         </form>
       </div>
