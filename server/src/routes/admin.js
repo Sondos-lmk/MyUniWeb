@@ -4,17 +4,15 @@ import { User } from '../models/Users/User.js';
 import { Staff } from '../models/Users/Staff.js';
 import { Professor } from '../models/Users/Professor.js';
 import { TA } from '../models/Users/TA.js';
+import { EventOfficer } from '../models/Users/EventsOfficer.js';
 import { sendEmail } from '../utils/email.js';
-import { createUserByAdmin } from '../controllers/adminController.js';
-import { deleteUserByAdmin } from '../controllers/adminController.js';
+import { createUserByAdmin, deleteUserByAdmin } from '../controllers/adminController.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 const router = express.Router();
 
-
-// 📍 Get pending users
-
+// Get pending users
 router.get('/pending-users', requireAuth, requireAdmin, async (req, res) => {
   try {
     const pendingUsers = await User.find({ isVerified: false, role: { $nin: ['student', 'vendor', 'admin'] } });
@@ -37,9 +35,7 @@ router.get('/pending-users', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-
-// ✅ Approve user and send verification email
-
+// Approve user and send verification email
 router.post('/approve-user/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { role } = req.body;
@@ -114,81 +110,13 @@ router.post('/approve-user/:id', requireAuth, requireAdmin, async (req, res) => 
       message: 'Verification email sent successfully',
       user: { name: newUser.name, email: newUser.email, role: newUser.role },
     });
-
   } catch (err) {
     console.error('Approve Error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-
-// Create admin
-
-// router.post('/create-admin', requireAuth, requireAdmin, async (req, res) => {
-//   try {
-//     const { name, email, password } = req.body;
-//     console.log('Create Admin Attempt:', { name, email });
-
-//     if (!name || !email || !password) {
-//       return res.status(400).json({ message: 'Name, email, and password are required' });
-//     }
-
-//     if (!email.endsWith('@guc.edu.eg')) {
-//       return res.status(400).json({ message: 'Email must end with @guc.edu.eg' });
-//     }
-
-//     const existingUser = await User.findOne({ email });
-//     if (existingUser) {
-//       return res.status(400).json({ message: 'Email already registered' });
-//     }
-
-//     const passwordHash = await bcrypt.hash(password, 10);
-//     const admin = new User({
-//       name,
-//       email,
-//       passwordHash,
-//       role: 'admin',
-//       isVerified: true,
-//     });
-
-//     await admin.save();
-//     console.log('Admin created:', { email, name });
-//     res.status(201).json({ message: 'Admin account created successfully', admin: { name, email, role: 'admin' } });
-//   } catch (err) {
-//     console.error('Create Admin Error:', err);
-//     res.status(500).json({ message: 'Server error', error: err.message });
-//   }
-// });
-
-
-// Delete admin
-
-// router.delete('/delete-admin/:id', requireAuth, requireAdmin, async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const requestingUserId = req.user.userId;
-
-//     if (id === requestingUserId) {
-//       return res.status(400).json({ message: 'Cannot delete your own account' });
-//     }
-
-//     const admin = await User.findOne({ _id: id, role: 'admin' });
-//     if (!admin) {
-//       return res.status(404).json({ message: 'Admin account not found' });
-//     }
-
-//     await admin.deleteOne();
-//     console.log('Admin deleted:', { id, email: admin.email });
-//     res.json({ message: 'Admin account deleted successfully' });
-//   } catch (err) {
-//     console.error('Delete Admin Error:', err);
-//     res.status(500).json({ message: 'Server error', error: err.message });
-//   }
-// });
-
-
 // Get all admins
-
 router.get('/admins', requireAuth, requireAdmin, async (req, res) => {
   try {
     const admins = await User.find({ role: 'admin' }).select('name email role');
@@ -199,12 +127,23 @@ router.get('/admins', requireAuth, requireAdmin, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
-//to create event ofiicer and admin(only admin)
+
+// Get all event officers
+router.get('/event-officers', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const eventOfficers = await EventOfficer.find().select('name email role');
+    console.log('Event Officers Fetched:', eventOfficers.length);
+    res.json(eventOfficers);
+  } catch (err) {
+    console.error('Fetch Event Officers Error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Create admin or event officer
 router.post('/create/:role', requireAuth, requireAdmin, createUserByAdmin);
 
-// Delete admin or event officer (Admin only)
+// Delete admin or event officer
 router.delete('/delete-user/:id', requireAuth, requireAdmin, deleteUserByAdmin);
 
 export default router;
-
-
