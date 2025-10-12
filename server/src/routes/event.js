@@ -8,6 +8,7 @@ import {
   approveEvent,
   rejectEvent,
   createWorkshop,
+  updateWorkshop,
   getPendingWorkshops,
   getProfessorWorkshops,
   getMyRegisteredEvents,
@@ -36,6 +37,9 @@ router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
 // Professor-specific routes
 router.post('/professor/workshop', requireAuth, requireProfessor, createWorkshop);
+
+// Update workshop
+router.put("/professor/workshop/:id",requireAuth,requireProfessor,updateWorkshop);
 
 router.get('/professor/my-workshops', requireAuth, requireProfessor, getProfessorWorkshops);
 router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWorkshops);

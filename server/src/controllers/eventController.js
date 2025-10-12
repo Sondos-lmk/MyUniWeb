@@ -99,6 +99,7 @@ const workshopSchema = baseEventSchema.keys({
   ),
   professorsParticipating: Joi.array().items(Joi.string()),
   extraRequiredResource: Joi.string().allow(''),
+  capacity: Joi.number().required(),
 });
 
 const gymSchema = baseEventSchema.keys({
@@ -256,27 +257,30 @@ export const rejectEvent = async (req, res) => {
 // ----------------------
 export const createWorkshop = async (req, res) => {
   try {
-    // Ensure only professors can create workshops
+    // ✅ Ensure only professors can create workshops
     if (req.user.role !== "professor") {
       return res.status(403).json({ message: "Access denied. Professors only." });
     }
 
-    // Add defaults and validation
+    // ✅ Use the workshop validation schema
     const { type = "workshop" } = req.body;
+    req.body.organizerId = req.user._id.toString();
     const schema = getValidationSchema(type);
 
-    // Organizer / Creator IDs from authenticated professor
-    req.body.organizerId = req.user._id || req.user.userId;
-    req.body.createdBy = req.user._id || req.user.userId;
-    req.body.status = "pending";
+    // ⚠️ Don't add createdBy or organizerId yet — wait until after validation
 
-    // Validate the workshop data using Joi
+    // ✅ Validate user input
     const { error, value } = schema.validate(req.body);
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    // Create and save workshop
+    // ✅ Add system-controlled fields AFTER validation
+    value.organizerId = req.user._id;
+    value.createdBy = req.user._id;
+    value.status = "pending";
+
+    // ✅ Save the workshop
     const newWorkshop = new Workshop(value);
     await newWorkshop.save();
 
@@ -293,6 +297,44 @@ export const createWorkshop = async (req, res) => {
   }
 };
 
+
+// ----------------------
+// UPDATE WORKSHOP BY PROFESSOR
+// ----------------------
+export const updateWorkshop = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the workshop
+    const workshop = await Workshop.findById(id);
+    if (!workshop)
+      return res.status(404).json({ message: "Workshop not found." });
+
+    // Ensure only the creator can edit
+    if (workshop.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Access denied. You can only edit your own workshops." });
+    }
+
+    // Apply updates
+    Object.assign(workshop, req.body);
+
+    // When a professor edits, reset status to pending approval
+    workshop.status = "pending";
+
+    await workshop.save();
+
+    res.status(200).json({
+      message: "Workshop updated successfully and is pending approval.",
+      workshop,
+    });
+  } catch (error) {
+    console.error("Error updating workshop:", error);
+    res.status(500).json({
+      message: "Server error while updating workshop.",
+      error: error.message,
+    });
+  }
+};
 
 
 // Register for a trip
