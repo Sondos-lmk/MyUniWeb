@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
+import CreateTrip from './pages/CreateTrip.jsx';
+
 
 
 
@@ -36,7 +38,12 @@ function App() {
         />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="*" element={<NotFound />} />
-        
+        <Route path="/create-trip"element={<ProtectedRoute requiredRole="eventOfficer">
+      <CreateTrip />
+    </ProtectedRoute>
+  }
+/>
+
 
       </Routes>
     </div>
