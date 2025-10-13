@@ -14,6 +14,7 @@ import {
   getMyRegisteredEvents,
   // editBazaar,
   registerForEvent,
+  requestWorkshopEdit,
   registerForBazaar,
   registerBooth,
   getMyEventApplications,
@@ -55,6 +56,8 @@ router.post('/register', requireAuth, registerForEvent);
 router.get('/', getAllEvents);
 // Fetch all bazaars and booths I registered for
 router.get("/my-applications", requireAuth, getMyEventApplications);
+
+router.patch("/workshop/:id/request-edit",requireAuth,requireEventOfficer,requestWorkshopEdit);
 
 router.get('/:id', requireAuth, getEventById);
 router.post('/', createEvent);

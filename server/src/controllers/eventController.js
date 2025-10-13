@@ -340,6 +340,35 @@ export const updateWorkshop = async (req, res) => {
   }
 };
 
+// EventsOffice request edits in workshops
+export const requestWorkshopEdit = async (req, res) => {
+  try {
+    // ✅ Ensure only Event Officers can perform this action
+    if (req.user.role !== "eventOfficer") {
+      return res.status(403).json({ message: "Access denied. Event Officers only." });
+    }
+
+    const { id } = req.params;
+    const { editRequest } = req.body;
+
+    // ✅ Find the workshop
+    const workshop = await Workshop.findById(id);
+    if (!workshop) return res.status(404).json({ message: "Workshop not found." });
+
+    // ✅ Save the edit request
+    workshop.editRequest = editRequest;
+    workshop.status = "needs revision"; // optional: add this status in schema if not present
+    await workshop.save();
+
+    res.status(200).json({
+      message: "Edit request saved successfully.",
+      workshop
+    });
+  } catch (error) {
+    console.error("Error requesting workshop edit:", error);
+    res.status(500).json({ message: "Server error while requesting workshop edit.", error: error.message });
+  }
+};
 
 // Register for a trip
 export const registerForTrip = async (req, res) => {

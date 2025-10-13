@@ -32,7 +32,9 @@ const workshopSchema = new mongoose.Schema({
   extraRequiredResource: { type: String },
   capacity: {type: Number,required: true},
   createdBy: {type: mongoose.Schema.Types.ObjectId,ref: "User",required: true},
-  status: {type: String,enum: ["pending", "approved", "rejected"],default: "pending"},
+  status: {type: String,enum: ["pending", "approved", "rejected", "needs revision"],default: "pending"},
+  editRequest: {type: String,default: null}
+
 
 }, 
 {timestamps: true}
