@@ -14,13 +14,16 @@ export default function Login() {
     e.preventDefault()
     setError('')
     try {
-      await login(email, password) // uses AuthContext login()
-      if (user?.role === 'admin') {
+      const loggedInUser = await login(email, password)
+      console.log('logged in user',loggedInUser)
+      if (loggedInUser.role === 'admin') {
         nav('/admin')
       } else {
         nav('/dashboard')
       }
+
     } catch (err) {
+      console.error(err)
       setError(err?.response?.data?.message || 'Login failed')
     }
   }

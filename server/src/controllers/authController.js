@@ -140,8 +140,14 @@ export async function login(req, res) {
     console.log('Login Success:', { email, role: user.role });
     res.json({
       token,
-      role: user.role,
-      user: publicUser(user)
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+      // role: user.role,
+      // user: publicUser(user)
     });
   } catch (err) {
     console.error('Login Error:', err);
