@@ -6,6 +6,7 @@ import { Conference } from '../models/Events/Conference.js';
 import { GymSession } from '../models/Events/GymSession.js';
 import { Trip } from '../models/Events/Trip.js';
 import { Workshop } from '../models/Events/Workshop.js';
+import { Vendor } from "../models/Users/Vendor.js";
 import mongoose from "mongoose";
 
 // --------------------------------------
@@ -157,6 +158,50 @@ export const getAllEvents = async (req, res) => {
   }
 };
 
+// Get upcoming events with details (includes vendor participation for bazaars/booths)
+export const getUpcomingEvents = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Only approved and future-dated events are considered upcoming
+    const baseFilter = { status: 'approved', $or: [ { startDate: { $gte: now } }, { endDate: { $gte: now } } ] };
+
+    // Build queries per discriminator to leverage field existence
+    const [bazaars, booths, conferences, trips, workshops] = await Promise.all([
+      Bazaar.find(baseFilter)
+        .populate({ path: 'registeredVendors.vendor', select: 'name email role' })
+        .lean(),
+      Booth.find(baseFilter)
+        .populate({ path: 'registeredVendors.vendor', select: 'name email role' })
+        .lean(),
+      Conference.find(baseFilter).lean(),
+      Trip.find(baseFilter).lean(),
+      Workshop.find(baseFilter)
+        .populate('professorsParticipating', 'name email')
+        .lean(),
+    ]);
+
+    const combined = [
+      ...bazaars.map(e => ({ ...e, type: 'bazaar' })),
+      ...booths.map(e => ({ ...e, type: 'booth' })),
+      ...conferences.map(e => ({ ...e, type: 'conference' })),
+      ...trips.map(e => ({ ...e, type: 'trip' })),
+      ...workshops.map(e => ({ ...e, type: 'workshop' })),
+    ];
+
+    // Sort by startDate ascending when available, otherwise by createdAt
+    combined.sort((a, b) => {
+      const aDate = a.startDate ? new Date(a.startDate).getTime() : new Date(a.createdAt).getTime();
+      const bDate = b.startDate ? new Date(b.startDate).getTime() : new Date(b.createdAt).getTime();
+      return aDate - bDate;
+    });
+
+    res.status(200).json(combined);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // Get event by ID
 export const getEventById = async (req, res) => {
   try {
@@ -164,6 +209,156 @@ export const getEventById = async (req, res) => {
     if (!event) return res.status(404).json({ error: 'Event not found' });
     res.status(200).json(event);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET ALL UPCOMING EVENTS (For All Roles)
+export const getUpcomingEvents = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Helper function to format each event consistently
+    const formatEvent = (event, type) => ({
+      id: event._id,
+      type,
+      title: event.title,
+      description: event.desc || "",
+      location: event.location || event.locationInPlatform || "N/A",
+      startDate: event.startDate,
+      endDate: event.endDate,
+      registrationDeadline: event.registrationDeadline,
+      vendors:
+        type === "bazaar" || type === "booth"
+          ? event.registeredVendors || []
+          : [],
+      status: event.status || "N/A",
+    });
+
+    // Fetch approved upcoming events from all collections in parallel
+    const [workshops, trips, bazaars, booths, conferences] = await Promise.all([
+      Workshop.find({ startDate: { $gt: now }, status: "approved" }),
+      Trip.find({ startDate: { $gt: now }, status: "approved" }),
+      Bazaar.find({ startDate: { $gt: now }, status: "approved" }).populate(
+        "registeredVendors.vendor",
+        "name email"
+      ),
+      Booth.find({ status: "approved" }).populate(
+        "registeredVendors.vendor",
+        "name email"
+      ),
+      Conference.find({ startDate: { $gt: now }, status: "approved" }),
+    ]);
+
+    // Combine all events into a single list
+    const allUpcoming = [
+      ...workshops.map((e) => formatEvent(e, "workshop")),
+      ...trips.map((e) => formatEvent(e, "trip")),
+      ...bazaars.map((e) => formatEvent(e, "bazaar")),
+      ...booths.map((e) => formatEvent(e, "booth")),
+      ...conferences.map((e) => formatEvent(e, "conference")),
+    ];
+
+    // Sort by startDate (earliest first)
+    allUpcoming.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+    res.status(200).json({
+      message: "Approved upcoming events fetched successfully",
+      count: allUpcoming.length,
+      events: allUpcoming,
+    });
+  } catch (err) {
+    console.error("Error fetching approved upcoming events:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// SEARCH EVENTS BY NAME OF EVENT/PROFFESSOR OR TYPE
+export const searchEvents = async (req, res) => {
+  try {
+    const { name, type } = req.query;
+    const searchRegex = name ? new RegExp(name, "i") : null; // Case-insensitive search
+    const filters = { status: "approved" }; // Only approved events
+
+    // Apply type filter if provided
+    if (type) {
+      filters.type = type.toLowerCase();
+    }
+
+    // Helper function to format all event types consistently
+    const formatEvent = (event, type) => ({
+      id: event._id,
+      type,
+      title: event.title,
+      description: event.desc || "",
+      location: event.location || event.locationInPlatform || "N/A",
+      startDate: event.startDate,
+      endDate: event.endDate,
+      status: event.status,
+    });
+
+    // Search in parallel across models
+    const [
+      workshops,
+      trips,
+      bazaars,
+      booths,
+      conferences
+    ] = await Promise.all([
+      Workshop.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
+      }).populate("professorsParticipating", "name email"),
+      Trip.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
+      }),
+      Bazaar.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
+      }).populate("registeredVendors.vendor", "name email"),
+      Booth.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }] } : {})
+      }).populate("registeredVendors.vendor", "name email"),
+      Conference.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
+      })
+    ]);
+
+    // Combine all found events
+    let allResults = [
+      ...workshops.map((e) => formatEvent(e, "workshop")),
+      ...trips.map((e) => formatEvent(e, "trip")),
+      ...bazaars.map((e) => formatEvent(e, "bazaar")),
+      ...booths.map((e) => formatEvent(e, "booth")),
+      ...conferences.map((e) => formatEvent(e, "conference")),
+    ];
+
+    // ✅ If searching by professor name, filter further from populated professors
+    if (name) {
+      allResults = allResults.filter((ev) => {
+        if (ev.type === "workshop" && ev.professorsParticipating) {
+          return ev.professorsParticipating.some((p) =>
+            p.name.toLowerCase().includes(name.toLowerCase())
+          );
+        }
+        return true;
+      });
+    }
+
+    if (allResults.length === 0) {
+      return res.status(404).json({ message: "No events found matching your search." });
+    }
+
+    res.status(200).json({
+      message: "Search results fetched successfully",
+      count: allResults.length,
+      events: allResults,
+    });
+  } catch (err) {
+    console.error("Error searching events:", err);
     res.status(500).json({ error: err.message });
   }
 };

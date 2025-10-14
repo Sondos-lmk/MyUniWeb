@@ -7,6 +7,8 @@ import {
   deleteEvent,
   approveEvent,
   rejectEvent,
+  getUpcomingEvents,
+  searchEvents,
   createWorkshop,
   updateWorkshop,
   getPendingWorkshops,
@@ -17,6 +19,9 @@ import {
   registerForBazaar,
   registerBooth,
   getMyEventApplications,
+  // createBazaar,
+  // createConference,
+  //getUpcomingEvents,
 } from '../controllers/eventController.js';
 
 import {
@@ -26,6 +31,13 @@ import {
 } from '../middleware/auth.js';
 
 const router = Router();
+
+// Everyone logged in (any role) can view upcoming events
+router.get("/upcoming", requireAuth, getUpcomingEvents);
+
+//student/staff/events officer/TA/prof/admin can search event by name of proffessor/event or type
+router.get("/search", requireAuth, searchEvents);
+
 
 
 
@@ -72,7 +84,11 @@ router.post('/', requireAuth, requireEventOfficer, createEvent);
 
 
 // 📌 General event routes
-router.get('/', getAllEvents);
+router.get('/upcoming', getUpcomingEvents);
+//router.get('/', getAllEvents);
+
+// Fetch all bazaars and booths I registered for
+router.get("/my-applications", requireAuth, getMyEventApplications);
 
 // ✅ Add these new routes before the ":id" route
 router.get('/workshops', requireAuth, async (req, res) => {
