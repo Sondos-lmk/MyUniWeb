@@ -2,18 +2,22 @@ import jwt from 'jsonwebtoken';
 
 // Auth middleware
 export function requireAuth(req, res, next) {
+  console.log('🧩 requireAuth triggered');
   const authHeader = req.headers.authorization || '';
-  const [, token] = authHeader.split(' '); // Bearer <token>
+  const [, token] = authHeader.split(' ');
   if (!token) return res.status(401).json({ message: 'Missing token' });
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = payload;
+    console.log('✅ Auth OK for user:', payload.email);
     next();
   } catch (err) {
+    console.log('❌ Invalid token:', err.message);
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 }
+
 // Ensure the authenticated user is an Events Officer
 export function requireEventOfficer(req, res, next) {
   // requireAuth should run before this so req.user exists; otherwise block
