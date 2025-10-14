@@ -7,6 +7,8 @@ import {
   deleteEvent,
   approveEvent,
   rejectEvent,
+  getUpcomingEvents,
+  searchEvents,
   createWorkshop,
   updateWorkshop,
   getPendingWorkshops,
@@ -25,6 +27,13 @@ import {
 import { requireAdmin, requireAuth, requireEventOfficer, requireProfessor,requireEventOfficerOrAdmin } from '../middleware/auth.js';
 
 const router = Router();
+
+// Everyone logged in (any role) can view upcoming events
+router.get("/upcoming", requireAuth, getUpcomingEvents);
+
+//student/staff/events officer/TA/prof/admin can search event by name of proffessor/event or type
+router.get("/search", requireAuth, searchEvents);
+
 
 
 // Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
@@ -54,6 +63,7 @@ router.post('/register', requireAuth, registerForEvent);
 
 // 📌 General event routes
 router.get('/', getAllEvents);
+
 // Fetch all bazaars and booths I registered for
 router.get("/my-applications", requireAuth, getMyEventApplications);
 
