@@ -452,7 +452,7 @@ export const updateBazaar = async (req, res) => {
     });
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const updatedEvent = await Event.findByIdAndUpdate(id, value, {
+    const updatedEvent = await Bazaar.findByIdAndUpdate(id, value, {
       new: true,
       runValidators: true,
     });
