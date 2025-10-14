@@ -6,6 +6,10 @@ import { Conference } from '../models/Events/Conference.js';
 import { GymSession } from '../models/Events/GymSession.js';
 import { Trip } from '../models/Events/Trip.js';
 import { Workshop } from '../models/Events/Workshop.js';
+import { Student } from "../models/Users/Student.js";
+import { Staff } from "../models/Users/Staff.js";
+import { Professor } from "../models/Users/Professor.js";
+import { TA } from "../models/Users/TA.js";
 import mongoose from "mongoose";
 
 // --------------------------------------
@@ -748,6 +752,39 @@ export const getMyEventApplications = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const registerForGymSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params; // gym session id
+    const userId = req.user.id;
+
+    const session = await GymSession.findById(sessionId);
+    if (!session) return res.status(404).json({ message: "Gym session not found" });
+
+    //  Check if session has available spots
+    if (session.participants.length >= session.maxParticipants) {
+      return res.status(400).json({ message: "Session is full" });
+    }
+
+    // Check if already registered
+    if (session.participants.includes(userId)) {
+      return res.status(400).json({ message: "Already registered for this session" });
+    }
+
+    //  Add user
+    session.participants.push(userId);
+    await session.save();
+
+    res.status(200).json({
+      message: "Successfully registered for gym session",
+      session,
+    });
+  } catch (err) {
+    console.error("Register Gym Error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
 
 
 

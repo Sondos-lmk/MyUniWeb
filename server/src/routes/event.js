@@ -83,7 +83,7 @@ router.get('/workshops', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
   }
-});
+})
 
 router.get('/trips', requireAuth, async (req, res) => {
   try {
