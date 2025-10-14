@@ -22,7 +22,7 @@ import {
   // createConference,
 } from '../controllers/eventController.js';
 
-import { requireAuth, requireEventOfficer, requireProfessor } from '../middleware/auth.js';
+import { requireAdmin, requireAuth, requireEventOfficer, requireProfessor,requireEventOfficerOrAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -34,7 +34,7 @@ router.get('/:id', getEventById);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+//router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
 // Professor-specific routes
 router.post('/professor/workshop', requireAuth, requireProfessor, createWorkshop);
@@ -64,7 +64,7 @@ router.post('/', requireAuth, requireEventOfficer, createEvent);
 
 
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
-router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
 
 // 📌 Approve/Reject event
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);

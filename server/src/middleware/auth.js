@@ -45,6 +45,15 @@ export function requireEventOfficer(req, res, next) {
   return next();
 }
 
+export const requireEventOfficerOrAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'eventOfficer' || req.user.role === 'admin')) {
+    next();
+  } else {
+    return res.status(403).json({ message: 'Access denied — requires Event Officer or Admin role.' });
+  }
+};
+
+
 // Ensure the authenticated user is a Professor
 export function requireProfessor(req, res, next) {
   // requireAuth should run before this so req.user exists; otherwise block
