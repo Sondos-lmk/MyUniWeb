@@ -653,6 +653,84 @@ export const createBazaar = async (req, res) => {
   }
 };
 
+export const createConference = async (req, res) => {
+  try {
+    // 🔒 Only Event Officers can create
+    if (req.user.role !== 'eventOfficer') {
+      return res.status(403).json({ error: 'Only Event Officers can create conferences.' });
+    }
+
+    const userId = req.user.id || req.user._id;
+    req.body.organizerId = req.body.organizerId || userId;
+    req.body.createdBy = userId;
+    req.body.type = 'conference'; // ensure type is correctly set
+
+    const { error, value } = conferenceSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const newConference = new Conference(value);
+    await newConference.save();
+
+    res.status(201).json({
+      message: 'Conference created successfully',
+      conference: newConference,
+    });
+  } catch (err) {
+    console.error('Create Conference Error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+export const updateConference = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 🔒 Only Event Officers can update
+    if (req.user.role !== 'eventOfficer') {
+      return res.status(403).json({ error: 'Only Event Officers can update conferences.' });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ error: 'Conference not found' });
+
+    if (event.type !== 'conference' && event.__t !== 'conference') {
+      return res.status(400).json({ error: 'Event is not a conference' });
+    }
+
+    const now = new Date();
+    if (now >= new Date(event.startDate)) {
+      return res.status(400).json({ error: 'Conference already started and cannot be edited' });
+    }
+
+    // ✅ Allow partial updates
+    const conferenceEditSchema = conferenceSchema.fork(
+      Object.keys(conferenceSchema.describe().keys),
+      (schema) => schema.optional()
+    );
+
+    const { error, value } = conferenceEditSchema.validate(req.body, {
+      allowUnknown: true,
+      presence: 'optional',
+    });
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const updatedConference = await Conference.findByIdAndUpdate(id, value, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({
+      message: 'Conference updated successfully',
+      conference: updatedConference,
+    });
+  } catch (err) {
+    console.error('Update Conference Error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
+
 // export const createConference = async (req, res) => {
 //   try {
 //     const { error, value } = conferenceSchema.validate(req.body);

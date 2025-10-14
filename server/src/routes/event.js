@@ -13,6 +13,8 @@ import {
   getPendingWorkshops,
   getProfessorWorkshops,
   getMyRegisteredEvents,
+  createConference,
+  updateConference,
   // editBazaar,
   registerForEvent,
   registerForBazaar,
@@ -49,10 +51,14 @@ router.post('/createBazaar', requireAuth, requireEventOfficer,createBazaar);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
 router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
+router.post('/createConference', requireAuth, requireEventOfficer,createConference);
+router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
+router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConference);
+
 // 📌 Approve/Reject event/update
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-router.patch('/:id/update', requireAuth, requireEventOfficer, updateBazaar);
+router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
 // 📌 Bazaar registration
 router.post('/bazaar/:bazaarId/register', requireAuth, registerForBazaar);
 
