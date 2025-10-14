@@ -246,13 +246,30 @@ export const updateEvent = async (req, res) => {
 // Delete event
 export const deleteEvent = async (req, res) => {
   try {
-    const event = await Event.findByIdAndDelete(req.params.id);
-    if (!event) return res.status(404).json({ error: 'Event not found' });
+    const { id } = req.params;
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    // prevent deletion if participants are registered
+    if (
+      (event.registeredStudents && event.registeredStudents.length > 0) ||
+      (event.registeredUsers && event.registeredUsers.length > 0)
+    ) {
+      return res.status(400).json({
+        message: 'Cannot delete event — participants are already registered.',
+      });
+    }
+
+    await Event.findByIdAndDelete(id);
     res.status(200).json({ message: 'Event deleted successfully' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: err.message });
   }
 };
+
+
 
 // Approve / Reject event
 export const approveEvent = async (req, res) => {
