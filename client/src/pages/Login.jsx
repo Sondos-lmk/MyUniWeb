@@ -18,8 +18,10 @@ export default function Login() {
       console.log('logged in user',loggedInUser)
       if (loggedInUser.role === 'admin') {
         nav('/admin')
+      } else if (loggedInUser.role === 'eventOfficer') {
+        nav('/eventOfficer/dashboard')
       } else {
-        nav('/dashboard')
+        nav ('/dashboard')
       }
 
     } catch (err) {

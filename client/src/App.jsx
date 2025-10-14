@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
+import EventOfficerDashboard from './pages/EventOfficerDashboard';
 
 // ✅ Improved ProtectedRoute component
 function ProtectedRoute({ children, allowedRole }) {
@@ -51,6 +52,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/eventOfficer/dashboard"
+          element={
+            <ProtectedRoute allowedRole="eventOfficer">
+              <EventOfficerDashboard />
             </ProtectedRoute>
           }
         />
