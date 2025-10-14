@@ -6,6 +6,7 @@ import { Conference } from '../models/Events/Conference.js';
 import { GymSession } from '../models/Events/GymSession.js';
 import { Trip } from '../models/Events/Trip.js';
 import { Workshop } from '../models/Events/Workshop.js';
+import mongoose from "mongoose";
 
 // --------------------------------------
 // JOI VALIDATION SCHEMAS
@@ -99,6 +100,7 @@ const workshopSchema = baseEventSchema.keys({
   ),
   professorsParticipating: Joi.array().items(Joi.string()),
   extraRequiredResource: Joi.string().allow(''),
+  capacity: Joi.number().required(),
 });
 
 const gymSchema = baseEventSchema.keys({
@@ -251,6 +253,123 @@ export const rejectEvent = async (req, res) => {
   }
 };
 
+// ----------------------
+// CREATE WORKSHOP BY PROFESSOR
+// ----------------------
+export const createWorkshop = async (req, res) => {
+  try {
+    // ✅ Ensure only professors can create workshops
+    if (req.user.role !== "professor") {
+      return res.status(403).json({ message: "Access denied. Professors only." });
+    }
+
+    // ✅ Use the workshop validation schema
+    const { type = "workshop" } = req.body;
+    req.body.organizerId = req.user._id.toString();
+    const schema = getValidationSchema(type);
+
+    // ⚠️ Don't add createdBy or organizerId yet — wait until after validation
+
+    // ✅ Validate user input
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
+    // ✅ Add system-controlled fields AFTER validation
+    value.organizerId = req.user._id;
+    value.createdBy = req.user._id;
+    value.status = "pending";
+    
+    // ✅ Automatically include the creating professor
+    value.professorsParticipating = [req.user._id];
+    
+    // ✅ Save the workshop
+    const newWorkshop = new Workshop(value);
+    await newWorkshop.save();
+
+    res.status(201).json({
+      message: "Workshop created successfully and is pending approval.",
+      workshop: newWorkshop,
+    });
+  } catch (error) {
+    console.error("Error creating workshop:", error);
+    res.status(500).json({
+      message: "Server error while creating workshop.",
+      error: error.message,
+    });
+  }
+};
+
+
+// ----------------------
+// UPDATE WORKSHOP BY PROFESSOR
+// ----------------------
+export const updateWorkshop = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the workshop
+    const workshop = await Workshop.findById(id);
+    if (!workshop)
+      return res.status(404).json({ message: "Workshop not found." });
+
+    // Ensure only the creator can edit
+    if (workshop.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Access denied. You can only edit your own workshops." });
+    }
+
+    // Apply updates
+    Object.assign(workshop, req.body);
+
+    // When a professor edits, reset status to pending approval
+    workshop.status = "pending";
+
+    await workshop.save();
+
+    res.status(200).json({
+      message: "Workshop updated successfully and is pending approval.",
+      workshop,
+    });
+  } catch (error) {
+    console.error("Error updating workshop:", error);
+    res.status(500).json({
+      message: "Server error while updating workshop.",
+      error: error.message,
+    });
+  }
+};
+
+// EventsOffice request edits in workshops
+export const requestWorkshopEdit = async (req, res) => {
+  try {
+    // ✅ Ensure only Event Officers can perform this action
+    if (req.user.role !== "eventOfficer") {
+      return res.status(403).json({ message: "Access denied. Event Officers only." });
+    }
+
+    const { id } = req.params;
+    const { editRequest } = req.body;
+
+    // ✅ Find the workshop
+    const workshop = await Workshop.findById(id);
+    if (!workshop) return res.status(404).json({ message: "Workshop not found." });
+
+    // ✅ Save the edit request
+    workshop.editRequest = editRequest;
+    workshop.status = "needs revision"; // optional: add this status in schema if not present
+    await workshop.save();
+
+    res.status(200).json({
+      message: "Edit request saved successfully.",
+      workshop
+    });
+  } catch (error) {
+    console.error("Error requesting workshop edit:", error);
+    res.status(500).json({ message: "Server error while requesting workshop edit.", error: error.message });
+  }
+};
+
 // Register for a trip
 export const registerForTrip = async (req, res) => {
   try {
@@ -279,30 +398,7 @@ export const registerForTrip = async (req, res) => {
   }
 };
 
-// Create / manage professor workshops
-export const createProfessorWorkshop = async (req, res) => {
-  try {
-    const { type } = req.body;
-    if (type !== 'workshop') return res.status(400).json({ error: 'Only workshops allowed' });
 
-    const schema = getValidationSchema(type);
-    req.body.organizerId = req.user.id || req.user._id;
-    req.body.status = 'pending';
-
-    const { error, value } = schema.validate(req.body);
-    if (error) return res.status(400).json({ error: error.details[0].message });
-
-    const newWorkshop = new Workshop(value);
-    await newWorkshop.save();
-
-    res.status(201).json({
-      message: 'Workshop submitted and pending approval',
-      workshop: newWorkshop,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
 
 export const getPendingWorkshops = async (req, res) => {
   try {
@@ -317,12 +413,32 @@ export const getPendingWorkshops = async (req, res) => {
 
 export const getProfessorWorkshops = async (req, res) => {
   try {
-    const professorId = req.user.id || req.user._id;
-    const workshops = await Workshop.find({ organizerId: professorId })
-      .populate('professorsParticipating', 'name email');
-    res.status(200).json(workshops);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    // ✅ Convert professor ID to ObjectId to match database type
+    const professorId = new mongoose.Types.ObjectId(req.user._id);
+
+    // ✅ Find workshops created by this professor
+    const workshops = await Workshop.find({ createdBy: professorId })
+      .populate("professorsParticipating", "name email");
+
+    // ✅ If no workshops found, return an empty array message
+    if (!workshops || workshops.length === 0) {
+      return res.status(200).json({
+        message: "No workshops found for this professor.",
+        workshops: [],
+      });
+    }
+
+    // ✅ Otherwise return all workshops
+    res.status(200).json({
+      message: "Workshops fetched successfully.",
+      workshops,
+    });
+  } catch (error) {
+    console.error("Error fetching professor workshops:", error);
+    res.status(500).json({
+      message: "Server error while fetching workshops.",
+      error: error.message,
+    });
   }
 };
 
