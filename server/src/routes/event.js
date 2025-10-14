@@ -12,72 +12,52 @@ import {
   getPendingWorkshops,
   getProfessorWorkshops,
   getMyRegisteredEvents,
-  // editBazaar,
   registerForEvent,
   requestWorkshopEdit,
   registerForBazaar,
   registerBooth,
   getMyEventApplications,
-  // createBazaar,
-  // createConference,
 } from '../controllers/eventController.js';
 
-import { requireAdmin, requireAuth, requireEventOfficer, requireProfessor,requireEventOfficerOrAdmin } from '../middleware/auth.js';
+import {
+  requireAuth,
+  requireEventOfficer,
+  requireProfessor,
+} from '../middleware/auth.js';
 
 const router = Router();
 
-
-// Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
-router.post('/', requireAuth, requireEventOfficer, createEvent);
-router.get('/', getAllEvents);
-router.get('/:id', getEventById);
-router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
-router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
-router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-//router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+// ✅ Specific routes first
 
 // Professor-specific routes
 router.post('/professor/workshop', requireAuth, requireProfessor, createWorkshop);
-
-// Update workshop
-router.put("/professor/workshop/:id",requireAuth,requireProfessor,updateWorkshop);
-
+router.put('/professor/workshop/:id', requireAuth, requireProfessor, updateWorkshop);
 router.get('/professor/my-workshops', requireAuth, requireProfessor, getProfessorWorkshops);
+
+// Pending workshops (Event Officer only)
 router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWorkshops);
 
-// 📌 Additional features
+// My applications / My events
 router.get('/my-events', requireAuth, getMyRegisteredEvents);
-// router.put('/bazaar/:id', requireAuth, requireEventOfficer, editBazaar);
-router.post('/register', requireAuth, registerForEvent);
-// router.post('/bazaar', requireAuth, requireEventOfficer, createBazaar);
-// router.post('/conference', requireAuth, requireEventOfficer, createConference);
+router.get('/my-applications', requireAuth, getMyEventApplications);
 
-// 📌 General event routes
+// Workshop edit request
+router.patch('/workshop/:id/request-edit', requireAuth, requireEventOfficer, requestWorkshopEdit);
+
+// Bazaar and Booth registration
+router.post('/bazaar/:bazaarId/register', requireAuth, registerForBazaar);
+router.post('/booth/:boothId/register', requireAuth, registerBooth);
+
+// ✅ General event routes
 router.get('/', getAllEvents);
-// Fetch all bazaars and booths I registered for
-router.get("/my-applications", requireAuth, getMyEventApplications);
-
-router.patch("/workshop/:id/request-edit",requireAuth,requireEventOfficer,requestWorkshopEdit);
-
-router.get('/:id', requireAuth, getEventById);
 router.post('/', requireAuth, requireEventOfficer, createEvent);
 
-
+// ✅ Dynamic routes LAST
+router.get('/:id', getEventById);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
-router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
-
-// 📌 Approve/Reject event
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-
-// 📌 Bazaar registration
-router.post('/bazaar/:bazaarId/register', requireAuth, registerForBazaar);
-
-// Booth registration
-router.post("/booth/:boothId/register", requireAuth, registerBooth);
-
-
+router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
 export default router;
-
-
+//event.js
