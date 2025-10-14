@@ -4,6 +4,7 @@ import {
   getAllEvents,
   getEventById,
   updateEvent,
+  updateBazaar,
   deleteEvent,
   approveEvent,
   rejectEvent,
@@ -11,9 +12,13 @@ import {
   searchEvents,
   createWorkshop,
   updateWorkshop,
+  createBazaar,
   getPendingWorkshops,
   getProfessorWorkshops,
   getMyRegisteredEvents,
+  createConference,
+  updateConference,
+  // editBazaar,
   registerForEvent,
   requestWorkshopEdit,
   registerForBazaar,
@@ -302,9 +307,18 @@ router.post('/', createEvent);
 // ✅ Dynamic routes LAST
 router.get('/:id', getEventById);
 
+router.post('/createBazaar', requireAuth, requireEventOfficer,createBazaar);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
+router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+
+router.post('/createConference', requireAuth, requireEventOfficer,createConference);
+router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
+router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConference);
+
+// 📌 Approve/Reject event/update
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
+router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
 
 
 // 📌 Bazaar registration
@@ -328,4 +342,5 @@ router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
 
 export default router;
-//event.js
+
+
