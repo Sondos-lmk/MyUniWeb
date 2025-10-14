@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { User } from '../models/Users/User.js';
 import { Staff } from '../models/Users/Staff.js';
+import { getAllUsers } from '../controllers/adminController.js';
 import { Professor } from '../models/Users/Professor.js';
 import { TA } from '../models/Users/TA.js';
 import { EventOfficer } from '../models/Users/EventsOfficer.js';
@@ -34,6 +35,11 @@ router.get('/pending-users', requireAuth, requireAdmin, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+
+// Admin view all users (Requirement 2)
+router.get('/users', requireAuth, requireAdmin, getAllUsers);
+
 
 // Approve user and send verification email
 router.post('/approve-user/:id', requireAuth, requireAdmin, async (req, res) => {
@@ -145,5 +151,56 @@ router.post('/create/:role', requireAuth, requireAdmin, createUserByAdmin);
 
 // Delete admin or event officer
 router.delete('/delete-user/:id', requireAuth, requireAdmin, deleteUserByAdmin);
+
+// ✅ Requirement 3: Admin block or unblock a user
+router.patch('/toggle-user/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Try to find the user in all possible models
+    const models = [
+      (await import('../models/Users/Student.js')).Student,
+      (await import('../models/Users/Staff.js')).Staff,
+      (await import('../models/Users/Professor.js')).Professor,
+      (await import('../models/Users/Admin.js')).Admin,
+      (await import('../models/Users/EventsOfficer.js')).EventOfficer,
+    ];
+
+    let userFound = null;
+
+    for (const Model of models) {
+      const found = await Model.findById(id);
+      if (found) {
+        userFound = found;
+        break;
+      }
+    }
+
+    if (!userFound) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Flip the isActive flag
+    userFound.isActive = !userFound.isActive;
+    await userFound.save();
+
+    res.status(200).json({
+      message: userFound.isActive
+        ? `${userFound.name} has been unblocked`
+        : `${userFound.name} has been blocked`,
+      user: {
+        id: userFound._id,
+        name: userFound.name,
+        email: userFound.email,
+        role: userFound.role,
+        isActive: userFound.isActive
+      }
+    });
+  } catch (error) {
+    console.error('Toggle user active status error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 
 export default router;
