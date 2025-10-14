@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
+import EventOfficerDashboard from './pages/EventOfficerDashboard';
 import CreateTrip from './pages/CreateTrip.jsx';
 
 // NEW pages/components for reqs 33,34,40,41
@@ -116,6 +117,14 @@ function App() {
           element={
             <ProtectedRoute allowedRole="eventOfficer">
               <CreateTrip />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/eventOfficer/dashboard"
+          element={
+            <ProtectedRoute allowedRole="eventOfficer">
+              <EventOfficerDashboard />
             </ProtectedRoute>
           }
         />

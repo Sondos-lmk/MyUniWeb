@@ -18,6 +18,7 @@ import {
   requestWorkshopEdit,
   registerForBazaar,
   registerBooth,
+  updateVendorStatus,
   getMyEventApplications,
   // createBazaar,
   // createConference,
@@ -62,7 +63,7 @@ router.get('/professor/my-workshops', requireAuth, requireProfessor, getProfesso
 router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWorkshops);
 
 // My applications / My events
-router.get('/my-events', requireAuth, getMyRegisteredEvents);
+router.get('/my-events', requireAuth, getMyRegisteredEvents);  // for students
 router.get('/my-applications', requireAuth, getMyEventApplications);
 
 // Workshop edit request
@@ -74,11 +75,13 @@ router.patch("/workshop/:id/request-edit",requireAuth,requireEventOfficer,reques
 // Bazaar and Booth registration
 router.post('/bazaar/:bazaarId/register', requireAuth, registerForBazaar);
 router.post('/booth/:boothId/register', requireAuth, registerBooth);
+router.patch('/:eventId/vendors/:vendorId', requireAuth, updateVendorStatus);
+
 
 
 // ✅ General event routes
 router.get('/', getAllEvents);
-router.post('/', requireAuth, requireEventOfficer, createEvent);
+router.post('/', createEvent);
 
 
 

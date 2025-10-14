@@ -26,7 +26,6 @@ const bazaarSchema = baseEventSchema.keys({
   startDate: Joi.date().required(),
   endDate: Joi.date().required(),
   registrationDeadline: Joi.date().required(),
-  vendors: Joi.array().items(Joi.string()),
   // Registered vendors with their reps and booth size
   registeredVendors: Joi.array().items(
   Joi.object({
@@ -45,15 +44,22 @@ const bazaarSchema = baseEventSchema.keys({
 
 const boothSchema = baseEventSchema.keys({
   title: Joi.string().required(),
-   reps: Joi.array().items(
-    Joi.object({
-      name: Joi.string().required(),
-      email: Joi.string().email().required(),
-    })
+  reps: Joi.array().items(
+    Joi.object({ name: Joi.string().required(), email: Joi.string().email().required() })
   ),
   locationInPlatform: Joi.string().required(),
-  boothSize: Joi.string().valid('2x2', '4x4').required(),
+  registeredVendors: Joi.array().items(
+    Joi.object({
+      vendor: Joi.string(),
+      status: Joi.string().valid('pending','approved','rejected').default('approved'),
+      reps: Joi.array().items(
+        Joi.object({ name: Joi.string().required(), email: Joi.string().email().required() })
+      ).max(5).required(),
+      boothSize: Joi.string().valid('2x2','4x4').required() // keep only here
+    })
+  ),
 });
+
 
 const conferenceSchema = baseEventSchema.keys({
   title: Joi.string().required(),
@@ -147,10 +153,7 @@ export const getAllEvents = async (req, res) => {
     const role = req.user?.role;
     const Model = type ? getEventModel(type) : Event;
     const filter = {};
-     if (role === 'vendor') {
-      filter.type = 'bazaar';
-      filter.status = 'approved';
-    } 
+     
     const events = await Model.find(filter);
     res.status(200).json(events);
   } catch (err) {
@@ -835,7 +838,11 @@ const registerBoothSchema = Joi.object({
     )
     .max(5)
     .required(),
+  boothSize: Joi.string().valid("2x2", "4x4").required(), // only for registeredVendor
 });
+
+
+
 
 export const registerBooth = async (req, res) => {
   try {
@@ -843,34 +850,50 @@ export const registerBooth = async (req, res) => {
     if (error)
       return res.status(400).json({ error: error.details[0].message });
 
-    const { boothId, startDate, durationWeeks, reps } = value;
-    const vendorId = req.user?.id || req.user?._id; // assume authenticated vendor
+    const { boothId, startDate, durationWeeks, reps, boothSize } = value;
+    const vendorId = req.user?.id || req.user?._id;
 
-    // Find the booth
     const booth = await Booth.findById(boothId);
     if (!booth)
       return res.status(404).json({ error: "Booth not found" });
 
-    // Calculate end date based on duration
     const start = new Date(startDate);
     const end = new Date(start);
     end.setDate(start.getDate() + durationWeeks * 7);
 
-    // Check for overlapping approved rentals
-    const overlapping = booth.registeredVendors.some((v) =>
-      v.status === "approved" &&
-      ((start >= v.startDate && start <= v.endDate) ||
-        (end >= v.startDate && end <= v.endDate) ||
-        (start <= v.startDate && end >= v.endDate))
+    // Check for overlapping approved vendors with same booth size
+    const overlapping = booth.registeredVendors.some(
+      (v) =>
+        v.status === "approved" &&
+        v.boothSize === boothSize &&
+        ((start >= v.startDate && start <= v.endDate) ||
+          (end >= v.startDate && end <= v.endDate) ||
+          (start <= v.startDate && end >= v.endDate))
     );
 
     if (overlapping) {
       return res.status(400).json({
-        error: "This booth is already booked during the selected period.",
+        error: "This booth with the selected size is already booked during the selected period.",
       });
     }
 
-    // Add vendor request
+    // Check if the vendor already registered this booth with same size for overlapping period
+    const alreadyRegistered = booth.registeredVendors.some(
+      (v) =>
+        v.vendor.toString() === vendorId.toString() &&
+        v.boothSize === boothSize &&
+        ((start >= v.startDate && start <= v.endDate) ||
+          (end >= v.startDate && end <= v.endDate) ||
+          (start <= v.startDate && end >= v.endDate))
+    );
+
+    if (alreadyRegistered) {
+      return res.status(400).json({
+        error: "You have already registered this booth with the selected size during the selected period.",
+      });
+    }
+
+    // Add vendor registration
     booth.registeredVendors.push({
       vendor: vendorId,
       reps,
@@ -878,6 +901,7 @@ export const registerBooth = async (req, res) => {
       startDate: start,
       endDate: end,
       status: "pending",
+      boothSize,
     });
 
     await booth.save();
@@ -891,6 +915,7 @@ export const registerBooth = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 /////////////////////
 
@@ -945,6 +970,49 @@ export const getMyEventApplications = async (req, res) => {
 };
 
 
+///////////////////////////////////////////
+
+//vendor approving booth application by event officer
+// PATCH /events/:eventId/vendors/:vendorId
+export const updateVendorStatus = async (req, res) => {
+  try {
+    const { eventId, vendorId } = req.params;
+    const { status } = req.body;
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ error: "Event not found" });
+
+    const vendor = event.registeredVendors.find(
+      (v) => v.vendor.toString() === vendorId
+    );
+    if (!vendor) return res.status(404).json({ error: "Vendor not found" });
+
+    // Only check for overlapping if approving
+    if (status === "approved") {
+      const overlap = event.registeredVendors.some((v) => 
+        v.vendor.toString() !== vendorId && // ignore the current vendor
+        v.status === "approved" &&
+        ((vendor.startDate <= v.endDate && vendor.startDate >= v.startDate) || 
+         (vendor.endDate >= v.startDate && vendor.endDate <= v.endDate) ||
+         (vendor.startDate <= v.startDate && vendor.endDate >= v.endDate)) // full overlap
+      );
+
+      if (overlap) {
+        return res.status(400).json({ 
+          error: "This booth is already booked during the selected period" 
+        });
+      }
+    }
+
+    // Approve/reject
+    vendor.status = status;
+    await event.save();
+
+    res.json({ message: `Vendor ${status} successfully` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 
 
@@ -977,53 +1045,6 @@ export const getMyEventApplications = async (req, res) => {
 
 
 
-
-// // Edit bazaar
-// export const editBazaar = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const updates = req.body;
-//     const updatedBazaar = await Bazaar.findByIdAndUpdate(id, updates, { new: true });
-//     if (!updatedBazaar) return res.status(404).json({ message: 'Bazaar not found' });
-//     res.status(200).json({ message: 'Bazaar updated successfully', updatedBazaar });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Failed to update bazaar', error: error.message });
-//   }
-// };
-// export const createBazaar = async (req, res) => {
-//   try {
-//     const { error, value } = bazaarSchema.validate(req.body);
-//     if (error) return res.status(400).json({ error: error.details[0].message });
-
-//     const newBazaar = new Bazaar(value);
-//     await newBazaar.save();
-
-//     res.status(201).json({ message: 'Bazaar created successfully', bazaar: newBazaar });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// export const createConference = async (req, res) => {
-//   try {
-//     const { error, value } = conferenceSchema.validate(req.body);
-//     if (error) return res.status(400).json({ error: error.details[0].message });
-
-//     // Set organizerId from authenticated user
-//     value.organizerId = req.user.id || req.user._id;
-//     value.status = 'pending'; // Conferences need approval
-
-//     const newConference = new Conference(value);
-//     await newConference.save();
-
-//     res.status(201).json({ 
-//       message: 'Conference created successfully and pending approval', 
-//       conference: newConference 
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 
 
 
