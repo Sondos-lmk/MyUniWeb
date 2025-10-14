@@ -1,4 +1,6 @@
+// client/src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom';
+
 import Signup from './pages/Signup';
 import Verify from './pages/Verify';
 import Login from './pages/Login';
@@ -18,38 +20,36 @@ import BoothApply from './pages/BoothApply';
 import EventDetails from './pages/EventDetails';
 import TestEventCard from './pages/TestEventCard';
 
-// ✅ Improved ProtectedRoute component
+// Improved ProtectedRoute: if allowedRole is provided, enforce it; otherwise only require login.
 function ProtectedRoute({ children, allowedRole }) {
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('role');
 
-  // No token → not logged in
   if (!token) {
-    console.log('No token — redirecting to /');
-    return <Navigate to="/" replace />; // ✅ redirect to "/" instead of "/login"
+    return <Navigate to="/" />;
   }
-
-  // Logged in but not allowed → redirect to own dashboard
   if (allowedRole && role !== allowedRole) {
-    console.log(`Role mismatch (${role} !== ${allowedRole}) — redirecting to /dashboard`);
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" />;
   }
-
-  // Otherwise, allow access
   return children;
 }
-
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Show navbar globally (hide on auth pages later if you want) */}
+      <Navbar />
+
       <Routes>
-        {/* Public routes */}
+        {/* Auth */}
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify/:token" element={<Verify />} />
 
-        {/* ✅ Protected routes */}
+        {/* Simple visual test page for EventCard */}
+        <Route path="/test-card" element={<TestEventCard />} />
+
+        {/* Admin */}
         <Route
           path="/admin"
           element={
@@ -58,11 +58,65 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Existing dashboard */}
+        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* Events hub (list is public) */}
+        <Route path="/events" element={<Events />} />
+
+        {/* Event details: your backend requires auth for GET /events/:id */}
         <Route
-          path="/dashboard"
+          path="/events/:id"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <EventDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Vendor flows (auth) */}
+        <Route
+          path="/bazaars/:bazaarId/apply"
+          element={
+            <ProtectedRoute>
+              <BazaarApply />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/booths/:boothId/apply"
+          element={
+            <ProtectedRoute>
+              <BoothApply />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Me (auth) */}
+        <Route
+          path="/my-applications"
+          element={
+            <ProtectedRoute>
+              <MyApplications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-events"
+          element={
+            <ProtectedRoute>
+              <MyEvents />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Create Trip (event officer only) */}
+        <Route
+          path="/create-trip"
+          element={
+            <ProtectedRoute allowedRole="eventOfficer">
+              <CreateTrip />
             </ProtectedRoute>
           }
         />
@@ -75,7 +129,7 @@ function App() {
           }
         />
 
-        {/* 404 fallback */}
+        {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
