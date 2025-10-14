@@ -60,6 +60,7 @@ router.get("/my-applications", requireAuth, getMyEventApplications);
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 router.patch("/workshop/:id/request-edit",requireAuth,requireEventOfficer,requestWorkshopEdit);
 
 router.get('/:id', requireAuth, getEventById);
@@ -91,6 +92,32 @@ router.get('/trips', requireAuth, async (req, res) => {
 
 router.get('/my-applications', requireAuth, getMyEventApplications);
 router.get('/:id', requireAuth, getEventById);
+=======
+// 📌 General event routes
+router.get('/', getAllEvents);
+
+// ✅ Add these new routes before the ":id" route
+router.get('/workshops', requireAuth, async (req, res) => {
+  try {
+    const events = await Event.find({ type: 'workshop' });
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
+  }
+});
+
+router.get('/trips', requireAuth, async (req, res) => {
+  try {
+    const events = await Event.find({ type: 'trip' });
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
+  }
+});
+
+router.get('/my-applications', requireAuth, getMyEventApplications);
+router.get('/:id', requireAuth, getEventById);
+>>>>>>> Stashed changes
 =======
 // 📌 General event routes
 router.get('/', getAllEvents);
