@@ -6,6 +6,17 @@ import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
 import EventOfficerDashboard from './pages/EventOfficerDashboard';
+import CreateTrip from './pages/CreateTrip.jsx';
+
+// NEW pages/components for reqs 33,34,40,41
+import Navbar from './components/Navbar';
+import Events from './pages/Events';
+import MyApplications from './pages/MyApplications';
+import MyEvents from './pages/MyEvents';
+import BazaarApply from './pages/BazaarApply';
+import BoothApply from './pages/BoothApply';
+import EventDetails from './pages/EventDetails';
+import TestEventCard from './pages/TestEventCard';
 
 // ✅ Improved ProtectedRoute component
 function ProtectedRoute({ children, allowedRole }) {
