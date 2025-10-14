@@ -114,3 +114,23 @@ export const deleteUserByAdmin = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+//  Admin can view all users
+export const getAllUsers = async (req, res) => {
+  try {
+    const models = [Student, Staff, Professor, Admin, EventOfficer];
+
+    const allUsers = [];
+
+    // Loop through each model and collect users
+    for (const Model of models) {
+      const users = await Model.find({}, "name email role isVerified createdAt");
+      allUsers.push(...users);
+    }
+
+    res.status(200).json(allUsers);
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
