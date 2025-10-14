@@ -16,7 +16,7 @@ function Dashboard() {
 
   const name = (() => {
     if (!user) return "Loading...";
-    if (role === "vendor") return user.companyName || "Vendor";
+    if (user.role === "vendor") return user.companyName || "Vendor";
     return user.name || "User";
   })();
 
@@ -77,7 +77,7 @@ function Dashboard() {
     <div className="p-10 relative">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">
-          Welcome to your dashboard! {name} ({role})
+          Welcome to your dashboard! {name ? name.charAt(0).toUpperCase() + name.slice(1) : "User"} ({role})
         </h1>
         <button
           onClick={handleLogout}

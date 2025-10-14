@@ -1,17 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import API from "../services/api";
 
 function ApplyBoothForm() {
   const [form, setForm] = useState({
     boothId: "",
+    boothSize: "2x2",
     startDate: "",
     durationWeeks: 1,
     reps: [{ name: "", email: "" }],
-    boothSize: "2x2",
-    location: "",
   });
 
+  const [booths, setBooths] = useState([]);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const fetchBooths = async () => {
+      try {
+        const res = await API.get("/events?type=booth");
+        setBooths(res.data.filter((b) => b.status === "approved"));
+      } catch (err) {
+        console.error("Error fetching booths:", err);
+      }
+    };
+    fetchBooths();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,15 +44,44 @@ function ApplyBoothForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const booth = booths.find((b) => b._id === form.boothId);
+    if (!booth) {
+      setMessage("Selected booth not found");
+      return;
+    }
+
+    const start = new Date(form.startDate);
+    const end = new Date(start);
+    end.setDate(start.getDate() + form.durationWeeks * 7);
+
+    const overlapping = booth.registeredVendors.some(
+      (v) =>
+        v.status === "approved" &&
+        v.boothSize === form.boothSize &&
+        ((start >= new Date(v.startDate) && start <= new Date(v.endDate)) ||
+          (end >= new Date(v.startDate) && end <= new Date(v.endDate)) ||
+          (start <= new Date(v.startDate) && end >= new Date(v.endDate)))
+    );
+
+    if (overlapping) {
+      setMessage(
+        "This booth with the selected size is already booked during the selected period."
+      );
+      return;
+    }
+
     try {
       const res = await API.post(`/events/booth/${form.boothId}/register`, {
-     boothId: form.boothId,
+        boothId: form.boothId,
+        boothSize: form.boothSize,
         startDate: form.startDate,
         durationWeeks: form.durationWeeks,
         reps: form.reps,
       });
       setMessage(res.data.message);
     } catch (err) {
+      console.error("Error submitting booth application:", err);
       setMessage(err.response?.data?.error || "Something went wrong");
     }
   };
@@ -48,17 +89,32 @@ function ApplyBoothForm() {
   return (
     <div className="p-6 bg-white shadow-md rounded-2xl">
       <h2 className="text-xl font-bold mb-4">Apply for a Booth</h2>
-
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
-          type="text"
+        <select
           name="boothId"
-          placeholder="Booth ID"
           value={form.boothId}
           onChange={handleChange}
           className="border p-2 rounded"
           required
-        />
+        >
+          <option value="">Select a Booth</option>
+          {booths.map((booth) => (
+            <option key={booth._id} value={booth._id}>
+              {booth.title} ({booth.locationInPlatform})
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="boothSize"
+          value={form.boothSize}
+          onChange={handleChange}
+          className="border p-2 rounded"
+          required
+        >
+          <option value="2x2">2x2</option>
+          <option value="4x4">4x4</option>
+        </select>
 
         <input
           type="date"

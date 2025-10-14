@@ -4,19 +4,30 @@ import {
   getAllEvents,
   getEventById,
   updateEvent,
+  updateBazaar,
   deleteEvent,
   approveEvent,
   rejectEvent,
+  getUpcomingEvents,
+  searchEvents,
   createWorkshop,
   updateWorkshop,
+  createBazaar,
   getPendingWorkshops,
   getProfessorWorkshops,
   getMyRegisteredEvents,
+  createConference,
+  updateConference,
+  // editBazaar,
   registerForEvent,
   requestWorkshopEdit,
   registerForBazaar,
   registerBooth,
+  updateVendorStatus,
   getMyEventApplications,
+  // createBazaar,
+  // createConference,
+  //getUpcomingEvents,
 } from '../controllers/eventController.js';
 
 import {
@@ -26,6 +37,13 @@ import {
 } from '../middleware/auth.js';
 
 const router = Router();
+
+// Everyone logged in (any role) can view upcoming events
+router.get("/upcoming", requireAuth, getUpcomingEvents);
+
+//student/staff/events officer/TA/prof/admin can search event by name of proffessor/event or type
+router.get("/search", requireAuth, searchEvents);
+
 
 
 
@@ -50,7 +68,7 @@ router.get('/professor/my-workshops', requireAuth, requireProfessor, getProfesso
 router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWorkshops);
 
 // My applications / My events
-router.get('/my-events', requireAuth, getMyRegisteredEvents);
+router.get('/my-events', requireAuth, getMyRegisteredEvents);  // for students
 router.get('/my-applications', requireAuth, getMyEventApplications);
 
 // Workshop edit request
@@ -63,17 +81,23 @@ router.patch("/workshop/:id/request-edit",requireAuth,requireEventOfficer,reques
 // Bazaar and Booth registration
 router.post('/bazaar/:bazaarId/register', requireAuth, registerForBazaar);
 router.post('/booth/:boothId/register', requireAuth, registerBooth);
+router.patch('/:eventId/vendors/:vendorId', requireAuth, updateVendorStatus);
+
 
 
 // ✅ General event routes
 router.get('/', getAllEvents);
-router.post('/', requireAuth, requireEventOfficer, createEvent);
+router.post('/', createEvent);
 
 
 
 
 // 📌 General event routes
-router.get('/', getAllEvents);
+router.get('/upcoming', getUpcomingEvents);
+//router.get('/', getAllEvents);
+
+// Fetch all bazaars and booths I registered for
+router.get("/my-applications", requireAuth, getMyEventApplications);
 
 // ✅ Add these new routes before the ":id" route
 router.get('/workshops', requireAuth, async (req, res) => {
@@ -310,9 +334,18 @@ router.post('/', createEvent);
 // ✅ Dynamic routes LAST
 router.get('/:id', getEventById);
 
+router.post('/createBazaar', requireAuth, requireEventOfficer,createBazaar);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
+router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+
+router.post('/createConference', requireAuth, requireEventOfficer,createConference);
+router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
+router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConference);
+
+// 📌 Approve/Reject event/update
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
+router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
 
 
 // 📌 Bazaar registration
@@ -336,4 +369,5 @@ router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
 
 export default router;
-//event.js
+
+

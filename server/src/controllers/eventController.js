@@ -6,10 +6,14 @@ import { Conference } from '../models/Events/Conference.js';
 import { GymSession } from '../models/Events/GymSession.js';
 import { Trip } from '../models/Events/Trip.js';
 import { Workshop } from '../models/Events/Workshop.js';
+
 import { Student } from "../models/Users/Student.js";
 import { Staff } from "../models/Users/Staff.js";
 import { Professor } from "../models/Users/Professor.js";
 import { TA } from "../models/Users/TA.js";
+
+import { Vendor } from "../models/Users/Vendor.js";
+
 import mongoose from "mongoose";
 
 // --------------------------------------
@@ -18,6 +22,7 @@ import mongoose from "mongoose";
 const baseEventSchema = Joi.object({
   type: Joi.string().valid('bazaar', 'booth', 'conference', 'trip', 'workshop', 'gym').required(),
   status: Joi.string().valid('pending', 'approved', 'rejected', 'completed'),
+  createdBy: Joi.string().required(),
   organizerId: Joi.string().required(),
 });
 
@@ -29,7 +34,6 @@ const bazaarSchema = baseEventSchema.keys({
   startDate: Joi.date().required(),
   endDate: Joi.date().required(),
   registrationDeadline: Joi.date().required(),
-  vendors: Joi.array().items(Joi.string()),
   // Registered vendors with their reps and booth size
   registeredVendors: Joi.array().items(
   Joi.object({
@@ -48,15 +52,22 @@ const bazaarSchema = baseEventSchema.keys({
 
 const boothSchema = baseEventSchema.keys({
   title: Joi.string().required(),
-   reps: Joi.array().items(
-    Joi.object({
-      name: Joi.string().required(),
-      email: Joi.string().email().required(),
-    })
+  reps: Joi.array().items(
+    Joi.object({ name: Joi.string().required(), email: Joi.string().email().required() })
   ),
   locationInPlatform: Joi.string().required(),
-  boothSize: Joi.string().valid('2x2', '4x4').required(),
+  registeredVendors: Joi.array().items(
+    Joi.object({
+      vendor: Joi.string(),
+      status: Joi.string().valid('pending','approved','rejected').default('approved'),
+      reps: Joi.array().items(
+        Joi.object({ name: Joi.string().required(), email: Joi.string().email().required() })
+      ).max(5).required(),
+      boothSize: Joi.string().valid('2x2','4x4').required() // keep only here
+    })
+  ),
 });
+
 
 const conferenceSchema = baseEventSchema.keys({
   title: Joi.string().required(),
@@ -150,16 +161,57 @@ export const getAllEvents = async (req, res) => {
     const role = req.user?.role;
     const Model = type ? getEventModel(type) : Event;
     const filter = {};
-     if (role === 'vendor') {
-      filter.type = 'bazaar';
-      filter.status = 'approved';
-    } 
+     
     const events = await Model.find(filter);
     res.status(200).json(events);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Get upcoming events with details (includes vendor participation for bazaars/booths)
+// export const getUpcomingEvents = async (req, res) => {
+//   try {
+//     const now = new Date();
+
+//     // Only approved and future-dated events are considered upcoming
+//     const baseFilter = { status: 'approved', $or: [ { startDate: { $gte: now } }, { endDate: { $gte: now } } ] };
+
+//     // Build queries per discriminator to leverage field existence
+//     const [bazaars, booths, conferences, trips, workshops] = await Promise.all([
+//       Bazaar.find(baseFilter)
+//         .populate({ path: 'registeredVendors.vendor', select: 'name email role' })
+//         .lean(),
+//       Booth.find(baseFilter)
+//         .populate({ path: 'registeredVendors.vendor', select: 'name email role' })
+//         .lean(),
+//       Conference.find(baseFilter).lean(),
+//       Trip.find(baseFilter).lean(),
+//       Workshop.find(baseFilter)
+//         .populate('professorsParticipating', 'name email')
+//         .lean(),
+//     ]);
+
+//     const combined = [
+//       ...bazaars.map(e => ({ ...e, type: 'bazaar' })),
+//       ...booths.map(e => ({ ...e, type: 'booth' })),
+//       ...conferences.map(e => ({ ...e, type: 'conference' })),
+//       ...trips.map(e => ({ ...e, type: 'trip' })),
+//       ...workshops.map(e => ({ ...e, type: 'workshop' })),
+//     ];
+
+//     // Sort by startDate ascending when available, otherwise by createdAt
+//     combined.sort((a, b) => {
+//       const aDate = a.startDate ? new Date(a.startDate).getTime() : new Date(a.createdAt).getTime();
+//       const bDate = b.startDate ? new Date(b.startDate).getTime() : new Date(b.createdAt).getTime();
+//       return aDate - bDate;
+//     });
+
+//     res.status(200).json(combined);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 // Get event by ID
 export const getEventById = async (req, res) => {
@@ -168,6 +220,156 @@ export const getEventById = async (req, res) => {
     if (!event) return res.status(404).json({ error: 'Event not found' });
     res.status(200).json(event);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET ALL UPCOMING EVENTS (For All Roles)
+export const getUpcomingEvents = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Helper function to format each event consistently
+    const formatEvent = (event, type) => ({
+      id: event._id,
+      type,
+      title: event.title,
+      description: event.desc || "",
+      location: event.location || event.locationInPlatform || "N/A",
+      startDate: event.startDate,
+      endDate: event.endDate,
+      registrationDeadline: event.registrationDeadline,
+      vendors:
+        type === "bazaar" || type === "booth"
+          ? event.registeredVendors || []
+          : [],
+      status: event.status || "N/A",
+    });
+
+    // Fetch approved upcoming events from all collections in parallel
+    const [workshops, trips, bazaars, booths, conferences] = await Promise.all([
+      Workshop.find({ startDate: { $gt: now }, status: "approved" }),
+      Trip.find({ startDate: { $gt: now }, status: "approved" }),
+      Bazaar.find({ startDate: { $gt: now }, status: "approved" }).populate(
+        "registeredVendors.vendor",
+        "name email"
+      ),
+      Booth.find({ status: "approved" }).populate(
+        "registeredVendors.vendor",
+        "name email"
+      ),
+      Conference.find({ startDate: { $gt: now }, status: "approved" }),
+    ]);
+
+    // Combine all events into a single list
+    const allUpcoming = [
+      ...workshops.map((e) => formatEvent(e, "workshop")),
+      ...trips.map((e) => formatEvent(e, "trip")),
+      ...bazaars.map((e) => formatEvent(e, "bazaar")),
+      ...booths.map((e) => formatEvent(e, "booth")),
+      ...conferences.map((e) => formatEvent(e, "conference")),
+    ];
+
+    // Sort by startDate (earliest first)
+    allUpcoming.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+    res.status(200).json({
+      message: "Approved upcoming events fetched successfully",
+      count: allUpcoming.length,
+      events: allUpcoming,
+    });
+  } catch (err) {
+    console.error("Error fetching approved upcoming events:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// SEARCH EVENTS BY NAME OF EVENT/PROFFESSOR OR TYPE
+export const searchEvents = async (req, res) => {
+  try {
+    const { name, type } = req.query;
+    const searchRegex = name ? new RegExp(name, "i") : null; // Case-insensitive search
+    const filters = { status: "approved" }; // Only approved events
+
+    // Apply type filter if provided
+    if (type) {
+      filters.type = type.toLowerCase();
+    }
+
+    // Helper function to format all event types consistently
+    const formatEvent = (event, type) => ({
+      id: event._id,
+      type,
+      title: event.title,
+      description: event.desc || "",
+      location: event.location || event.locationInPlatform || "N/A",
+      startDate: event.startDate,
+      endDate: event.endDate,
+      status: event.status,
+    });
+
+    // Search in parallel across models
+    const [
+      workshops,
+      trips,
+      bazaars,
+      booths,
+      conferences
+    ] = await Promise.all([
+      Workshop.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
+      }).populate("professorsParticipating", "name email"),
+      Trip.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
+      }),
+      Bazaar.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
+      }).populate("registeredVendors.vendor", "name email"),
+      Booth.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }] } : {})
+      }).populate("registeredVendors.vendor", "name email"),
+      Conference.find({
+        ...filters,
+        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
+      })
+    ]);
+
+    // Combine all found events
+    let allResults = [
+      ...workshops.map((e) => formatEvent(e, "workshop")),
+      ...trips.map((e) => formatEvent(e, "trip")),
+      ...bazaars.map((e) => formatEvent(e, "bazaar")),
+      ...booths.map((e) => formatEvent(e, "booth")),
+      ...conferences.map((e) => formatEvent(e, "conference")),
+    ];
+
+    // ✅ If searching by professor name, filter further from populated professors
+    if (name) {
+      allResults = allResults.filter((ev) => {
+        if (ev.type === "workshop" && ev.professorsParticipating) {
+          return ev.professorsParticipating.some((p) =>
+            p.name.toLowerCase().includes(name.toLowerCase())
+          );
+        }
+        return true;
+      });
+    }
+
+    if (allResults.length === 0) {
+      return res.status(404).json({ message: "No events found matching your search." });
+    }
+
+    res.status(200).json({
+      message: "Search results fetched successfully",
+      count: allResults.length,
+      events: allResults,
+    });
+  } catch (err) {
+    console.error("Error searching events:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -628,6 +830,53 @@ export const registerForBazaar = async (req, res) => {
 };
 
 
+// update bazaar details if bazaare has not started yet
+export const updateBazaar = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 🔒 Ensure only Event Officers can edit
+    if (req.user.role !== 'eventOfficer')
+      return res.status(403).json({ error: 'Only Event Officers can edit bazaars.' });
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ error: 'Bazaar not found' });
+
+    if (event.type !== 'bazaar' && event.__t !== 'bazaar')
+      return res.status(400).json({ error: 'Event is not a bazaar' });
+
+    const now = new Date();
+    if (now >= new Date(event.startDate))
+      return res.status(400).json({ error: 'Bazaar already started and cannot be edited' });
+
+    const bazaarEditSchema = bazaarSchema.fork(
+      Object.keys(bazaarSchema.describe().keys),
+      (schema) => schema.optional()
+    );
+
+    const { error, value } = bazaarEditSchema.validate(req.body, {
+      allowUnknown: true,
+      presence: 'optional',
+    });
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const updatedEvent = await Bazaar.findByIdAndUpdate(id, value, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({
+      message: 'Bazaar updated successfully',
+      event: updatedEvent,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
+
 // ////////////////////////
 // register vendor schema for booth in platform
 
@@ -644,7 +893,11 @@ const registerBoothSchema = Joi.object({
     )
     .max(5)
     .required(),
+  boothSize: Joi.string().valid("2x2", "4x4").required(), // only for registeredVendor
 });
+
+
+
 
 export const registerBooth = async (req, res) => {
   try {
@@ -652,34 +905,50 @@ export const registerBooth = async (req, res) => {
     if (error)
       return res.status(400).json({ error: error.details[0].message });
 
-    const { boothId, startDate, durationWeeks, reps } = value;
-    const vendorId = req.user?.id || req.user?._id; // assume authenticated vendor
+    const { boothId, startDate, durationWeeks, reps, boothSize } = value;
+    const vendorId = req.user?.id || req.user?._id;
 
-    // Find the booth
     const booth = await Booth.findById(boothId);
     if (!booth)
       return res.status(404).json({ error: "Booth not found" });
 
-    // Calculate end date based on duration
     const start = new Date(startDate);
     const end = new Date(start);
     end.setDate(start.getDate() + durationWeeks * 7);
 
-    // Check for overlapping approved rentals
-    const overlapping = booth.registeredVendors.some((v) =>
-      v.status === "approved" &&
-      ((start >= v.startDate && start <= v.endDate) ||
-        (end >= v.startDate && end <= v.endDate) ||
-        (start <= v.startDate && end >= v.endDate))
+    // Check for overlapping approved vendors with same booth size
+    const overlapping = booth.registeredVendors.some(
+      (v) =>
+        v.status === "approved" &&
+        v.boothSize === boothSize &&
+        ((start >= v.startDate && start <= v.endDate) ||
+          (end >= v.startDate && end <= v.endDate) ||
+          (start <= v.startDate && end >= v.endDate))
     );
 
     if (overlapping) {
       return res.status(400).json({
-        error: "This booth is already booked during the selected period.",
+        error: "This booth with the selected size is already booked during the selected period.",
       });
     }
 
-    // Add vendor request
+    // Check if the vendor already registered this booth with same size for overlapping period
+    const alreadyRegistered = booth.registeredVendors.some(
+      (v) =>
+        v.vendor.toString() === vendorId.toString() &&
+        v.boothSize === boothSize &&
+        ((start >= v.startDate && start <= v.endDate) ||
+          (end >= v.startDate && end <= v.endDate) ||
+          (start <= v.startDate && end >= v.endDate))
+    );
+
+    if (alreadyRegistered) {
+      return res.status(400).json({
+        error: "You have already registered this booth with the selected size during the selected period.",
+      });
+    }
+
+    // Add vendor registration
     booth.registeredVendors.push({
       vendor: vendorId,
       reps,
@@ -687,6 +956,7 @@ export const registerBooth = async (req, res) => {
       startDate: start,
       endDate: end,
       status: "pending",
+      boothSize,
     });
 
     await booth.save();
@@ -700,6 +970,7 @@ export const registerBooth = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 /////////////////////
 
@@ -787,17 +1058,49 @@ export const registerForGymSession = async (req, res) => {
 
 
 
+///////////////////////////////////////////
 
+//vendor approving booth application by event officer
+// PATCH /events/:eventId/vendors/:vendorId
+export const updateVendorStatus = async (req, res) => {
+  try {
+    const { eventId, vendorId } = req.params;
+    const { status } = req.body;
 
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ error: "Event not found" });
 
+    const vendor = event.registeredVendors.find(
+      (v) => v.vendor.toString() === vendorId
+    );
+    if (!vendor) return res.status(404).json({ error: "Vendor not found" });
 
+    // Only check for overlapping if approving
+    if (status === "approved") {
+      const overlap = event.registeredVendors.some((v) => 
+        v.vendor.toString() !== vendorId && // ignore the current vendor
+        v.status === "approved" &&
+        ((vendor.startDate <= v.endDate && vendor.startDate >= v.startDate) || 
+         (vendor.endDate >= v.startDate && vendor.endDate <= v.endDate) ||
+         (vendor.startDate <= v.startDate && vendor.endDate >= v.endDate)) // full overlap
+      );
 
+      if (overlap) {
+        return res.status(400).json({ 
+          error: "This booth is already booked during the selected period" 
+        });
+      }
+    }
 
+    // Approve/reject
+    vendor.status = status;
+    await event.save();
 
-
-
-
-
+    res.json({ message: `Vendor ${status} successfully` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 
 
@@ -832,19 +1135,107 @@ export const registerForGymSession = async (req, res) => {
 //     res.status(500).json({ message: 'Failed to update bazaar', error: error.message });
 //   }
 // };
-// export const createBazaar = async (req, res) => {
-//   try {
-//     const { error, value } = bazaarSchema.validate(req.body);
-//     if (error) return res.status(400).json({ error: error.details[0].message });
+export const createBazaar = async (req, res) => {
+  try {
 
-//     const newBazaar = new Bazaar(value);
-//     await newBazaar.save();
+    if (req.user.role !== 'eventOfficer') {
+      return res.status(403).json({ message: 'Only Event Officers can create bazaars' });
+    }
 
-//     res.status(201).json({ message: 'Bazaar created successfully', bazaar: newBazaar });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
+    // Automatically set organizer and createdBy
+    const userId = req.user.id || req.user._id;
+    req.body.organizerId = req.body.organizerId || userId;
+    req.body.createdBy = userId; // ✅ add this line
+
+    const { error, value } = bazaarSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const newBazaar = new Bazaar(value);
+    await newBazaar.save();
+
+    res.status(201).json({ message: 'Bazaar created successfully', bazaar: newBazaar });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const createConference = async (req, res) => {
+  try {
+    // 🔒 Only Event Officers can create
+    if (req.user.role !== 'eventOfficer') {
+      return res.status(403).json({ error: 'Only Event Officers can create conferences.' });
+    }
+
+    const userId = req.user.id || req.user._id;
+    req.body.organizerId = req.body.organizerId || userId;
+    req.body.createdBy = userId;
+    req.body.type = 'conference'; // ensure type is correctly set
+
+    const { error, value } = conferenceSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const newConference = new Conference(value);
+    await newConference.save();
+
+    res.status(201).json({
+      message: 'Conference created successfully',
+      conference: newConference,
+    });
+  } catch (err) {
+    console.error('Create Conference Error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+export const updateConference = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 🔒 Only Event Officers can update
+    if (req.user.role !== 'eventOfficer') {
+      return res.status(403).json({ error: 'Only Event Officers can update conferences.' });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ error: 'Conference not found' });
+
+    if (event.type !== 'conference' && event.__t !== 'conference') {
+      return res.status(400).json({ error: 'Event is not a conference' });
+    }
+
+    const now = new Date();
+    if (now >= new Date(event.startDate)) {
+      return res.status(400).json({ error: 'Conference already started and cannot be edited' });
+    }
+
+    // ✅ Allow partial updates
+    const conferenceEditSchema = conferenceSchema.fork(
+      Object.keys(conferenceSchema.describe().keys),
+      (schema) => schema.optional()
+    );
+
+    const { error, value } = conferenceEditSchema.validate(req.body, {
+      allowUnknown: true,
+      presence: 'optional',
+    });
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const updatedConference = await Conference.findByIdAndUpdate(id, value, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({
+      message: 'Conference updated successfully',
+      conference: updatedConference,
+    });
+  } catch (err) {
+    console.error('Update Conference Error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
 
 // export const createConference = async (req, res) => {
 //   try {

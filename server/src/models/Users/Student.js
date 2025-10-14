@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 import { User } from './User.js';
 
 const studentSchema = new mongoose.Schema({
-  favoritesLists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Events' }],
-  registeredEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Events' }],
+  favoritesLists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
+  registeredEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
   isActive: { type: Boolean, default: true },
   isVerified: { type: Boolean, default: false },
   wallet: { type: Number, default: 0 },
