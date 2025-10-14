@@ -10,12 +10,15 @@ const tripSchema = new mongoose.Schema(
     endDate: { type: Date, required: true },
     registrationDeadline: { type: Date, required: true },
     price: { type: Number, required: true },
-    capacity: { type: Number, required: true, min: 1 }, // added
-    organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // link to organizer
-    registeredStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // who registered
+    capacity: { type: Number, required: true, min: 1 },
+    organizerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true, // always linked to the Event Officer
+    },
   },
   { timestamps: true }
 );
 
-// keep the discriminator name as 'trip' to match other code
+// keep discriminator name consistent
 export const Trip = Event.discriminator('trip', tripSchema);

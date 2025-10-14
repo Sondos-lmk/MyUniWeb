@@ -60,7 +60,9 @@ router.get("/my-applications", requireAuth, getMyEventApplications);
 router.patch("/workshop/:id/request-edit",requireAuth,requireEventOfficer,requestWorkshopEdit);
 
 router.get('/:id', requireAuth, getEventById);
-router.post('/', createEvent);
+router.post('/', requireAuth, requireEventOfficer, createEvent);
+
+
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
 router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 

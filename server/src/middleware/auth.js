@@ -7,7 +7,7 @@ import { TA } from '../models/Users/TA.js';
 // Auth middleware
 export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
-  const [, token] = authHeader.split(' '); // Bearer <token>
+  const [, token] = authHeader.split(' ');
   if (!token) return res.status(401).json({ message: 'Missing token' });
 
   try {
@@ -31,6 +31,7 @@ export async function requireAuth(req, res, next) {
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 }
+
 // Ensure the authenticated user is an Events Officer
 export function requireEventOfficer(req, res, next) {
   // requireAuth should run before this so req.user exists; otherwise block

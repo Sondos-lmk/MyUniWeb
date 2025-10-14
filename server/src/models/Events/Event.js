@@ -13,7 +13,7 @@ const eventSchema = new mongoose.Schema(
       enum: ['pending', 'approved', 'rejected', 'completed'],
       default: 'pending',
     },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Users', required: true }, // Who created the event in the system
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Users' }, // Who created the event in the system
   },
   baseOptions
 );

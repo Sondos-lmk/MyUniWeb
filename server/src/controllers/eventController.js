@@ -174,46 +174,74 @@ export const createEvent = async (req, res) => {
     const { type } = req.body;
     const schema = getValidationSchema(type);
 
-    if (req.user && !req.body.organizerId)
-      req.body.organizerId = req.user.id || req.user._id;
-
+    // validate only what the user sends
     const { error, value } = schema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
+    // build payload after validation
+    const payload = { ...value };
+
+    // attach the logged-in user as organizer / creator
+    const authUserId = req.user?.id || req.user?._id;
+    if (authUserId) {
+      payload.organizerId = authUserId;
+      payload.createdBy = authUserId; // 👈 add it here, AFTER validation
+    }
+
     const Model = getEventModel(type);
-    const newEvent = new Model(value);
+    const newEvent = new Model(payload);
     await newEvent.save();
 
-    res.status(201).json({ message: `${type} created successfully`, event: newEvent });
+    res.status(201).json({
+      message: `${type} created successfully`,
+      event: newEvent,
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Update event
 export const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const event = await Event.findById(id);
-    if (!event) return res.status(404).json({ error: 'Event not found' });
+    const updates = req.body;
 
-    const eventType = event.type || event.__t;
-    if (eventType === 'trip') {
-      const now = Date.now();
-      if (now >= new Date(event.startDate).getTime())
-        return res.status(400).json({ error: 'Trip already started and cannot be edited' });
+    // find the existing event (Trip, Bazaar, etc.)
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    // only event officers can update trips, so we already checked via middleware
+    if (event.type === 'trip') {
+      const now = new Date();
+      const startDate = new Date(event.startDate);
+
+      if (startDate <= now) {
+        return res
+          .status(400)
+          .json({ message: 'Cannot edit a trip that has already started' });
+      }
     }
 
-    const schema = getValidationSchema(eventType);
-    const { error, value } = schema.validate(req.body, { allowUnknown: true, presence: 'optional' });
-    if (error) return res.status(400).json({ error: error.details[0].message });
+    // ✅ allow partial update: only apply fields that were provided
+    Object.keys(updates).forEach((key) => {
+      event[key] = updates[key];
+    });
 
-    const updatedEvent = await Event.findByIdAndUpdate(id, value, { new: true, runValidators: true });
-    res.status(200).json({ message: 'Event updated successfully', event: updatedEvent });
+    await event.save();
+
+    res.status(200).json({
+      message: 'Trip updated successfully',
+      event,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: err.message });
   }
 };
+
 
 // Delete event
 export const deleteEvent = async (req, res) => {
