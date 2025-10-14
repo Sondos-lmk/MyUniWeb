@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const baseOptions = {
   discriminatorKey: 'type',
-  collection: 'events',
+  collection: 'Events',
   timestamps: true,
 };
 
