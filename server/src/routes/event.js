@@ -50,7 +50,6 @@ router.get("/search", requireAuth, searchEvents);
 //router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 //router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
 //router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
-=======
 // ✅ Specific routes first
 
 
