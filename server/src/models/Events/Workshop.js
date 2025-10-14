@@ -14,7 +14,7 @@ const workshopSchema = new mongoose.Schema({
   registrationDeadline: { type: Date, required: true },
   requiredBudget: { type: Number, required: true },
   fundraisingSource: { type: String, enum: ['GUC', 'External'], required: true },
-  fullAgenda: { type: String },
+  fullAgenda: { type: String, required: true },
   responsibleFaculty: {
     type: String,
     enum: [
@@ -28,8 +28,16 @@ const workshopSchema = new mongoose.Schema({
       'Architecture',
     ],
   },
-  professorsParticipating: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }],
+  professorsParticipating: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   extraRequiredResource: { type: String },
-});
+  capacity: {type: Number,required: true},
+  createdBy: {type: mongoose.Schema.Types.ObjectId,ref: "User",required: true},
+  status: {type: String,enum: ["pending", "approved", "rejected", "needs revision"],default: "pending"},
+  editRequest: {type: String,default: null}
+
+
+}, 
+{timestamps: true}
+);
 
 export const Workshop = Event.discriminator('workshop', workshopSchema);

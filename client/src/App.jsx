@@ -1,57 +1,3 @@
-// import { Routes, Route, Navigate } from 'react-router-dom';
-// import Signup from './pages/Signup';
-// import Verify from './pages/Verify';
-// import Login from './pages/Login';
-// import AdminDashboard from './pages/AdminDashboard';
-// import NotFound from './pages/NotFound';
-// import Dashboard from './pages/Dashboard';
-// import CreateTrip from './pages/CreateTrip.jsx';
-
-
-
-
-// function ProtectedRoute({ children, allowedRole }) {
-//   const token = localStorage.getItem('token');
-//   const role = localStorage.getItem('role');
-//   console.log('ProtectedRoute - token:', !!token, 'role:', role); // Debug: Check auth
-//   if (!token || role !== allowedRole) {
-//     console.log(`ProtectedRoute redirecting to /, token: ${!!token}, role: ${role}`); // Debug
-//     return <Navigate to="/" />;
-//   }
-//   return children;
-// }
-
-// function App() {
-//   return (
-//     <div className="min-h-screen bg-gray-50">
-//       <Routes>
-//         <Route path="/" element={<Login />} />
-//         <Route path="/signup" element={<Signup />} />
-//         <Route path="/verify/:token" element={<Verify />} />
-//         <Route
-//           path="/admin"
-//           element={
-//             <ProtectedRoute allowedRole="admin">
-//               <AdminDashboard />
-//             </ProtectedRoute>
-//           }
-//         />
-//         <Route path="/dashboard" element={<Dashboard />} />
-//         <Route path="*" element={<NotFound />} />
-//         <Route path="/create-trip"element={<ProtectedRoute requiredRole="eventOfficer">
-//       <CreateTrip />
-//     </ProtectedRoute>
-//   }
-// />
-
-
-//       </Routes>
-//     </div>
-//   );
-// }
-
-// export default App;
-//marwan:
 // client/src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom';
 
@@ -63,7 +9,7 @@ import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
 import CreateTrip from './pages/CreateTrip.jsx';
 
-// ⬇️ NEW imports for your requirements (33, 34, 40, 41)
+// NEW pages/components for reqs 33,34,40,41
 import Navbar from './components/Navbar';
 import Events from './pages/Events';
 import MyApplications from './pages/MyApplications';
@@ -71,9 +17,9 @@ import MyEvents from './pages/MyEvents';
 import BazaarApply from './pages/BazaarApply';
 import BoothApply from './pages/BoothApply';
 import EventDetails from './pages/EventDetails';
-import TestEventCard from "./pages/TestEventCard";
+import TestEventCard from './pages/TestEventCard';
 
-// Smarter ProtectedRoute: if allowedRole is provided, enforce it; otherwise only require login.
+// Improved ProtectedRoute: if allowedRole is provided, enforce it; otherwise only require login.
 function ProtectedRoute({ children, allowedRole }) {
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('role');
@@ -90,7 +36,7 @@ function ProtectedRoute({ children, allowedRole }) {
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Optional: hide Navbar on auth pages if you want; for now, show it globally */}
+      {/* Show navbar globally (hide on auth pages later if you want) */}
       <Navbar />
 
       <Routes>
@@ -98,6 +44,8 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify/:token" element={<Verify />} />
+
+        {/* Simple visual test page for EventCard */}
         <Route path="/test-card" element={<TestEventCard />} />
 
         {/* Admin */}
@@ -113,10 +61,10 @@ function App() {
         {/* Existing dashboard */}
         <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* ✅ NEW: Events Hub (public list) */}
+        {/* Events hub (list is public) */}
         <Route path="/events" element={<Events />} />
 
-        {/* ✅ NEW: Event Details (your backend requires auth for GET /events/:id) */}
+        {/* Event details: your backend requires auth for GET /events/:id */}
         <Route
           path="/events/:id"
           element={
@@ -126,7 +74,7 @@ function App() {
           }
         />
 
-        {/* ✅ NEW: Vendor flows (auth required by backend) */}
+        {/* Vendor flows (auth) */}
         <Route
           path="/bazaars/:bazaarId/apply"
           element={
@@ -144,7 +92,7 @@ function App() {
           }
         />
 
-        {/* ✅ NEW: My Applications & My Registered Events (auth) */}
+        {/* Me (auth) */}
         <Route
           path="/my-applications"
           element={
@@ -162,7 +110,7 @@ function App() {
           }
         />
 
-        {/* Create Trip (event officer only) — fixed prop name */}
+        {/* Create Trip (event officer only) */}
         <Route
           path="/create-trip"
           element={
