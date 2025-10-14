@@ -22,6 +22,7 @@ import {
   getMyEventApplications,
   // createBazaar,
   // createConference,
+  getUpcomingEvents,
 } from '../controllers/eventController.js';
 
 import { requireAdmin, requireAuth, requireEventOfficer, requireProfessor,requireEventOfficerOrAdmin } from '../middleware/auth.js';
@@ -62,6 +63,7 @@ router.post('/register', requireAuth, registerForEvent);
 // router.post('/conference', requireAuth, requireEventOfficer, createConference);
 
 // 📌 General event routes
+router.get('/upcoming', getUpcomingEvents);
 router.get('/', getAllEvents);
 
 // Fetch all bazaars and booths I registered for

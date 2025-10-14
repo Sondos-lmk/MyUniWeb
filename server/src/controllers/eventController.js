@@ -158,6 +158,50 @@ export const getAllEvents = async (req, res) => {
   }
 };
 
+// Get upcoming events with details (includes vendor participation for bazaars/booths)
+export const getUpcomingEvents = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Only approved and future-dated events are considered upcoming
+    const baseFilter = { status: 'approved', $or: [ { startDate: { $gte: now } }, { endDate: { $gte: now } } ] };
+
+    // Build queries per discriminator to leverage field existence
+    const [bazaars, booths, conferences, trips, workshops] = await Promise.all([
+      Bazaar.find(baseFilter)
+        .populate({ path: 'registeredVendors.vendor', select: 'name email role' })
+        .lean(),
+      Booth.find(baseFilter)
+        .populate({ path: 'registeredVendors.vendor', select: 'name email role' })
+        .lean(),
+      Conference.find(baseFilter).lean(),
+      Trip.find(baseFilter).lean(),
+      Workshop.find(baseFilter)
+        .populate('professorsParticipating', 'name email')
+        .lean(),
+    ]);
+
+    const combined = [
+      ...bazaars.map(e => ({ ...e, type: 'bazaar' })),
+      ...booths.map(e => ({ ...e, type: 'booth' })),
+      ...conferences.map(e => ({ ...e, type: 'conference' })),
+      ...trips.map(e => ({ ...e, type: 'trip' })),
+      ...workshops.map(e => ({ ...e, type: 'workshop' })),
+    ];
+
+    // Sort by startDate ascending when available, otherwise by createdAt
+    combined.sort((a, b) => {
+      const aDate = a.startDate ? new Date(a.startDate).getTime() : new Date(a.createdAt).getTime();
+      const bDate = b.startDate ? new Date(b.startDate).getTime() : new Date(b.createdAt).getTime();
+      return aDate - bDate;
+    });
+
+    res.status(200).json(combined);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // Get event by ID
 export const getEventById = async (req, res) => {
   try {
