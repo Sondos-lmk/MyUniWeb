@@ -7,12 +7,14 @@ import {
   deleteEvent,
   approveEvent,
   rejectEvent,
-  createProfessorWorkshop,
+  createWorkshop,
+  updateWorkshop,
   getPendingWorkshops,
   getProfessorWorkshops,
   getMyRegisteredEvents,
   // editBazaar,
   registerForEvent,
+  requestWorkshopEdit,
   registerForBazaar,
   registerBooth,
   getMyEventApplications,
@@ -24,8 +26,22 @@ import { requireAuth, requireEventOfficer, requireProfessor } from '../middlewar
 
 const router = Router();
 
-// 📌 Professor-specific first (avoid route conflicts)
-router.post('/professor/workshop', requireAuth, requireProfessor, createProfessorWorkshop);
+
+// Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
+router.post('/', requireAuth, requireEventOfficer, createEvent);
+router.get('/', getAllEvents);
+router.get('/:id', getEventById);
+router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
+router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
+router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
+router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+
+// Professor-specific routes
+router.post('/professor/workshop', requireAuth, requireProfessor, createWorkshop);
+
+// Update workshop
+router.put("/professor/workshop/:id",requireAuth,requireProfessor,updateWorkshop);
+
 router.get('/professor/my-workshops', requireAuth, requireProfessor, getProfessorWorkshops);
 router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWorkshops);
 
@@ -40,6 +56,8 @@ router.post('/register', requireAuth, registerForEvent);
 router.get('/', getAllEvents);
 // Fetch all bazaars and booths I registered for
 router.get("/my-applications", requireAuth, getMyEventApplications);
+
+router.patch("/workshop/:id/request-edit",requireAuth,requireEventOfficer,requestWorkshopEdit);
 
 router.get('/:id', requireAuth, getEventById);
 router.post('/', requireAuth, requireEventOfficer, createEvent);

@@ -1,19 +1,33 @@
 import jwt from 'jsonwebtoken';
+import { User } from '../models/Users/User.js';
+import { Professor } from '../models/Users/Professor.js';
+import { Staff } from '../models/Users/Staff.js';
+import { TA } from '../models/Users/TA.js';
 
 // Auth middleware
-export function requireAuth(req, res, next) {
-  console.log('🧩 requireAuth triggered');
+export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const [, token] = authHeader.split(' ');
   if (!token) return res.status(401).json({ message: 'Missing token' });
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload;
-    console.log('✅ Auth OK for user:', payload.email);
+
+   const userId = payload.id || payload.userId; // ✅ Support both possible token formats
+
+  const user =
+    (await User.findById(userId)) ||
+    (await Professor.findById(userId)) ||
+    (await Staff.findById(userId)) ||
+    (await TA.findById(userId));
+
+
+    if (!user) return res.status(401).json({ message: 'User not found' });
+
+    req.user = user; // ✅ Attach full Mongoose user object
     next();
   } catch (err) {
-    console.log('❌ Invalid token:', err.message);
+    console.error('Auth error:', err);
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 }
