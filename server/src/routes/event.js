@@ -4,10 +4,12 @@ import {
   getAllEvents,
   getEventById,
   updateEvent,
+  updateBazaar,
   deleteEvent,
   approveEvent,
   rejectEvent,
   createProfessorWorkshop,
+  createBazaar,
   getPendingWorkshops,
   getProfessorWorkshops,
   getMyRegisteredEvents,
@@ -43,13 +45,14 @@ router.get("/my-applications", requireAuth, getMyEventApplications);
 
 router.get('/:id', requireAuth, getEventById);
 router.post('/', createEvent);
+router.post('/createBazaar', requireAuth, requireEventOfficer,createBazaar);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
 router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
-// 📌 Approve/Reject event
+// 📌 Approve/Reject event/update
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-
+router.patch('/:id/update', requireAuth, requireEventOfficer, updateBazaar);
 // 📌 Bazaar registration
 router.post('/bazaar/:bazaarId/register', requireAuth, registerForBazaar);
 

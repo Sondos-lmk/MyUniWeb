@@ -13,6 +13,7 @@ import { Workshop } from '../models/Events/Workshop.js';
 const baseEventSchema = Joi.object({
   type: Joi.string().valid('bazaar', 'booth', 'conference', 'trip', 'workshop', 'gym').required(),
   status: Joi.string().valid('pending', 'approved', 'rejected', 'completed'),
+  createdBy: Joi.string().required(),
   organizerId: Joi.string().required(),
 });
 
@@ -421,6 +422,53 @@ export const registerForBazaar = async (req, res) => {
 };
 
 
+// update bazaar details if bazaare has not started yet
+export const updateBazaar = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 🔒 Ensure only Event Officers can edit
+    if (req.user.role !== 'eventOfficer')
+      return res.status(403).json({ error: 'Only Event Officers can edit bazaars.' });
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ error: 'Bazaar not found' });
+
+    if (event.type !== 'bazaar' && event.__t !== 'bazaar')
+      return res.status(400).json({ error: 'Event is not a bazaar' });
+
+    const now = new Date();
+    if (now >= new Date(event.startDate))
+      return res.status(400).json({ error: 'Bazaar already started and cannot be edited' });
+
+    const bazaarEditSchema = bazaarSchema.fork(
+      Object.keys(bazaarSchema.describe().keys),
+      (schema) => schema.optional()
+    );
+
+    const { error, value } = bazaarEditSchema.validate(req.body, {
+      allowUnknown: true,
+      presence: 'optional',
+    });
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const updatedEvent = await Event.findByIdAndUpdate(id, value, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({
+      message: 'Bazaar updated successfully',
+      event: updatedEvent,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
+
 // ////////////////////////
 // register vendor schema for booth in platform
 
@@ -569,17 +617,6 @@ export const getMyEventApplications = async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 // // Edit bazaar
 // export const editBazaar = async (req, res) => {
 //   try {
@@ -592,19 +629,29 @@ export const getMyEventApplications = async (req, res) => {
 //     res.status(500).json({ message: 'Failed to update bazaar', error: error.message });
 //   }
 // };
-// export const createBazaar = async (req, res) => {
-//   try {
-//     const { error, value } = bazaarSchema.validate(req.body);
-//     if (error) return res.status(400).json({ error: error.details[0].message });
+export const createBazaar = async (req, res) => {
+  try {
 
-//     const newBazaar = new Bazaar(value);
-//     await newBazaar.save();
+    if (req.user.role !== 'eventOfficer') {
+      return res.status(403).json({ message: 'Only Event Officers can create bazaars' });
+    }
 
-//     res.status(201).json({ message: 'Bazaar created successfully', bazaar: newBazaar });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
+    // Automatically set organizer and createdBy
+    const userId = req.user.id || req.user._id;
+    req.body.organizerId = req.body.organizerId || userId;
+    req.body.createdBy = userId; // ✅ add this line
+
+    const { error, value } = bazaarSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const newBazaar = new Bazaar(value);
+    await newBazaar.save();
+
+    res.status(201).json({ message: 'Bazaar created successfully', bazaar: newBazaar });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 // export const createConference = async (req, res) => {
 //   try {

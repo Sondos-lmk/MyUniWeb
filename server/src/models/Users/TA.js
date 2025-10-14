@@ -5,11 +5,11 @@ import { User } from './User.js';
 const taSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     isVerified: { type: Boolean, default: false },
-    favoritesLists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Events' }],
-    registeredEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Events' }],
+    favoritesLists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
+    registeredEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
     wallet: { type: Number, default: 0 },
     notifications: [{ type: String }],
-    workshops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Events' }],
+    workshops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
 });
 
 export const TA = User.discriminator('ta', taSchema);
