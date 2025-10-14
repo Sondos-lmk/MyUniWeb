@@ -55,6 +55,7 @@ router.get("/search", requireAuth, searchEvents);
 //router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 //router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
 //router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+
 // ✅ Specific routes first
 
 
@@ -74,6 +75,7 @@ router.get('/my-applications', requireAuth, getMyEventApplications);
 router.patch('/workshop/:id/request-edit', requireAuth, requireEventOfficer, requestWorkshopEdit);
 
 
+ 
 router.patch("/workshop/:id/request-edit",requireAuth,requireEventOfficer,requestWorkshopEdit);
 
 // Bazaar and Booth registration
@@ -105,7 +107,7 @@ router.get('/workshops', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
   }
-});
+})
 
 router.get('/trips', requireAuth, async (req, res) => {
   try {
@@ -272,6 +274,31 @@ router.get('/trips', requireAuth, async (req, res) => {
 router.get('/my-applications', requireAuth, getMyEventApplications);
 router.get('/:id', requireAuth, getEventById);
 
+
+// 📌 General event routes
+router.get('/', getAllEvents);
+
+// ✅ Add these new routes before the ":id" route
+router.get('/workshops', requireAuth, async (req, res) => {
+  try {
+    const events = await Event.find({ type: 'workshop' });
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
+  }
+});
+
+router.get('/trips', requireAuth, async (req, res) => {
+  try {
+    const events = await Event.find({ type: 'trip' });
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
+  }
+});
+
+router.get('/my-applications', requireAuth, getMyEventApplications);
+router.get('/:id', requireAuth, getEventById);
 
 // 📌 General event routes
 router.get('/', getAllEvents);

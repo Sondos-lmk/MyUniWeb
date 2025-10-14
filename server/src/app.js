@@ -9,6 +9,9 @@ import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import eventRoutes from './routes/event.js';
 import userRoutes from './routes/userRoutes.js';
+import gymRoutes from "./routes/gymRoutes.js";
+
+
 
 dotenv.config(); // Load environment variables from .env
 console.log('✅ Running Innovex app.js');
@@ -33,6 +36,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use("/api/gym", gymRoutes);
 
 // ✅ Not found
 app.use((req, res, next) => {
