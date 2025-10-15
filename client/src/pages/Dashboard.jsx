@@ -24,29 +24,34 @@ function Dashboard() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      if (role !== "vendor") return;
-      setLoading(true);
-      try {
-        const res = await API.get("/events?type=bazaar", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+  const fetchEvents = async () => {
+    if (role !== "vendor") return;
+    setLoading(true);
+    try {
+      const res = await API.get("/events?type=bazaar", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-        if (Array.isArray(res.data)) {
-          setEvents(res.data);
-        } else {
-          console.warn("Expected array but got:", res.data);
-          setEvents([]);
-        }
-      } catch (err) {
-        console.error("Error fetching vendor events:", err);
+      if (Array.isArray(res.data)) {
+        const now = new Date();
+        const upcomingBazaars = res.data.filter(
+          (event) => new Date(event.startDate) > now
+        );
+        setEvents(upcomingBazaars);
+      } else {
+        console.warn("Expected array but got:", res.data);
         setEvents([]);
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchEvents();
-  }, [role, token]);
+    } catch (err) {
+      console.error("Error fetching vendor events:", err);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchEvents();
+}, [role, token]);
+
 
   const handleLogout = () => {
     localStorage.removeItem("token");

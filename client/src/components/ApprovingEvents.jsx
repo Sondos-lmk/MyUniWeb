@@ -3,30 +3,51 @@ import API from "../services/api";
 
 export default function ApprovedEvents() {
   const [events, setEvents] = useState([]);
+  const [vendorsMap, setVendorsMap] = useState({}); // store vendorId -> companyName
 
   useEffect(() => {
     const fetchEvents = async () => {
-      try {
-        const [bazaarsRes, boothsRes] = await Promise.all([
-          API.get("/events", { params: { type: "bazaar" } }),
-          API.get("/events", { params: { type: "booth" } }),
-        ]);
+  try {
+    const [bazaarsRes, boothsRes] = await Promise.all([
+      API.get("/events", { params: { type: "bazaar" } }),
+      API.get("/events", { params: { type: "booth" } }),
+    ]);
 
-        // Ensure data arrays
-        const bazaars = Array.isArray(bazaarsRes.data) ? bazaarsRes.data : [];
-        const booths = Array.isArray(boothsRes.data) ? boothsRes.data : [];
+    const bazaars = Array.isArray(bazaarsRes.data) ? bazaarsRes.data : [];
+    const booths = Array.isArray(boothsRes.data) ? boothsRes.data : [];
 
-        // Filter approved events
-        const approvedEvents = [
-          ...bazaars.filter((e) => e.status === "approved"),
-          ...booths.filter((e) => e.status === "approved"),
-        ];
+    const now = new Date();
 
-        setEvents(approvedEvents);
-      } catch (err) {
-        console.error("Error fetching events:", err);
-      }
-    };
+    const approvedEvents = [
+      ...bazaars.filter((e) => e.status === "approved" && new Date(e.startDate) > now),
+      ...booths.filter((e) => e.status === "approved"),
+    ];
+
+    setEvents(approvedEvents);
+
+    // Fetch company names for all vendors
+    const vendorIds = approvedEvents
+      .flatMap((ev) => ev.registeredVendors.map((v) => v.vendor))
+      .filter(Boolean);
+
+    const uniqueVendorIds = [...new Set(vendorIds)];
+
+    const vendorsData = await Promise.all(
+      uniqueVendorIds.map((id) => API.get(`/users/${id}`))
+    );
+
+    const map = {};
+    vendorsData.forEach((res) => {
+      map[res.data._id] = res.data.companyName || res.data.name;
+    });
+
+    setVendorsMap(map);
+
+  } catch (err) {
+    console.error("Error fetching events or vendors:", err);
+  }
+};
+
 
     fetchEvents();
   }, []);
@@ -35,7 +56,6 @@ export default function ApprovedEvents() {
     try {
       await API.patch(`/events/${eventId}/vendors/${vendorId}`, { status: newStatus });
 
-      // Update local state
       setEvents((prev) =>
         prev.map((ev) =>
           ev._id === eventId
@@ -54,11 +74,19 @@ export default function ApprovedEvents() {
     }
   };
 
+  const capitalize = (str) => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+
   return (
     <div>
+       {/* --- Approve Vendor Requests Section --- */}
+  <h2 className="text-2xl font-bold mb-4">Approve Vendor Requests</h2>
       {events.length === 0 ? (
         <p>No approved events found.</p>
-      ) : (
+      ) :  (
         events.map((event) => (
           <div key={event._id} className="mb-6 p-6 bg-white rounded-xl shadow">
             <h2 className="text-xl font-semibold mb-1">
@@ -94,7 +122,7 @@ export default function ApprovedEvents() {
                     .filter((v) => v.status === "pending")
                     .map((vendor) => (
                       <tr key={vendor.vendor}>
-                        <td className="border p-2">{vendor.vendorName || vendor.vendor}</td>
+                        <td className="border p-2">{capitalize(vendorsMap[vendor.vendor]) || vendor.vendor}</td>
                         <td className="border p-2">
                           {vendor.reps?.map((r, i) => (
                             <div key={i}>
