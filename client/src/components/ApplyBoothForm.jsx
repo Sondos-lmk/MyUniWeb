@@ -13,22 +13,14 @@ function ApplyBoothForm() {
   const [booths, setBooths] = useState([]);
   const [message, setMessage] = useState("");
 
-  // ✅ FIXED FETCH FUNCTION
   useEffect(() => {
     const fetchBooths = async () => {
       try {
         const res = await API.get("/events?type=booth");
-        console.log("Fetched booths:", res.data);
-
-        // Handle different backend shapes safely
-        const boothsData =
-          res.data?.events || res.data?.booths || res.data || [];
-
-        // Filter only approved booths (safe guard)
-        const approvedBooths = boothsData.filter(
-          (b) => b.status === "approved"
-        );
-
+        const boothsData = res.data?.events || res.data?.booths || res.data || [];
+        const approvedBooths = boothsData
+          .filter((b) => b.status === "approved")
+          .sort((a, b) => a.title.localeCompare(b.title)); // Sort alphabetically
         setBooths(approvedBooths);
       } catch (err) {
         console.error("Error fetching booths:", err);
@@ -50,16 +42,12 @@ function ApplyBoothForm() {
 
   const addRep = () => {
     if (form.reps.length < 5) {
-      setForm({
-        ...form,
-        reps: [...form.reps, { name: "", email: "" }],
-      });
+      setForm({ ...form, reps: [...form.reps, { name: "", email: "" }] });
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const booth = booths.find((b) => b._id === form.boothId);
     if (!booth) {
       setMessage("Selected booth not found.");
@@ -70,19 +58,14 @@ function ApplyBoothForm() {
     const end = new Date(start);
     end.setDate(start.getDate() + form.durationWeeks * 7);
 
-    // ✅ Safer check in case registeredVendors doesn't exist yet
-    const overlapping =
-      booth.registeredVendors?.some(
-        (v) =>
-          v.status === "approved" &&
-          v.boothSize === form.boothSize &&
-          ((start >= new Date(v.startDate) &&
-            start <= new Date(v.endDate)) ||
-            (end >= new Date(v.startDate) &&
-              end <= new Date(v.endDate)) ||
-            (start <= new Date(v.startDate) &&
-              end >= new Date(v.endDate)))
-      ) || false;
+    const overlapping = booth.registeredVendors?.some(
+      (v) =>
+        v.status === "approved" &&
+        v.boothSize === form.boothSize &&
+        ((start >= new Date(v.startDate) && start <= new Date(v.endDate)) ||
+          (end >= new Date(v.startDate) && end <= new Date(v.endDate)) ||
+          (start <= new Date(v.startDate) && end >= new Date(v.endDate)))
+    );
 
     if (overlapping) {
       setMessage(
@@ -106,28 +89,54 @@ function ApplyBoothForm() {
     }
   };
 
+  // Split booths into top and bottom rows
+  const topRow = booths.slice(0, 3); // A, B, C
+  const bottomRow = booths.slice(3, 6); // D, E, F
+
   return (
-    <div className="p-6 bg-white shadow-md rounded-2xl">
+    <div className="p-6">
       <h2 className="text-xl font-bold mb-4">Apply for a Booth</h2>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        {/* Booth Selection */}
-        <select
-          name="boothId"
-          value={form.boothId}
-          onChange={handleChange}
-          className="border p-2 rounded"
-          required
-        >
-          <option value="">Select a Booth</option>
-          {booths.map((booth) => (
-            <option key={booth._id} value={booth._id}>
-              {booth.title} ({booth.locationInPlatform})
-            </option>
+      {/* Booth Map */}
+      <div className="bg-gray-200 p-6 rounded mb-6 flex flex-col items-center gap-6">
+        {/* Top Row */}
+        <div className="flex justify-center gap-6">
+          {topRow.map((booth) => (
+            <button
+              key={booth._id}
+              onClick={() => setForm({ ...form, boothId: booth._id })}
+              className={`px-3 py-1 rounded border ${
+                form.boothId === booth._id ? "bg-blue-600 text-white" : "bg-white"
+              }`}
+            >
+              {booth.title}
+            </button>
           ))}
-        </select>
+        </div>
 
-        {/* Booth Size */}
+        {/* Center Platform */}
+        <div className="w-75 h-50 bg-green-300 flex items-center justify-center text-white font-bold rounded">
+        Platform
+      </div>
+
+        {/* Bottom Row */}
+        <div className="flex justify-center gap-6">
+          {bottomRow.map((booth) => (
+            <button
+              key={booth._id}
+              onClick={() => setForm({ ...form, boothId: booth._id })}
+              className={`px-3 py-1 rounded border ${
+                form.boothId === booth._id ? "bg-blue-600 text-white" : "bg-white"
+              }`}
+            >
+              {booth.title}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <select
           name="boothSize"
           value={form.boothSize}
@@ -139,7 +148,6 @@ function ApplyBoothForm() {
           <option value="4x4">4x4</option>
         </select>
 
-        {/* Start Date */}
         <input
           type="date"
           name="startDate"
@@ -149,7 +157,6 @@ function ApplyBoothForm() {
           required
         />
 
-        {/* Duration */}
         <select
           name="durationWeeks"
           value={form.durationWeeks}
@@ -163,7 +170,6 @@ function ApplyBoothForm() {
           ))}
         </select>
 
-        {/* Representatives */}
         <h3 className="font-semibold mt-2">Representatives</h3>
         {form.reps.map((rep, i) => (
           <div key={i} className="flex gap-2">
