@@ -369,5 +369,4 @@ router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
 
 export default router;
-
-
+//event.js
