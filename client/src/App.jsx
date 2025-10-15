@@ -14,7 +14,7 @@ import Navbar from './components/Navbar';
 import Events from './pages/Events';
 import MyApplications from './pages/MyApplications';
 import MyEvents from './pages/MyEvents';
-import BazaarApply from './pages/BazaarApply';
+// import BazaarApply from './pages/BazaarApply';
 import BoothApply from './pages/BoothApply';
 import EventDetails from './pages/EventDetails';
 import TestEventCard from './pages/TestEventCard';
@@ -74,7 +74,7 @@ function App() {
           }
         />
 
-        {/* Vendor flows (auth) */}
+        {/* Vendor flows (auth)
         <Route
           path="/bazaars/:bazaarId/apply"
           element={
@@ -82,7 +82,7 @@ function App() {
               <BazaarApply />
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
           path="/booths/:boothId/apply"
           element={

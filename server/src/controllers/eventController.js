@@ -158,16 +158,22 @@ const getEventModel = (type) => {
 export const getAllEvents = async (req, res) => {
   try {
     const { type } = req.query;
-    const role = req.user?.role;
     const Model = type ? getEventModel(type) : Event;
-    const filter = {};
-     
-    const events = await Model.find(filter);
+
+    console.log("Query type:", type);
+    console.log("Using model:", Model.modelName);
+
+    const events = await Model.find({});
+    console.log("Fetched events from DB:", events); // <--- Add this
+
     res.status(200).json(events);
   } catch (err) {
+    console.error("Error in getAllEvents:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
+
 
 // Get upcoming events with details (includes vendor participation for bazaars/booths)
 // export const getUpcomingEvents = async (req, res) => {

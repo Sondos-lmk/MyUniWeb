@@ -13,11 +13,23 @@ function ApplyBoothForm() {
   const [booths, setBooths] = useState([]);
   const [message, setMessage] = useState("");
 
+  // ✅ FIXED FETCH FUNCTION
   useEffect(() => {
     const fetchBooths = async () => {
       try {
         const res = await API.get("/events?type=booth");
-        setBooths(res.data.filter((b) => b.status === "approved"));
+        console.log("Fetched booths:", res.data);
+
+        // Handle different backend shapes safely
+        const boothsData =
+          res.data?.events || res.data?.booths || res.data || [];
+
+        // Filter only approved booths (safe guard)
+        const approvedBooths = boothsData.filter(
+          (b) => b.status === "approved"
+        );
+
+        setBooths(approvedBooths);
       } catch (err) {
         console.error("Error fetching booths:", err);
       }
@@ -38,7 +50,10 @@ function ApplyBoothForm() {
 
   const addRep = () => {
     if (form.reps.length < 5) {
-      setForm({ ...form, reps: [...form.reps, { name: "", email: "" }] });
+      setForm({
+        ...form,
+        reps: [...form.reps, { name: "", email: "" }],
+      });
     }
   };
 
@@ -47,7 +62,7 @@ function ApplyBoothForm() {
 
     const booth = booths.find((b) => b._id === form.boothId);
     if (!booth) {
-      setMessage("Selected booth not found");
+      setMessage("Selected booth not found.");
       return;
     }
 
@@ -55,14 +70,19 @@ function ApplyBoothForm() {
     const end = new Date(start);
     end.setDate(start.getDate() + form.durationWeeks * 7);
 
-    const overlapping = booth.registeredVendors.some(
-      (v) =>
-        v.status === "approved" &&
-        v.boothSize === form.boothSize &&
-        ((start >= new Date(v.startDate) && start <= new Date(v.endDate)) ||
-          (end >= new Date(v.startDate) && end <= new Date(v.endDate)) ||
-          (start <= new Date(v.startDate) && end >= new Date(v.endDate)))
-    );
+    // ✅ Safer check in case registeredVendors doesn't exist yet
+    const overlapping =
+      booth.registeredVendors?.some(
+        (v) =>
+          v.status === "approved" &&
+          v.boothSize === form.boothSize &&
+          ((start >= new Date(v.startDate) &&
+            start <= new Date(v.endDate)) ||
+            (end >= new Date(v.startDate) &&
+              end <= new Date(v.endDate)) ||
+            (start <= new Date(v.startDate) &&
+              end >= new Date(v.endDate)))
+      ) || false;
 
     if (overlapping) {
       setMessage(
@@ -79,17 +99,19 @@ function ApplyBoothForm() {
         durationWeeks: form.durationWeeks,
         reps: form.reps,
       });
-      setMessage(res.data.message);
+      setMessage(res.data?.message || "Application submitted successfully!");
     } catch (err) {
       console.error("Error submitting booth application:", err);
-      setMessage(err.response?.data?.error || "Something went wrong");
+      setMessage(err.response?.data?.error || "Something went wrong.");
     }
   };
 
   return (
     <div className="p-6 bg-white shadow-md rounded-2xl">
       <h2 className="text-xl font-bold mb-4">Apply for a Booth</h2>
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        {/* Booth Selection */}
         <select
           name="boothId"
           value={form.boothId}
@@ -105,6 +127,7 @@ function ApplyBoothForm() {
           ))}
         </select>
 
+        {/* Booth Size */}
         <select
           name="boothSize"
           value={form.boothSize}
@@ -116,6 +139,7 @@ function ApplyBoothForm() {
           <option value="4x4">4x4</option>
         </select>
 
+        {/* Start Date */}
         <input
           type="date"
           name="startDate"
@@ -125,18 +149,21 @@ function ApplyBoothForm() {
           required
         />
 
+        {/* Duration */}
         <select
           name="durationWeeks"
           value={form.durationWeeks}
           onChange={handleChange}
           className="border p-2 rounded"
         >
-          <option value={1}>1 Week</option>
-          <option value={2}>2 Weeks</option>
-          <option value={3}>3 Weeks</option>
-          <option value={4}>4 Weeks</option>
+          {[1, 2, 3, 4].map((w) => (
+            <option key={w} value={w}>
+              {w} Week{w > 1 ? "s" : ""}
+            </option>
+          ))}
         </select>
 
+        {/* Representatives */}
         <h3 className="font-semibold mt-2">Representatives</h3>
         {form.reps.map((rep, i) => (
           <div key={i} className="flex gap-2">
@@ -146,6 +173,7 @@ function ApplyBoothForm() {
               value={rep.name}
               onChange={(e) => handleRepChange(i, "name", e.target.value)}
               className="border p-2 rounded flex-1"
+              required
             />
             <input
               type="email"
@@ -153,6 +181,7 @@ function ApplyBoothForm() {
               value={rep.email}
               onChange={(e) => handleRepChange(i, "email", e.target.value)}
               className="border p-2 rounded flex-1"
+              required
             />
           </div>
         ))}

@@ -11,12 +11,20 @@ function MyApplications() {
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const res = await API.get("events/my-applications", {
+        const res = await API.get("/events/my-applications", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setApplications(res.data.applications);
+
+        console.log("Fetched applications response:", res.data);
+
+        // Handle any response shape (array or object)
+        const apps = Array.isArray(res.data)
+          ? res.data
+          : res.data?.applications || res.data?.data || [];
+
+        setApplications(apps);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching applications:", err);
         setError(err.response?.data?.error || "Failed to fetch applications");
       } finally {
         setLoading(false);
@@ -29,7 +37,7 @@ function MyApplications() {
   if (loading) return <p>Loading your applications...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
-  if (applications.length === 0)
+  if (!applications || applications.length === 0)
     return <p>You haven't applied for any bazaars or booths yet.</p>;
 
   return (
@@ -42,17 +50,20 @@ function MyApplications() {
             className="border p-4 rounded-lg flex justify-between items-center"
           >
             <div>
-              <h3 className="font-semibold text-lg">
-             {app.title}
-              </h3>
-              <p className="text-sm text-gray-600 mb-1">
-                {new Date(app.startDate).toLocaleDateString()} -{" "}
-                {new Date(app.endDate).toLocaleDateString()}
-              </p>
+              <h3 className="font-semibold text-lg">{app.title || "Untitled Event"}</h3>
+              {app.startDate && app.endDate ? (
+                <p className="text-sm text-gray-600 mb-1">
+                  {new Date(app.startDate).toLocaleDateString()} -{" "}
+                  {new Date(app.endDate).toLocaleDateString()}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-600 mb-1">Date not available</p>
+              )}
               <p className="text-gray-700">
-                Location: {app.location || "N/A"}
+                Location: {app.location || app.locationInPlatform || "N/A"}
               </p>
             </div>
+
             <span
               className={`px-3 py-1 rounded-full text-sm font-semibold ${
                 app.status === "approved"
@@ -62,7 +73,7 @@ function MyApplications() {
                   : "bg-red-100 text-red-700"
               }`}
             >
-              {app.status.toUpperCase()}
+              {(app.status || "unknown").toUpperCase()}
             </span>
           </div>
         ))}

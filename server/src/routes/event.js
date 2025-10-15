@@ -44,13 +44,13 @@ router.get("/search", requireAuth, searchEvents);
 
 
 // Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
-router.post('/', requireAuth, requireEventOfficer, createEvent);
-router.get('/:id', getEventById);
+router.post('/', createEvent);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
 router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
+
 
 // ✅ Specific routes first
 
@@ -66,6 +66,7 @@ router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWor
 // My applications / My events
 router.get('/my-events', requireAuth, getMyRegisteredEvents);  // for students
 router.get('/my-applications', requireAuth, getMyEventApplications);
+router.get('/:id', getEventById);
 
 // Workshop edit request
 router.patch('/workshop/:id/request-edit', requireAuth, requireEventOfficer, requestWorkshopEdit);
@@ -87,7 +88,7 @@ router.patch('/:eventId/vendors/:vendorId', requireAuth, updateVendorStatus);
 
 // 📌 General event routes
 router.get('/upcoming', getUpcomingEvents);
-//router.get('/', getAllEvents);
+router.get('/', getAllEvents);
 
 // Fetch all bazaars and booths I registered for
 router.get("/my-applications", requireAuth, getMyEventApplications);
@@ -115,7 +116,6 @@ router.get('/trips', requireAuth, async (req, res) => {
 
 
 router.post('/createConference', requireAuth, requireEventOfficer,createConference);
-router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
 router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConference);
 
 

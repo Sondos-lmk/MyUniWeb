@@ -6,55 +6,40 @@ export default function ApprovedEvents({ token }) {
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const [bazaars, booths] = await Promise.all([
-          API.get("/events?type=bazaar", { headers: { Authorization: `Bearer ${token}` } }),
-          API.get("/events?type=booth", { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
+  if (!token) return;
 
-        let approvedEvents = [
-          ...bazaars.data.filter((e) => e.status === "approved"),
-          ...booths.data.filter((e) => e.status === "approved"),
-        ];
+  const fetchEvents = async () => {
+    try {
+      const [bazaarsRes, boothsRes] = await Promise.all([
+        API.get("/events?type=bazaar", { headers: { Authorization: `Bearer ${token}` } }),
+        API.get("/events?type=booth", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
 
-        // Collect all unique vendor IDs
-        const vendorIds = [
-          ...new Set(
-            approvedEvents.flatMap((ev) => ev.registeredVendors?.map((v) => v.vendor) || [])
-          ),
-        ];
+      console.log("Bazaars response:", bazaarsRes);
+      console.log("Booths response:", boothsRes);
 
-        // Fetch vendor names
-        const vendorResponses = await Promise.all(
-          vendorIds.map((id) =>
-            API.get(`/users/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-              .then((res) => ({ id, name: res.data.companyName }))
-              .catch(() => ({ id, name: "Unknown" }))
-          )
-        );
+      const bazaars = Array.isArray(bazaarsRes.data) ? bazaarsRes.data : [];
+      const booths = Array.isArray(boothsRes.data) ? boothsRes.data : [];
 
-        const vendorMap = {};
-        vendorResponses.forEach((v) => {
-          vendorMap[v.id] = v.name;
-        });
+      console.log("Bazaars raw data:", bazaars);
+      console.log("Booths raw data:", booths);
 
-        approvedEvents = approvedEvents.map((ev) => ({
-          ...ev,
-          registeredVendors: ev.registeredVendors?.map((v) => ({
-            ...v,
-            vendorName: vendorMap[v.vendor] || "Unknown",
-          })) || [],
-        }));
+      const approvedEvents = [
+        ...bazaars.filter((e) => e.status === "approved"),
+        ...booths.filter((e) => e.status === "approved"),
+      ];
 
-        setEvents(approvedEvents);
-      } catch (err) {
-        console.error("Error fetching events or vendors:", err);
-      }
-    };
+      console.log("Filtered approved events:", approvedEvents);
 
-    fetchEvents();
-  }, [token]);
+      setEvents(approvedEvents);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+    }
+  };
+
+  fetchEvents();
+}, [token]);
+
 
   const handleVendorStatus = async (eventId, vendorId, newStatus) => {
     try {
@@ -78,7 +63,7 @@ export default function ApprovedEvents({ token }) {
       );
     } catch (err) {
       console.error("Error updating vendor status:", err);
-      alert("Booth is resereved by another vendor for the selected dates.");
+      alert("Booth is reserved by another vendor for the selected dates.");
     }
   };
 
@@ -95,7 +80,8 @@ export default function ApprovedEvents({ token }) {
 
             {event.type === "bazaar" && event.startDate && event.endDate && (
               <p className="text-gray-600 mb-2">
-                {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
+                {new Date(event.startDate).toLocaleDateString()} -{" "}
+                {new Date(event.endDate).toLocaleDateString()}
               </p>
             )}
 
