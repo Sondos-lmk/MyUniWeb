@@ -1,54 +1,41 @@
-// src/components/ApprovedEvents.js
 import { useEffect, useState } from "react";
 import API from "../services/api";
 
-export default function ApprovedEvents({ token }) {
+export default function ApprovedEvents() {
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
-  if (!token) return;
+    const fetchEvents = async () => {
+      try {
+        const [bazaarsRes, boothsRes] = await Promise.all([
+          API.get("/events", { params: { type: "bazaar" } }),
+          API.get("/events", { params: { type: "booth" } }),
+        ]);
 
-  const fetchEvents = async () => {
-    try {
-      const [bazaarsRes, boothsRes] = await Promise.all([
-        API.get("/events?type=bazaar", { headers: { Authorization: `Bearer ${token}` } }),
-        API.get("/events?type=booth", { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
+        // Ensure data arrays
+        const bazaars = Array.isArray(bazaarsRes.data) ? bazaarsRes.data : [];
+        const booths = Array.isArray(boothsRes.data) ? boothsRes.data : [];
 
-      console.log("Bazaars response:", bazaarsRes);
-      console.log("Booths response:", boothsRes);
+        // Filter approved events
+        const approvedEvents = [
+          ...bazaars.filter((e) => e.status === "approved"),
+          ...booths.filter((e) => e.status === "approved"),
+        ];
 
-      const bazaars = Array.isArray(bazaarsRes.data) ? bazaarsRes.data : [];
-      const booths = Array.isArray(boothsRes.data) ? boothsRes.data : [];
+        setEvents(approvedEvents);
+      } catch (err) {
+        console.error("Error fetching events:", err);
+      }
+    };
 
-      console.log("Bazaars raw data:", bazaars);
-      console.log("Booths raw data:", booths);
-
-      const approvedEvents = [
-        ...bazaars.filter((e) => e.status === "approved"),
-        ...booths.filter((e) => e.status === "approved"),
-      ];
-
-      console.log("Filtered approved events:", approvedEvents);
-
-      setEvents(approvedEvents);
-    } catch (err) {
-      console.error("Error fetching events:", err);
-    }
-  };
-
-  fetchEvents();
-}, [token]);
-
+    fetchEvents();
+  }, []);
 
   const handleVendorStatus = async (eventId, vendorId, newStatus) => {
     try {
-      await API.patch(
-        `/events/${eventId}/vendors/${vendorId}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await API.patch(`/events/${eventId}/vendors/${vendorId}`, { status: newStatus });
 
+      // Update local state
       setEvents((prev) =>
         prev.map((ev) =>
           ev._id === eventId
@@ -85,7 +72,7 @@ export default function ApprovedEvents({ token }) {
               </p>
             )}
 
-            <p className="text-gray-600 mb-4">{event.locationInPlatform || "No location specified"}</p>
+            <p className="text-gray-600 mb-4">{event.location || "No location specified"}</p>
 
             <h3 className="text-lg font-semibold mb-2">Pending Vendors</h3>
             {event.registeredVendors?.filter((v) => v.status === "pending").length === 0 ? (
@@ -107,13 +94,9 @@ export default function ApprovedEvents({ token }) {
                     .filter((v) => v.status === "pending")
                     .map((vendor) => (
                       <tr key={vendor.vendor}>
+                        <td className="border p-2">{vendor.vendorName || vendor.vendor}</td>
                         <td className="border p-2">
-                          {vendor.vendorName
-                            ? vendor.vendorName.charAt(0).toUpperCase() + vendor.vendorName.slice(1)
-                            : vendor.vendor}
-                        </td>
-                        <td className="border p-2">
-                          {vendor.reps.map((r, i) => (
+                          {vendor.reps?.map((r, i) => (
                             <div key={i}>
                               {r.name} ({r.email})
                             </div>

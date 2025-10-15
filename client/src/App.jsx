@@ -9,15 +9,9 @@ import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
 import EventOfficerDashboard from './pages/EventOfficerDashboard';
 
-// NEW pages/components for reqs 33,34,40,41
-import Navbar from './components/Navbar';
-import Events from './pages/Events';
-import MyApplications from './pages/MyApplications';
-import MyEvents from './pages/MyEvents';
-// import BazaarApply from './pages/BazaarApply';
-import BoothApply from './pages/BoothApply';
-import EventDetails from './pages/EventDetails';
-import TestEventCard from './pages/TestEventCard';
+
+
+
 
 // Improved ProtectedRoute: if allowedRole is provided, enforce it; otherwise only require login.
 function ProtectedRoute({ children, allowedRole }) {
@@ -62,16 +56,16 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
 
         {/* Events hub (list is public) */}
-        <Route path="/events" element={<Events />} />
+        {/* <Route path="/events" element={<Events />} /> */}
 
         {/* Event details: your backend requires auth for GET /events/:id */}
-        <Route
+        {/* <Route
           path="/events/:id"
           element={
             <ProtectedRoute>
               <EventDetails />
             </ProtectedRoute>
-          }
+          } />
         />
 
         {/* Vendor flows (auth)
@@ -83,32 +77,32 @@ function App() {
             </ProtectedRoute>
           }
         /> */}
-        <Route
+        {/* <Route
           path="/booths/:boothId/apply"
           element={
             <ProtectedRoute>
               <BoothApply />
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         {/* Me (auth) */}
-        <Route
+        {/* <Route
           path="/my-applications"
           element={
             <ProtectedRoute>
               <MyApplications />
             </ProtectedRoute>
           }
-        />
-        <Route
+        /> */}
+        {/* <Route
           path="/my-events"
           element={
             <ProtectedRoute>
               <MyEvents />
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         {/* Event Officer Dashboard */}
         <Route
