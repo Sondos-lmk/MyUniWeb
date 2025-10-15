@@ -8,7 +8,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
 import EventOfficerDashboard from './pages/EventOfficerDashboard';
-import CreateTrip from './pages/CreateTrip.jsx';
 
 // NEW pages/components for reqs 33,34,40,41
 import Navbar from './components/Navbar';
@@ -111,15 +110,7 @@ function App() {
           }
         />
 
-        {/* Create Trip (event officer only) */}
-        <Route
-          path="/create-trip"
-          element={
-            <ProtectedRoute allowedRole="eventOfficer">
-              <CreateTrip />
-            </ProtectedRoute>
-          }
-        />
+        {/* Event Officer Dashboard */}
         <Route
           path="/eventOfficer/dashboard"
           element={
