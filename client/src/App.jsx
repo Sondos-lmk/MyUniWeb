@@ -1,120 +1,40 @@
 // client/src/App.jsx
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from "react-router-dom";
 
-import Signup from './pages/Signup';
-import Verify from './pages/Verify';
-import Login from './pages/Login';
-import AdminDashboard from './pages/AdminDashboard';
-import NotFound from './pages/NotFound';
-import Dashboard from './pages/Dashboard';
-import EventOfficerDashboard from './pages/EventOfficerDashboard';
-
-
-
-
-
-// Improved ProtectedRoute: if allowedRole is provided, enforce it; otherwise only require login.
-function ProtectedRoute({ children, allowedRole }) {
-  const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
-
-  if (!token) {
-    return <Navigate to="/" />;
-  }
-  if (allowedRole && role !== allowedRole) {
-    return <Navigate to="/" />;
-  }
-  return children;
-}
+import Signup from "./pages/Signup";
+import Verify from "./pages/Verify";
+import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
+import NotFound from "./pages/NotFound";
+import Dashboard from "./pages/Dashboard";
+import EventOfficerDashboard from "./pages/EventOfficerDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Show navbar globally (hide on auth pages later if you want) */}
-      {/* <Navbar /> */}
-
       <Routes>
-        {/* Auth */}
+        {/* Public Routes */}
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify/:token" element={<Verify />} />
 
-        {/* Simple visual test page for EventCard */}
-        {/* <Route path="/test-card" element={<TestEventCard />} /> */}
+        {/* Admin Routes */}
+        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+        </Route>
 
-        {/* Admin */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute allowedRole="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
+        {/* Event Officer Routes */}
+        <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
+          <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
+        </Route>
 
-        {/* Existing dashboard */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* General User Dashboard (vendors, students, etc.) */}
+        <Route element={<ProtectedRoute allowedRoles={["vendor", "student", "ta", "professor"]} />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Route>
 
-        {/* Events hub (list is public) */}
-        {/* <Route path="/events" element={<Events />} /> */}
-
-        {/* Event details: your backend requires auth for GET /events/:id */}
-        {/* <Route
-          path="/events/:id"
-          element={
-            <ProtectedRoute>
-              <EventDetails />
-            </ProtectedRoute>
-          } />
-        />
-
-        {/* Vendor flows (auth)
-        <Route
-          path="/bazaars/:bazaarId/apply"
-          element={
-            <ProtectedRoute>
-              <BazaarApply />
-            </ProtectedRoute>
-          }
-        /> */}
-        {/* <Route
-          path="/booths/:boothId/apply"
-          element={
-            <ProtectedRoute>
-              <BoothApply />
-            </ProtectedRoute>
-          }
-        /> */}
-
-        {/* Me (auth) */}
-        {/* <Route
-          path="/my-applications"
-          element={
-            <ProtectedRoute>
-              <MyApplications />
-            </ProtectedRoute>
-          }
-        /> */}
-        {/* <Route
-          path="/my-events"
-          element={
-            <ProtectedRoute>
-              <MyEvents />
-            </ProtectedRoute>
-          }
-        /> */}
-
-        {/* Event Officer Dashboard */}
-        <Route
-          path="/eventOfficer/dashboard"
-          element={
-            <ProtectedRoute allowedRole="eventOfficer">
-              <EventOfficerDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 404 */}
+        {/* 404 fallback */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
