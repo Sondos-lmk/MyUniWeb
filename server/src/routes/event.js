@@ -114,15 +114,6 @@ router.get('/trips', requireAuth, async (req, res) => {
 
 
 
-
-
-
-// ✅ Dynamic routes LAST
-
-router.post('/createBazaar', requireAuth, requireEventOfficer,createBazaar);
-router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
-router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
-
 router.post('/createConference', requireAuth, requireEventOfficer,createConference);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
 router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConference);

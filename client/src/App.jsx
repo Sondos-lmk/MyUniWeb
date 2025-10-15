@@ -37,7 +37,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Show navbar globally (hide on auth pages later if you want) */}
-      <Navbar />
+      {/* <Navbar /> */}
 
       <Routes>
         {/* Auth */}
@@ -46,7 +46,7 @@ function App() {
         <Route path="/verify/:token" element={<Verify />} />
 
         {/* Simple visual test page for EventCard */}
-        <Route path="/test-card" element={<TestEventCard />} />
+        {/* <Route path="/test-card" element={<TestEventCard />} /> */}
 
         {/* Admin */}
         <Route
