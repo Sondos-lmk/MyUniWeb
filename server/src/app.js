@@ -3,6 +3,8 @@ import morgan from 'morgan';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+dotenv.config();
+
 
 import perkRoutes from './routes/perks.js';
 import authRoutes from './routes/auth.js';
