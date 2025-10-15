@@ -18,7 +18,11 @@ export default function Login() {
       console.log('logged in user',loggedInUser)
       if (loggedInUser.role === 'admin') {
         nav('/admin')
-      } else {
+      }
+      // else if (loggedInUser.role === 'professor') {
+      //   nav('/professor/workshops/new')
+      // }
+      else {
         nav('/dashboard')
       }
 

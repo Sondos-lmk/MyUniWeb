@@ -4,6 +4,10 @@ import { useAuth } from "../context/AuthContext";
 import ApplyBoothForm from "../components/ApplyBoothForm";
 import MyApplications from "../components/MyApplications";
 import API from "../services/api";
+import CreateWorkshop from "./CreateWorkshop";
+import { getMyWorkshops } from "../services/workshop";
+import { Link } from "react-router-dom";
+
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -13,7 +17,9 @@ function Dashboard() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [reps, setReps] = useState([{ name: "", email: "" }]);
   const [boothSize, setBoothSize] = useState("2x2");
-
+  const [showCreate, setShowCreate] = useState(false);
+  const [myList, setMyList] = useState([]);
+  const [listErr, setListErr] = useState(null);
   const name = (() => {
     if (!user) return "Loading...";
     if (role === "vendor") return user.companyName || "Vendor";
@@ -37,7 +43,20 @@ function Dashboard() {
     };
     fetchEvents();
   }, [user, role, token]);
-
+    useEffect(() => {
+      if (user?.role !== "professor") return;
+      (async () => {
+        try {
+          const data = await getMyWorkshops(); // { message, workshops }
+          setMyList(data?.workshops || []);
+          setListErr(null);
+        } catch (e) {
+          setListErr(e?.response?.data?.message || e.message);
+        }
+      })();
+    },
+    
+  [user?.role]);
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/");
@@ -86,6 +105,65 @@ function Dashboard() {
           Logout
         </button>
       </div>
+
+     {user?.role === "professor" && (
+       <div style={{ marginTop: 24 }}>
+        <button
+           className="btn"
+           onClick={() => setShowCreate((v) => !v)}
+           style={{ marginBottom: 16 }}
+        >
+        {showCreate ? "Hide Create Workshop" : "Create Workshop"}
+       </button>
+
+       {showCreate && (
+         <div style={{ marginTop: 12 }}>
+           <CreateWorkshop />
+         </div>
+       )}
+      </div>
+     )}
+      {user?.role === "professor" && (
+        <div style={{ marginTop: 24, textAlign: "left" }}>
+          <h2 style={{ margin: "12px 0 8px", fontWeight: 600 }}>My Workshops</h2>
+
+          {listErr && <div className="alert alert--error">{listErr}</div>}
+
+          {myList.length === 0 ? (
+            <div className="read-the-docs">No workshops yet.</div>
+          ) : (
+            <div>
+              {myList.map((w) => (
+                <div
+                  key={w._id || w.id}
+                  style={{
+                    padding: "10px 0",
+                    borderBottom: "1px solid #eee",
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600 }}>{w.title}</div>
+                    <div style={{ fontSize: 12, color: "#555" }}>
+                      Status: {w.status} • Reg. deadline:{" "}
+                      {new Date(w.registrationDeadline).toLocaleString()}
+                    </div>
+                  </div>
+                  <Link className="btn" to={`/professor/workshops/${w._id || w.id}/edit`}>
+                    Edit
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+     
+
+
 
       {/* What will appear for Vendors */}
       {role === "vendor" && (
