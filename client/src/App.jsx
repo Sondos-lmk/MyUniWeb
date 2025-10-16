@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import ApprovedEvents from "./components/ApprovingEvents";
 import Events from "./components/Events"
 import CreateEvent from "./components/CreateEventPage";
+import EventFormPage from "./components/EventFormPage";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="/approved-events" element={<ApprovedEvents />} />
           <Route path="/events" element={<Events />} />
           <Route path="/create-event" element={<CreateEvent />} />
+          <Route path="/events/:id/edit" element={<EventFormPage />} />
         </Route>
         {/* General User Dashboard (vendors, students, etc.) */}
         <Route element={<ProtectedRoute allowedRoles={["vendor", "student", "ta", "professor"]} />}>

@@ -28,7 +28,7 @@ function CreateEventPage() {
       );
 
       alert(`${eventType} created successfully!`);
-      navigate("/event-officer"); // redirect after success
+      navigate("/eventOfficer/dashboard"); // redirect after success
     } catch (error) {
       console.error(error);
       alert("Failed to create event");
