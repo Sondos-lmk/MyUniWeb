@@ -5,7 +5,8 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
-import CreateTrip from './pages/CreateTrip.jsx';
+import StudentDashboard from "./pages/StudentDashboard";
+
 import CreateWorkshop from "./pages/CreateWorkshop";
 import EditWorkshop from "./pages/EditWorkshop";
 import EventOfficerDashboard from "./pages/EventOfficerDashboard";
@@ -31,9 +32,15 @@ function App() {
 
         {/* Event Officer routes */}
         <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
-          <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
-          <Route path="/create-trip" element={<CreateTrip />} />
+           <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
         </Route>
+
+        {/* Student routes */}
+        <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
+           <Route path="/student/dashboard" element={<StudentDashboard />} />
+        </Route>
+
+
 
         {/* Professor-only routes (your feature) */}
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
