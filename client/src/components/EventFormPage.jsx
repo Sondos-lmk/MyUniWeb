@@ -57,7 +57,7 @@ export default function EventFormPage() {
         if (eventType === "conference")
           url = `http://localhost:4000/api/events/createConference`;
         else if (eventType === "bazaar")
-          url = `http://localhost:4000/api/events/createBazaar`;
+          url = `http://localhost:4000/api/events/`;
         else url = `http://localhost:4000/api/events/`;
       }
 

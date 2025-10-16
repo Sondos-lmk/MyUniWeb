@@ -1149,6 +1149,7 @@ export const createBazaar = async (req, res) => {
       return res.status(403).json({ message: 'Only Event Officers can create bazaars' });
     }
 
+    console.log("🧾 Received body:", req.body);
     // Automatically set organizer and createdBy
     const userId = req.user.id || req.user._id;
     req.body.organizerId = req.body.organizerId || userId;
