@@ -123,4 +123,3 @@ router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConferen
 
 
 export default router;
-//event.js
