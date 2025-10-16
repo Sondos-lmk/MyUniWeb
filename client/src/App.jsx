@@ -9,6 +9,8 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import EventOfficerDashboard from "./pages/EventOfficerDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ApprovedEvents from "./components/ApprovingEvents";
+import Events from "./components/Events"
 
 function App() {
   return (
@@ -27,8 +29,9 @@ function App() {
         {/* Event Officer Routes */}
         <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
           <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
+          <Route path="/approved-events" element={<ApprovedEvents />} />
+          <Route path="/events" element={<Events />} />
         </Route>
-
         {/* General User Dashboard (vendors, students, etc.) */}
         <Route element={<ProtectedRoute allowedRoles={["vendor", "student", "ta", "professor"]} />}>
           <Route path="/dashboard" element={<Dashboard />} />
