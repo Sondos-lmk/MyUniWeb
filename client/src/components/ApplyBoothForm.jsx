@@ -17,7 +17,11 @@ function ApplyBoothForm() {
     const fetchBooths = async () => {
       try {
         const res = await API.get("/events?type=booth");
-        setBooths(res.data.filter((b) => b.status === "approved"));
+        const boothsData = res.data?.events || res.data?.booths || res.data || [];
+        const approvedBooths = boothsData
+          .filter((b) => b.status === "approved")
+          .sort((a, b) => a.title.localeCompare(b.title)); // Sort alphabetically
+        setBooths(approvedBooths);
       } catch (err) {
         console.error("Error fetching booths:", err);
       }
@@ -44,10 +48,9 @@ function ApplyBoothForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const booth = booths.find((b) => b._id === form.boothId);
     if (!booth) {
-      setMessage("Selected booth not found");
+      setMessage("Selected booth not found.");
       return;
     }
 
@@ -55,7 +58,7 @@ function ApplyBoothForm() {
     const end = new Date(start);
     end.setDate(start.getDate() + form.durationWeeks * 7);
 
-    const overlapping = booth.registeredVendors.some(
+    const overlapping = booth.registeredVendors?.some(
       (v) =>
         v.status === "approved" &&
         v.boothSize === form.boothSize &&
@@ -79,32 +82,61 @@ function ApplyBoothForm() {
         durationWeeks: form.durationWeeks,
         reps: form.reps,
       });
-      setMessage(res.data.message);
+      setMessage(res.data?.message || "Application submitted successfully!");
     } catch (err) {
       console.error("Error submitting booth application:", err);
-      setMessage(err.response?.data?.error || "Something went wrong");
+      setMessage(err.response?.data?.error || "Something went wrong.");
     }
   };
 
-  return (
-    <div className="p-6 bg-white shadow-md rounded-2xl">
-      <h2 className="text-xl font-bold mb-4">Apply for a Booth</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <select
-          name="boothId"
-          value={form.boothId}
-          onChange={handleChange}
-          className="border p-2 rounded"
-          required
-        >
-          <option value="">Select a Booth</option>
-          {booths.map((booth) => (
-            <option key={booth._id} value={booth._id}>
-              {booth.title} ({booth.locationInPlatform})
-            </option>
-          ))}
-        </select>
+  // Split booths into top and bottom rows
+  const topRow = booths.slice(0, 3); // A, B, C
+  const bottomRow = booths.slice(3, 6); // D, E, F
 
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">Apply for a Booth</h2>
+
+      {/* Booth Map */}
+      <div className="bg-gray-200 p-6 rounded mb-6 flex flex-col items-center gap-6">
+        {/* Top Row */}
+        <div className="flex justify-center gap-6">
+          {topRow.map((booth) => (
+            <button
+              key={booth._id}
+              onClick={() => setForm({ ...form, boothId: booth._id })}
+              className={`px-3 py-1 rounded border ${
+                form.boothId === booth._id ? "bg-blue-600 text-white" : "bg-white"
+              }`}
+            >
+              {booth.title}
+            </button>
+          ))}
+        </div>
+
+        {/* Center Platform */}
+        <div className="w-75 h-50 bg-green-300 flex items-center justify-center text-white font-bold rounded">
+        Platform
+      </div>
+
+        {/* Bottom Row */}
+        <div className="flex justify-center gap-6">
+          {bottomRow.map((booth) => (
+            <button
+              key={booth._id}
+              onClick={() => setForm({ ...form, boothId: booth._id })}
+              className={`px-3 py-1 rounded border ${
+                form.boothId === booth._id ? "bg-blue-600 text-white" : "bg-white"
+              }`}
+            >
+              {booth.title}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <select
           name="boothSize"
           value={form.boothSize}
@@ -131,10 +163,11 @@ function ApplyBoothForm() {
           onChange={handleChange}
           className="border p-2 rounded"
         >
-          <option value={1}>1 Week</option>
-          <option value={2}>2 Weeks</option>
-          <option value={3}>3 Weeks</option>
-          <option value={4}>4 Weeks</option>
+          {[1, 2, 3, 4].map((w) => (
+            <option key={w} value={w}>
+              {w} Week{w > 1 ? "s" : ""}
+            </option>
+          ))}
         </select>
 
         <h3 className="font-semibold mt-2">Representatives</h3>
@@ -146,6 +179,7 @@ function ApplyBoothForm() {
               value={rep.name}
               onChange={(e) => handleRepChange(i, "name", e.target.value)}
               className="border p-2 rounded flex-1"
+              required
             />
             <input
               type="email"
@@ -153,6 +187,7 @@ function ApplyBoothForm() {
               value={rep.email}
               onChange={(e) => handleRepChange(i, "email", e.target.value)}
               className="border p-2 rounded flex-1"
+              required
             />
           </div>
         ))}

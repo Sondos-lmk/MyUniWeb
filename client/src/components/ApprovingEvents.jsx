@@ -1,68 +1,60 @@
-// src/components/ApprovedEvents.js
 import { useEffect, useState } from "react";
 import API from "../services/api";
 
-export default function ApprovedEvents({ token }) {
+export default function ApprovedEvents() {
   const [events, setEvents] = useState([]);
+  const [vendorsMap, setVendorsMap] = useState({}); // store vendorId -> companyName
 
   useEffect(() => {
     const fetchEvents = async () => {
-      try {
-        const [bazaars, booths] = await Promise.all([
-          API.get("/events?type=bazaar", { headers: { Authorization: `Bearer ${token}` } }),
-          API.get("/events?type=booth", { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
+  try {
+    const [bazaarsRes, boothsRes] = await Promise.all([
+      API.get("/events", { params: { type: "bazaar" } }),
+      API.get("/events", { params: { type: "booth" } }),
+    ]);
 
-        let approvedEvents = [
-          ...bazaars.data.filter((e) => e.status === "approved"),
-          ...booths.data.filter((e) => e.status === "approved"),
-        ];
+    const bazaars = Array.isArray(bazaarsRes.data) ? bazaarsRes.data : [];
+    const booths = Array.isArray(boothsRes.data) ? boothsRes.data : [];
 
-        // Collect all unique vendor IDs
-        const vendorIds = [
-          ...new Set(
-            approvedEvents.flatMap((ev) => ev.registeredVendors?.map((v) => v.vendor) || [])
-          ),
-        ];
+    const now = new Date();
 
-        // Fetch vendor names
-        const vendorResponses = await Promise.all(
-          vendorIds.map((id) =>
-            API.get(`/users/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-              .then((res) => ({ id, name: res.data.companyName }))
-              .catch(() => ({ id, name: "Unknown" }))
-          )
-        );
+    const approvedEvents = [
+      ...bazaars.filter((e) => e.status === "approved" && new Date(e.startDate) > now),
+      ...booths.filter((e) => e.status === "approved"),
+    ];
 
-        const vendorMap = {};
-        vendorResponses.forEach((v) => {
-          vendorMap[v.id] = v.name;
-        });
+    setEvents(approvedEvents);
 
-        approvedEvents = approvedEvents.map((ev) => ({
-          ...ev,
-          registeredVendors: ev.registeredVendors?.map((v) => ({
-            ...v,
-            vendorName: vendorMap[v.vendor] || "Unknown",
-          })) || [],
-        }));
+    // Fetch company names for all vendors
+    const vendorIds = approvedEvents
+      .flatMap((ev) => ev.registeredVendors.map((v) => v.vendor))
+      .filter(Boolean);
 
-        setEvents(approvedEvents);
-      } catch (err) {
-        console.error("Error fetching events or vendors:", err);
-      }
-    };
+    const uniqueVendorIds = [...new Set(vendorIds)];
+
+    const vendorsData = await Promise.all(
+      uniqueVendorIds.map((id) => API.get(`/users/${id}`))
+    );
+
+    const map = {};
+    vendorsData.forEach((res) => {
+      map[res.data._id] = res.data.companyName || res.data.name;
+    });
+
+    setVendorsMap(map);
+
+  } catch (err) {
+    console.error("Error fetching events or vendors:", err);
+  }
+};
+
 
     fetchEvents();
-  }, [token]);
+  }, []);
 
   const handleVendorStatus = async (eventId, vendorId, newStatus) => {
     try {
-      await API.patch(
-        `/events/${eventId}/vendors/${vendorId}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await API.patch(`/events/${eventId}/vendors/${vendorId}`, { status: newStatus });
 
       setEvents((prev) =>
         prev.map((ev) =>
@@ -78,15 +70,23 @@ export default function ApprovedEvents({ token }) {
       );
     } catch (err) {
       console.error("Error updating vendor status:", err);
-      alert("Booth is resereved by another vendor for the selected dates.");
+      alert("Booth is reserved by another vendor for the selected dates.");
     }
   };
 
+  const capitalize = (str) => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+
   return (
     <div>
+       {/* --- Approve Vendor Requests Section --- */}
+  <h2 className="text-2xl font-bold mb-4">Approve Vendor Requests</h2>
       {events.length === 0 ? (
         <p>No approved events found.</p>
-      ) : (
+      ) :  (
         events.map((event) => (
           <div key={event._id} className="mb-6 p-6 bg-white rounded-xl shadow">
             <h2 className="text-xl font-semibold mb-1">
@@ -95,11 +95,12 @@ export default function ApprovedEvents({ token }) {
 
             {event.type === "bazaar" && event.startDate && event.endDate && (
               <p className="text-gray-600 mb-2">
-                {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
+                {new Date(event.startDate).toLocaleDateString()} -{" "}
+                {new Date(event.endDate).toLocaleDateString()}
               </p>
             )}
 
-            <p className="text-gray-600 mb-4">{event.locationInPlatform || "No location specified"}</p>
+            <p className="text-gray-600 mb-4">{event.location || "No location specified"}</p>
 
             <h3 className="text-lg font-semibold mb-2">Pending Vendors</h3>
             {event.registeredVendors?.filter((v) => v.status === "pending").length === 0 ? (
@@ -121,13 +122,9 @@ export default function ApprovedEvents({ token }) {
                     .filter((v) => v.status === "pending")
                     .map((vendor) => (
                       <tr key={vendor.vendor}>
+                        <td className="border p-2">{capitalize(vendorsMap[vendor.vendor]) || vendor.vendor}</td>
                         <td className="border p-2">
-                          {vendor.vendorName
-                            ? vendor.vendorName.charAt(0).toUpperCase() + vendor.vendorName.slice(1)
-                            : vendor.vendor}
-                        </td>
-                        <td className="border p-2">
-                          {vendor.reps.map((r, i) => (
+                          {vendor.reps?.map((r, i) => (
                             <div key={i}>
                               {r.name} ({r.email})
                             </div>

@@ -9,10 +9,11 @@ function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const role = user?.role || "unknown";
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState([]); // always array
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [reps, setReps] = useState([{ name: "", email: "" }]);
   const [boothSize, setBoothSize] = useState("2x2");
+  const [loading, setLoading] = useState(false);
 
   const name = (() => {
     if (!user) return "Loading...";
@@ -23,20 +24,34 @@ function Dashboard() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      if (role === "vendor") {
-        try {
-          const res = await API.get("/events?type=bazaar", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setEvents(res.data);
-        } catch (err) {
-          console.error("Error fetching vendor events:", err);
-        }
+  const fetchEvents = async () => {
+    if (role !== "vendor") return;
+    setLoading(true);
+    try {
+      const res = await API.get("/events?type=bazaar", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (Array.isArray(res.data)) {
+        const now = new Date();
+        const upcomingBazaars = res.data.filter(
+          (event) => new Date(event.startDate) > now
+        );
+        setEvents(upcomingBazaars);
+      } else {
+        console.warn("Expected array but got:", res.data);
+        setEvents([]);
       }
-    };
-    fetchEvents();
-  }, [user, role, token]);
+    } catch (err) {
+      console.error("Error fetching vendor events:", err);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchEvents();
+}, [role, token]);
+
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -77,7 +92,8 @@ function Dashboard() {
     <div className="p-10 relative">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">
-          Welcome to your dashboard! {name ? name.charAt(0).toUpperCase() + name.slice(1) : "User"} ({role})
+          Welcome to your dashboard!{" "}
+          {name ? name.charAt(0).toUpperCase() + name.slice(1) : "User"} ({role})
         </h1>
         <button
           onClick={handleLogout}
@@ -87,13 +103,16 @@ function Dashboard() {
         </button>
       </div>
 
-      {/* What will appear for Vendors */}
+      {/* Vendor Dashboard */}
       {role === "vendor" && (
         <div className="flex justify-between items-start gap-6 p-6">
           {/* LEFT SIDE — Upcoming Bazaars */}
           <div className="w-1/2">
             <h2 className="text-xl font-semibold mb-4">Upcoming Bazaar Events</h2>
-            {events.length === 0 ? (
+
+            {loading ? (
+              <p>Loading bazaars...</p>
+            ) : !events?.length ? (
               <p>No upcoming bazaars yet.</p>
             ) : (
               <div className="flex flex-col gap-4">
@@ -115,7 +134,7 @@ function Dashboard() {
                           day: "numeric",
                         })}
                       </p>
-                      <p className="text-gray-700">{event.description}</p>
+                      <p className="text-gray-700">{event.desc}</p>
                     </div>
                     <button
                       onClick={() => handleSelectEvent(event)}
@@ -137,7 +156,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Modal for applying to bazaar */}
+      {/* MODAL */}
       {selectedEvent && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
@@ -153,7 +172,10 @@ function Dashboard() {
             >
               ✕
             </button>
-            <h2 className="text-xl font-semibold mb-4">Apply for: {selectedEvent.title}</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              Apply for: {selectedEvent.title}
+            </h2>
+
             <form onSubmit={handleSubmit}>
               <label className="block mb-2 font-medium">Booth Size</label>
               <select
@@ -198,7 +220,7 @@ function Dashboard() {
               {reps.length < 5 && (
                 <button
                   type="button"
-                  onClick={() => setReps([...reps, { name: '', email: '' }])}
+                  onClick={() => setReps([...reps, { name: "", email: "" }])}
                   className="text-blue-600 underline mb-4"
                 >
                   Add another rep
@@ -215,8 +237,6 @@ function Dashboard() {
           </div>
         </div>
       )}
-
-     
     </div>
   );
 }

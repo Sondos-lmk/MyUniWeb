@@ -12,22 +12,18 @@ import {
   searchEvents,
   createWorkshop,
   updateWorkshop,
-  createBazaar,
   getPendingWorkshops,
   getProfessorWorkshops,
   getMyRegisteredEvents,
   createConference,
   updateConference,
-  // editBazaar,
   registerForEvent,
   requestWorkshopEdit,
   registerForBazaar,
   registerBooth,
   updateVendorStatus,
   getMyEventApplications,
-  // createBazaar,
-  // createConference,
-  //getUpcomingEvents,
+ 
 } from '../controllers/eventController.js';
 
 import {
@@ -48,13 +44,13 @@ router.get("/search", requireAuth, searchEvents);
 
 
 // Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
-//router.post('/', requireAuth, requireEventOfficer, createEvent);
-//router.get('/', getAllEvents);
-//router.get('/:id', getEventById);
-//router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
-//router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
-//router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-//router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+router.post('/', createEvent);
+router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
+router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
+router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
+router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
+
 
 // ✅ Specific routes first
 
@@ -70,6 +66,7 @@ router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWor
 // My applications / My events
 router.get('/my-events', requireAuth, getMyRegisteredEvents);  // for students
 router.get('/my-applications', requireAuth, getMyEventApplications);
+router.get('/:id', getEventById);
 
 // Workshop edit request
 router.patch('/workshop/:id/request-edit', requireAuth, requireEventOfficer, requestWorkshopEdit);
@@ -85,16 +82,13 @@ router.patch('/:eventId/vendors/:vendorId', requireAuth, updateVendorStatus);
 
 
 
-// ✅ General event routes
-router.get('/', getAllEvents);
-router.post('/', createEvent);
 
 
 
 
 // 📌 General event routes
 router.get('/upcoming', getUpcomingEvents);
-//router.get('/', getAllEvents);
+router.get('/', getAllEvents);
 
 // Fetch all bazaars and booths I registered for
 router.get("/my-applications", requireAuth, getMyEventApplications);
@@ -118,254 +112,14 @@ router.get('/trips', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.get('/:id', requireAuth, getEventById);
-
-// 📌 General event routes
-router.get('/', getAllEvents);
-
-// ✅ Add these new routes before the ":id" route
-router.get('/workshops', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'workshop' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
-  }
-});
-
-router.get('/trips', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'trip' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
-  }
-});
-
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.get('/:id', requireAuth, getEventById);
 
 
-// 📌 General event routes
-router.get('/', getAllEvents);
-
-// ✅ Add these new routes before the ":id" route
-router.get('/workshops', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'workshop' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
-  }
-});
-
-router.get('/trips', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'trip' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
-  }
-});
-
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.get('/:id', requireAuth, getEventById);
-
-// 📌 General event routes
-router.get('/', getAllEvents);
-
-// ✅ Add these new routes before the ":id" route
-router.get('/workshops', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'workshop' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
-  }
-});
-
-router.get('/trips', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'trip' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
-  }
-});
-
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.get('/:id', requireAuth, getEventById);
-
-
-// 📌 General event routes
-router.get('/', getAllEvents);
-
-// ✅ Add these new routes before the ":id" route
-router.get('/workshops', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'workshop' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
-  }
-});
-
-router.get('/trips', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'trip' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
-  }
-});
-
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.get('/:id', requireAuth, getEventById);
-
-// 📌 General event routes
-router.get('/', getAllEvents);
-
-// ✅ Add these new routes before the ":id" route
-router.get('/workshops', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'workshop' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
-  }
-});
-
-router.get('/trips', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'trip' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
-  }
-});
-
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.get('/:id', requireAuth, getEventById);
-
-
-// 📌 General event routes
-router.get('/', getAllEvents);
-
-// ✅ Add these new routes before the ":id" route
-router.get('/workshops', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'workshop' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
-  }
-});
-
-router.get('/trips', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'trip' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
-  }
-});
-
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.get('/:id', requireAuth, getEventById);
-
-
-// 📌 General event routes
-router.get('/', getAllEvents);
-
-// ✅ Add these new routes before the ":id" route
-router.get('/workshops', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'workshop' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
-  }
-});
-
-router.get('/trips', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'trip' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
-  }
-});
-
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.get('/:id', requireAuth, getEventById);
-
-// 📌 General event routes
-router.get('/', getAllEvents);
-
-// ✅ Add these new routes before the ":id" route
-router.get('/workshops', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'workshop' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch workshops', error: err.message });
-  }
-});
-
-router.get('/trips', requireAuth, async (req, res) => {
-  try {
-    const events = await Event.find({ type: 'trip' });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
-  }
-});
-
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.get('/:id', requireAuth, getEventById);
-
-
-
-
-
-router.post('/', createEvent);
-
-// ✅ Dynamic routes LAST
-router.get('/:id', getEventById);
-
-router.post('/createBazaar', requireAuth, requireEventOfficer,createBazaar);
-router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
-router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
 router.post('/createConference', requireAuth, requireEventOfficer,createConference);
-router.patch('/:id', requireAuth, requireEventOfficer, updateEvent);
 router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConference);
 
-// 📌 Approve/Reject event/update
-router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
-router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
 
 
-// 📌 Bazaar registration
-router.post('/bazaar/:bazaarId/register', requireAuth, registerForBazaar);
-
-// Booth registration
-router.post("/booth/:boothId/register", requireAuth, registerBooth);
-
-// Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
-router.post('/', requireAuth, requireEventOfficer, createEvent);
-router.get('/', getAllEvents);
-router.get('/:id', getEventById);
-router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
-router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
-router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-//router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
-
-
-
-router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
 
 
 export default router;
