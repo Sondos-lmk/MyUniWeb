@@ -12,9 +12,9 @@ import EditWorkshop from "./pages/EditWorkshop";
 import EventOfficerDashboard from "./pages/EventOfficerDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
-
-
-
+import ApprovedEvents from "./components/ApprovingEvents";
+import Events from "./components/Events"
+import EventFormPage from "./components/EventFormPage";
 
 function App() {
   return (
@@ -32,12 +32,8 @@ function App() {
 
         {/* Event Officer routes */}
         <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
-           <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
-        </Route>
-
-        {/* Student routes */}
-        <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
-           <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
+          <Route path="/create-trip" element={<CreateTrip />} />
         </Route>
 
 

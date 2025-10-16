@@ -22,8 +22,8 @@ import mongoose from "mongoose";
 const baseEventSchema = Joi.object({
   type: Joi.string().valid('bazaar', 'booth', 'conference', 'trip', 'workshop', 'gym').required(),
   status: Joi.string().valid('pending', 'approved', 'rejected', 'completed'),
-  createdBy: Joi.string().required(),
-  organizerId: Joi.string().required(),
+  createdBy: Joi.string().optional(),
+  organizerId: Joi.string().optional(),
 });
 
 const bazaarSchema = baseEventSchema.keys({
@@ -383,6 +383,7 @@ export const searchEvents = async (req, res) => {
 // Create event
 export const createEvent = async (req, res) => {
   try {
+    console.log("🧾 Received body:", req.body);
     const { type } = req.body;
     const schema = getValidationSchema(type);
 
@@ -1148,6 +1149,7 @@ export const createBazaar = async (req, res) => {
       return res.status(403).json({ message: 'Only Event Officers can create bazaars' });
     }
 
+    console.log("🧾 Received body:", req.body);
     // Automatically set organizer and createdBy
     const userId = req.user.id || req.user._id;
     req.body.organizerId = req.body.organizerId || userId;
@@ -1171,6 +1173,8 @@ export const createConference = async (req, res) => {
     if (req.user.role !== 'eventOfficer') {
       return res.status(403).json({ error: 'Only Event Officers can create conferences.' });
     }
+
+    console.log("🧾 Received body:", req.body);
 
     const userId = req.user.id || req.user._id;
     req.body.organizerId = req.body.organizerId || userId;
