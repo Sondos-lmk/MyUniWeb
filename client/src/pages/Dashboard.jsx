@@ -1,62 +1,88 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ApplyBoothForm from "../components/ApplyBoothForm";
 import MyApplications from "../components/MyApplications";
 import API from "../services/api";
 import CreateWorkshop from "./CreateWorkshop";
 import { getMyWorkshops } from "../services/workshop";
-import { Link } from "react-router-dom";
-
 
 function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const role = user?.role || "unknown";
-  const [events, setEvents] = useState([]);
+
+  const [events, setEvents] = useState([]);     // vendor: upcoming bazaars
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [reps, setReps] = useState([{ name: "", email: "" }]);
   const [boothSize, setBoothSize] = useState("2x2");
+
+  // professor UI state
   const [showCreate, setShowCreate] = useState(false);
   const [myList, setMyList] = useState([]);
   const [listErr, setListErr] = useState(null);
+
+  // vendor loading
+  const [loading, setLoading] = useState(false);
+
   const name = (() => {
     if (!user) return "Loading...";
-    if (role === "vendor") return user.companyName || "Vendor";
+    if (user.role === "vendor") return user.companyName || "Vendor";
     return user.name || "User";
   })();
 
   const token = localStorage.getItem("token");
 
+  // 1) Vendor: fetch upcoming bazaar events
   useEffect(() => {
+    if (role !== "vendor") {
+      setEvents([]);
+      return;
+    }
+
     const fetchEvents = async () => {
-      if (role === "vendor") {
-        try {
-          const res = await API.get("/events?type=bazaar", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setEvents(res.data);
-        } catch (err) {
-          console.error("Error fetching vendor events:", err);
+      setLoading(true);
+      try {
+        const res = await API.get("/events?type=bazaar", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (Array.isArray(res.data)) {
+          const now = new Date();
+          const upcomingBazaars = res.data.filter(
+            (event) => new Date(event.startDate) > now
+          );
+          setEvents(upcomingBazaars);
+        } else {
+          console.warn("Expected array but got:", res.data);
+          setEvents([]);
         }
+      } catch (err) {
+        console.error("Error fetching vendor events:", err);
+        setEvents([]);
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchEvents();
-  }, [user, role, token]);
-    useEffect(() => {
-      if (user?.role !== "professor") return;
-      (async () => {
-        try {
-          const data = await getMyWorkshops(); // { message, workshops }
-          setMyList(data?.workshops || []);
-          setListErr(null);
-        } catch (e) {
-          setListErr(e?.response?.data?.message || e.message);
-        }
-      })();
-    },
-    
-  [user?.role]);
+  }, [role, token]);
+
+  // 2) Professor: fetch my workshops
+  useEffect(() => {
+    if (user?.role !== "professor") return;
+
+    (async () => {
+      try {
+        const data = await getMyWorkshops(); // { message, workshops }
+        setMyList(data?.workshops || []);
+        setListErr(null);
+      } catch (e) {
+        setListErr(e?.response?.data?.message || e.message);
+      }
+    })();
+  }, [user?.role, token]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/");
@@ -94,9 +120,11 @@ function Dashboard() {
 
   return (
     <div className="p-10 relative">
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">
-          Welcome to your dashboard! {name} ({role})
+          Welcome to your dashboard!{" "}
+          {name ? name.charAt(0).toUpperCase() + name.slice(1) : "User"} ({role})
         </h1>
         <button
           onClick={handleLogout}
@@ -106,72 +134,73 @@ function Dashboard() {
         </button>
       </div>
 
-     {user?.role === "professor" && (
-       <div style={{ marginTop: 24 }}>
-        <button
-           className="btn"
-           onClick={() => setShowCreate((v) => !v)}
-           style={{ marginBottom: 16 }}
-        >
-        {showCreate ? "Hide Create Workshop" : "Create Workshop"}
-       </button>
-
-       {showCreate && (
-         <div style={{ marginTop: 12 }}>
-           <CreateWorkshop />
-         </div>
-       )}
-      </div>
-     )}
+      {/* Professor dashboard additions */}
       {user?.role === "professor" && (
-        <div style={{ marginTop: 24, textAlign: "left" }}>
-          <h2 style={{ margin: "12px 0 8px", fontWeight: 600 }}>My Workshops</h2>
+        <>
+          <div style={{ marginTop: 24 }}>
+            <button
+              className="btn"
+              onClick={() => setShowCreate((v) => !v)}
+              style={{ marginBottom: 16 }}
+            >
+              {showCreate ? "Hide Create Workshop" : "Create Workshop"}
+            </button>
 
-          {listErr && <div className="alert alert--error">{listErr}</div>}
+            {showCreate && (
+              <div style={{ marginTop: 12 }}>
+                <CreateWorkshop />
+              </div>
+            )}
+          </div>
 
-          {myList.length === 0 ? (
-            <div className="read-the-docs">No workshops yet.</div>
-          ) : (
-            <div>
-              {myList.map((w) => (
-                <div
-                  key={w._id || w.id}
-                  style={{
-                    padding: "10px 0",
-                    borderBottom: "1px solid #eee",
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "center",
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>{w.title}</div>
-                    <div style={{ fontSize: 12, color: "#555" }}>
-                      Status: {w.status} • Reg. deadline:{" "}
-                      {new Date(w.registrationDeadline).toLocaleString()}
+          <div style={{ marginTop: 24, textAlign: "left" }}>
+            <h2 style={{ margin: "12px 0 8px", fontWeight: 600 }}>My Workshops</h2>
+
+            {listErr && <div className="alert alert--error">{listErr}</div>}
+
+            {myList.length === 0 ? (
+              <div className="read-the-docs">No workshops yet.</div>
+            ) : (
+              <div>
+                {myList.map((w) => (
+                  <div
+                    key={w._id || w.id}
+                    style={{
+                      padding: "10px 0",
+                      borderBottom: "1px solid #eee",
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>{w.title}</div>
+                      <div style={{ fontSize: 12, color: "#555" }}>
+                        Status: {w.status} • Reg. deadline:{" "}
+                        {new Date(w.registrationDeadline).toLocaleString()}
+                      </div>
                     </div>
+                    <Link className="btn" to={`/professor/workshops/${w._id || w.id}/edit`}>
+                      Edit
+                    </Link>
                   </div>
-                  <Link className="btn" to={`/professor/workshops/${w._id || w.id}/edit`}>
-                    Edit
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
-     
-
-
-
-      {/* What will appear for Vendors */}
+      {/* Vendor Dashboard */}
       {role === "vendor" && (
         <div className="flex justify-between items-start gap-6 p-6">
-          {/* LEFT SIDE — Upcoming Bazaars */}
+          {/* LEFT — Upcoming Bazaars */}
           <div className="w-1/2">
             <h2 className="text-xl font-semibold mb-4">Upcoming Bazaar Events</h2>
-            {events.length === 0 ? (
+
+            {loading ? (
+              <p>Loading bazaars...</p>
+            ) : !events?.length ? (
               <p>No upcoming bazaars yet.</p>
             ) : (
               <div className="flex flex-col gap-4">
@@ -193,7 +222,7 @@ function Dashboard() {
                           day: "numeric",
                         })}
                       </p>
-                      <p className="text-gray-700">{event.description}</p>
+                      <p className="text-gray-700">{event.desc}</p>
                     </div>
                     <button
                       onClick={() => handleSelectEvent(event)}
@@ -208,7 +237,7 @@ function Dashboard() {
             <MyApplications />
           </div>
 
-          {/* RIGHT SIDE — Booth Application Form */}
+          {/* RIGHT — Booth Application Form */}
           <div className="w-1/2">
             <ApplyBoothForm />
           </div>
@@ -231,7 +260,10 @@ function Dashboard() {
             >
               ✕
             </button>
-            <h2 className="text-xl font-semibold mb-4">Apply for: {selectedEvent.title}</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              Apply for: {selectedEvent.title}
+            </h2>
+
             <form onSubmit={handleSubmit}>
               <label className="block mb-2 font-medium">Booth Size</label>
               <select
@@ -276,7 +308,7 @@ function Dashboard() {
               {reps.length < 5 && (
                 <button
                   type="button"
-                  onClick={() => setReps([...reps, { name: '', email: '' }])}
+                  onClick={() => setReps([...reps, { name: "", email: "" }])}
                   className="text-blue-600 underline mb-4"
                 >
                   Add another rep
@@ -293,8 +325,6 @@ function Dashboard() {
           </div>
         </div>
       )}
-
-     
     </div>
   );
 }

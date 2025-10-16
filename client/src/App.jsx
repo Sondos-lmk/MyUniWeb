@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Signup from './pages/Signup';
 import Verify from './pages/Verify';
 import Login from './pages/Login';
@@ -8,68 +8,46 @@ import Dashboard from './pages/Dashboard';
 import CreateTrip from './pages/CreateTrip.jsx';
 import CreateWorkshop from "./pages/CreateWorkshop";
 import EditWorkshop from "./pages/EditWorkshop";
-
+import EventOfficerDashboard from "./pages/EventOfficerDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
 
 
 
-function ProtectedRoute({ children, allowedRole }) {
-  const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
-  console.log('ProtectedRoute - token:', !!token, 'role:', role); // Debug: Check auth
-  if (!token || role !== allowedRole) {
-    console.log(`ProtectedRoute redirecting to /, token: ${!!token}, role: ${role}`); // Debug
-    return <Navigate to="/" />;
-  }
-  return children;
-}
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Routes>
-        {/*/Public routes*/}
+        {/* Public routes */}
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify/:token" element={<Verify />} />
-        <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* Admin-only */}
-        <Route path="/admin" element={<ProtectedRoute allowedRole="admin"> <AdminDashboard /> </ProtectedRoute>}/>
+        {/* Admin routes */}
+        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+        </Route>
 
-         {/* Professor-only: Create Workshop */}
-        <Route
-          path="/professor/workshops/new"
-          element={
-            <ProtectedRoute allowedRole="professor">
-              <CreateWorkshop />
-            </ProtectedRoute>
-          }
-        />
+        {/* Event Officer routes */}
+        <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
+          <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
+          <Route path="/create-trip" element={<CreateTrip />} />
+        </Route>
 
-       <Route
-          path="/create-trip"
-          element={
-            <ProtectedRoute allowedRole="eventOfficer">
-              <CreateTrip />
-            </ProtectedRoute>
-          }
-        />
+        {/* Professor-only routes (your feature) */}
+        <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
+          <Route path="/professor/workshops/new" element={<CreateWorkshop />} />
+          <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
+        </Route>
 
+        {/* General user dashboard (vendors, students, TAs, professors) */}
+        <Route element={<ProtectedRoute allowedRoles={["vendor", "student", "ta", "professor"]} />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Route>
+
+        {/* 404 fallback */}
         <Route path="*" element={<NotFound />} />
-  
-        <Route
-          path="/professor/workshops/:id/edit"
-          element={
-            <ProtectedRoute allowedRole="professor">
-              <EditWorkshop />
-            </ProtectedRoute>
-          }
-        />
-
-
-
-
       </Routes>
     </div>
   );

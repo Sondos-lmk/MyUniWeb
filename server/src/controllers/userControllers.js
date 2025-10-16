@@ -150,3 +150,20 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// Get a single user by ID
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params; // user ID from route
+    if (!id) return res.status(400).json({ message: "User ID is required" });
+
+    // Find the user in all collections (or just User base if you store all)
+    // If using discriminators, you can just query the base User model
+    const user = await User.findById(id).select('-passwordHash');
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
