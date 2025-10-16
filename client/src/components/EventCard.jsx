@@ -1,5 +1,6 @@
 // client/src/components/EventCard.jsx
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const badgeColor = (type) => {
   switch (type) {
@@ -13,7 +14,8 @@ const badgeColor = (type) => {
   }
 };
 
-export default function EventCard({ event, onPrimary, primaryLabel, secondary, disabled }) {
+export default function EventCard({ event, onPrimary, primaryLabel, secondary, disabled , userRole }) {
+  const navigate = useNavigate();
   const {
     _id,
     title,
@@ -29,6 +31,17 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
   } = event || {};
 
   const fmt = (d) => (d ? new Date(d).toLocaleString() : "—");
+
+  console.log({
+  title,
+  userRole,
+  eventType: event.type,
+  eventStatus: event.status,
+});
+
+  const canEdit =
+    userRole === "eventofficer" &&
+    ["trip", "bazaar", "conference"].includes(event.type);
 
   return (
     <div
@@ -96,6 +109,16 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
             </button>
           )}
           {secondary}
+        </div>
+        <div className="mt-5 flex items-center gap-3">
+          {canEdit && (
+            <button
+              onClick={() => navigate(`/events/${event._id}/edit`)}
+              className="rounded-xl px-4 py-2 bg-red-500 text-white text-sm font-semibold hover:bg-red-600"
+            >
+              Edit Event
+            </button>
+          )}
         </div>
       </div>
     </div>
