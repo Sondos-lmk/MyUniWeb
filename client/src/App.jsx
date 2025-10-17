@@ -5,7 +5,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
-//import CreateTrip from './pages/CreateTrip.jsx';
+//import CreateTrip from './pages/CreateTrip.jsx'; 
 import CreateWorkshop from "./pages/CreateWorkshop";
 import EditWorkshop from "./pages/EditWorkshop";
 import EventOfficerDashboard from "./pages/EventOfficerDashboard";
