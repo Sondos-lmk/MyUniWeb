@@ -13,6 +13,9 @@ import EventOfficerDashboard from "./pages/EventOfficerDashboard";
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import ProtectedRoute from "./components/ProtectedRoute";
+import CreateGymSession from "./pages/CreateGymSession";
+import GymSchedule from "./pages/GymSchedule";
+
 import "./App.css";
 import ApprovedEvents from "./components/ApprovingEvents";
 import Events from "./components/Events"
@@ -38,6 +41,8 @@ function App() {
         {/* Event Officer routes */}
         <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
           <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
+          <Route path="/create-gym-session" element={<CreateGymSession />} />
+          <Route path="/gym-schedule" element={<GymSchedule />} /> 
           <Route path="/approved-events" element={<ApprovedEvents />} />
           <Route path="/events" element={<Events />} />
           <Route path="/create-event" element={<EventFormPage />} />
@@ -81,7 +86,8 @@ function App() {
 
         {/* 404 fallback */}
         <Route path="*" element={<NotFound />} />
-      </Routes>
+      </Routes> 
+
     </div>
   );
 }
