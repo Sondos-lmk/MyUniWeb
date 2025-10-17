@@ -129,31 +129,32 @@ const StudentDashboard = () => {
       <div className="mt-10">
         <UpcomingEvents />
       </div>
-      </div>
+      
       {/* Upcoming Events */}
-      {!showCourts && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2">Upcoming Events</h2>
-          {upcomingEvents.length === 0 ? (
-            <p>No upcoming events available.</p>
-          ) : (
-            <ul className="space-y-2">
-              {upcomingEvents.map((event) => (
-                <li key={event._id} className="border p-2 rounded shadow-sm">
-                  <p>
-                    <strong>{event.title}</strong> — {event.type}
-                  </p>
-                  <p>{event.location}</p>
-                  <p>
-                    {new Date(event.startDate).toLocaleDateString()} to{" "}
-                    {new Date(event.endDate).toLocaleDateString()}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+        {!showCourts && (
+  <div className="mt-6">
+    <h2 className="text-xl font-semibold mb-2">Upcoming Events</h2>
+    {upcomingEvents.length === 0 ? (
+      <p>No upcoming events available.</p>
+    ) : (
+      <ul className="space-y-2">
+        {upcomingEvents.map((event) => (
+          <li key={event._id} className="border p-2 rounded">
+            <p>
+              <strong>{event.title}</strong> — {event.type}
+            </p>
+            <p>{event.location}</p>
+            <p>
+              {new Date(event.startDate).toLocaleDateString()} to{" "}
+              {new Date(event.endDate).toLocaleDateString()}
+            </p>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+)}
+
 
       {/* Courts View */}
       {showCourts && (

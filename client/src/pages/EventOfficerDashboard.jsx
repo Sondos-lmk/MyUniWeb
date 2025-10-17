@@ -2,6 +2,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ApprovingEvents from "../components/ApprovingEvents.jsx";
 import UpcomingEvents from "../components/UpcomingEvents.jsx";
+
 import Navbar from "../components/Navbar.jsx";
 
 function EventOfficerDashboard() {

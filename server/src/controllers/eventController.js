@@ -733,12 +733,28 @@ export const registerForTrip = async (req, res) => {
 
 export const getPendingWorkshops = async (req, res) => {
   try {
-    const workshops = await Workshop.find({ status: 'pending' })
-      .populate('organizerId', 'name email role')
-      .populate('professorsParticipating', 'name email');
-    res.status(200).json(workshops);
+    // ✅ Fetch from Event collection, not Workshop
+    const workshops = await Event.find({ type: "workshop", status: "pending" })
+      .populate("createdBy", "name email role") // assuming workshops are created by professors
+      .populate("professorsParticipating", "name email");
+
+    if (!workshops || workshops.length === 0) {
+      return res.status(200).json({
+        message: "No pending workshops found.",
+        workshops: [],
+      });
+    }
+
+    res.status(200).json({
+      message: "Pending workshops fetched successfully.",
+      workshops,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error fetching pending workshops:", err);
+    res.status(500).json({
+      message: "Failed to fetch pending workshops.",
+      error: err.message,
+    });
   }
 };
 
