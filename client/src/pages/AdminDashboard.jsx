@@ -6,6 +6,10 @@ const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [adminForm, setAdminForm] = useState({ name: '', email: '', password: '', role: '' });
   const [admins, setAdmins] = useState([]);
+  const [events, setEvents] = useState([]); // ✅ New state for events
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
   // Fetch pending users
@@ -72,6 +76,52 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchAdmins();
   }, [navigate]);
+
+  // ✅ Fetch all events
+  const fetchEvents = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("token");
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
+      const res = await axios.get(`${apiUrl}/api/events`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEvents(res.data.events || res.data);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setError("Failed to load events.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  // ✅ Delete event
+  const handleDeleteEvent = async (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this event?");
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
+      const res = await axios.delete(`${apiUrl}/api/events/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuccess(res.data.message || "Event deleted successfully!");
+      setError("");
+      setEvents(events.filter((e) => e._id !== id));
+    } catch (err) {
+      console.error("Error deleting event:", err);
+      setError(
+        err.response?.data?.message ||
+        "Cannot delete event. Maybe someone registered for it."
+      );
+    }
+  };
 
   // Handle admin/event officer creation
   const handleCreateUser = async (e) => {
@@ -297,6 +347,58 @@ const AdminDashboard = () => {
               </li>
             ))}
           </ul>
+        )}
+      </div>
+
+      {/* ✅ Manage Events Section */}
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold mb-4">Manage Events</h2>
+
+        {error && <p className="text-red-600 mb-3">{error}</p>}
+        {success && <p className="text-green-600 mb-3">{success}</p>}
+
+        {loading ? (
+          <p>Loading events...</p>
+        ) : events.length === 0 ? (
+          <p>No events found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border border-gray-300 rounded-lg shadow-md">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 border">Title</th>
+                  <th className="p-2 border">Type</th>
+                  <th className="p-2 border">Location</th>
+                  <th className="p-2 border">Start</th>
+                  <th className="p-2 border">End</th>
+                  <th className="p-2 border">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={event._id} className="text-center">
+                    <td className="p-2 border">{event.title}</td>
+                    <td className="p-2 border">{event.type}</td>
+                    <td className="p-2 border">{event.location}</td>
+                    <td className="p-2 border">
+                      {new Date(event.startDate).toLocaleDateString()}
+                    </td>
+                    <td className="p-2 border">
+                      {new Date(event.endDate).toLocaleDateString()}
+                    </td>
+                    <td className="p-2 border">
+                      <button
+                        onClick={() => handleDeleteEvent(event._id)}
+                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

@@ -12,6 +12,8 @@ import adminRoutes from './routes/admin.js';
 import eventRoutes from './routes/event.js';
 import userRoutes from './routes/userRoutes.js';
 import gymRoutes from "./routes/gymRoutes.js";
+import courtRoutes from "./routes/court.js";
+
 
 
 
@@ -39,6 +41,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use("/api/gym", gymRoutes);
+app.use("/api/courts", courtRoutes);
 
 // ✅ Not found
 app.use((req, res, next) => {
