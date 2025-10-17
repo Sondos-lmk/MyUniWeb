@@ -29,6 +29,7 @@ import {
 import {
   requireAuth,
   requireEventOfficer,
+  requireEventOfficerOrAdmin,
   requireProfessor,
 } from '../middleware/auth.js';
 
@@ -48,7 +49,7 @@ router.post('/', createEvent);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
 router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
 
 
