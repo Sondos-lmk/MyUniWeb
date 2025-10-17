@@ -5,7 +5,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
-import StudentDashboard from "./pages/StudentDashboard";
+import ApproveWorkshops from "./components/ApproveWorkshops";
 
 import CreateWorkshop from "./pages/CreateWorkshop";
 import EditWorkshop from "./pages/EditWorkshop";
@@ -43,7 +43,8 @@ function App() {
           <Route path="/create-event" element={<EventFormPage />} />
           <Route path="/events/:id/edit" element={<EventFormPage />} />
           <Route path="/workshops/:id/request-edit" element={<RequestEditForm />}/>
-          <Route path="/events/upcoming" element={<UpcomingEvents />} />
+          <Route path="/events/upcoming" element={<UpcomingEvents />}/>
+          <Route path="/eventOfficer/approveWorkshops" element={<ApproveWorkshops />} />
         </Route>
         {/* Student routes */}
          <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
