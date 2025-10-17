@@ -33,9 +33,16 @@ function App() {
         {/* Event Officer routes */}
         <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
           <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
-          <Route path="/create-trip" element={<CreateTrip />} />
+          <Route path="/approved-events" element={<ApprovedEvents />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/create-event" element={<EventFormPage />} />
+          <Route path="/events/:id/edit" element={<EventFormPage />} />
         </Route>
-
+        {/* Student routes */}
+         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
+          <Route path="/student/dashboard" element={<StudentDashboard />} />
+        </Route>
+      
 
 
         {/* Professor-only routes (your feature) */}
