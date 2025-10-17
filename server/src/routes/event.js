@@ -29,6 +29,7 @@ import {
 import {
   requireAuth,
   requireEventOfficer,
+  requireEventOfficerOrAdmin,
   requireProfessor,
 } from '../middleware/auth.js';
 
@@ -48,7 +49,7 @@ router.post('/', createEvent);
 router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
 router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
-router.delete('/:id', requireAuth, requireEventOfficer, deleteEvent);
+router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
 router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
 
 
@@ -87,7 +88,7 @@ router.patch('/:eventId/vendors/:vendorId', requireAuth, updateVendorStatus);
 
 
 // 📌 General event routes
-router.get('/upcoming', getUpcomingEvents);
+//router.get('/upcoming', getUpcomingEvents);
 router.get('/', getAllEvents);
 
 // Fetch all bazaars and booths I registered for
@@ -113,8 +114,6 @@ router.get('/trips', requireAuth, async (req, res) => {
 });
 
 
-
-
 router.post('/createConference', requireAuth, requireEventOfficer,createConference);
 router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConference);
 
@@ -123,5 +122,3 @@ router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConferen
 
 
 export default router;
-
-

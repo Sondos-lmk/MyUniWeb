@@ -21,24 +21,44 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
       <nav className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-        <Link to="/events" className="text-base font-bold text-slate-900">
+        {/* INNOVEX (not clickable) */}
+        <span className="text-base font-bold text-slate-900 select-none cursor-default">
           Innovex
-        </Link>
+        </span>
 
         <div className="hidden sm:flex items-center gap-6 text-sm">
-          <Link to="/events" className={active("/events")}>Events</Link>
+          {/* Navigate to upcoming events */}
+          {/* <Link to="/events" className={active("/events")}>
+            Events
+          </Link> */}
+
           {token && (
             <>
-              <Link to="/my-applications" className={active("/my-applications")}>
-                My Applications
+              {/* ✅ Vendor Requests */}
+              <Link to="/approved-events" className={active("/approved-events")}>
+                Vendor Requests
               </Link>
-              <Link to="/my-events" className={active("/my-events")}>
-                My Events
+
+              {/* ✅ All Events */}
+              <Link to="/events" className={active("/events")}>
+                Events
               </Link>
+
+              {/* ✅ Event Officer Only Links */}
               {role === "eventOfficer" && (
-                <Link to="/create-trip" className={active("/create-trip")}>
-                  Create Trip
-                </Link>
+                <>
+                  <Link to="/create-event" className={active("/create-event")}>
+                    Create Event
+                  </Link>
+
+                  {/* ✅ NEW Approve Workshops Link */}
+                  <Link
+                    to="/eventOfficer/approveWorkshops"
+                    className={active("/eventOfficer/approveWorkshops")}
+                  >
+                    Approve Workshops
+                  </Link>
+                </>
               )}
             </>
           )}
@@ -63,7 +83,7 @@ export default function Navbar() {
           ) : (
             <button
               onClick={logout}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm"
+              className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700 transition-colors"
             >
               Log out
             </button>

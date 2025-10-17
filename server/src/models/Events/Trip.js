@@ -14,7 +14,7 @@ const tripSchema = new mongoose.Schema(
     organizerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true, // always linked to the Event Officer
+       // always linked to the Event Officer
     },
   },
   { timestamps: true }
