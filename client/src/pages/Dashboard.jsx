@@ -6,6 +6,8 @@ import MyApplications from "../components/MyApplications";
 import API from "../services/api";
 import CreateWorkshop from "./CreateWorkshop";
 import { getMyWorkshops } from "../services/workshop";
+import UpcomingEvents from "../components/UpcomingEvents";
+
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -188,6 +190,12 @@ function Dashboard() {
               </div>
             )}
           </div>
+              <div style={{ marginTop: 40 }}>
+              <h2 className="text-2xl font-bold mb-4">Upcoming Events</h2>
+              <div className="bg-gray-50 border p-4 rounded-lg shadow-md">
+                <UpcomingEvents />
+              </div>
+            </div>
         </>
       )}
 

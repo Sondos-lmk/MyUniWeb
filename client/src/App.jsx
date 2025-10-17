@@ -5,15 +5,19 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
-//import CreateTrip from './pages/CreateTrip.jsx'; 
 import CreateWorkshop from "./pages/CreateWorkshop";
 import EditWorkshop from "./pages/EditWorkshop";
 import EventOfficerDashboard from "./pages/EventOfficerDashboard";
+import StudentDashboard from './pages/StudentDashboard';
+import StaffDashboard from './pages/StaffDashboard';
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
 import ApprovedEvents from "./components/ApprovingEvents";
 import Events from "./components/Events"
 import EventFormPage from "./components/EventFormPage";
+import RequestEditForm from './components/WorkshopEditRequestForm';
+import TADashboard from './pages/TADashboard';
+import UpcomingEvents from './components/UpcomingEvents';
 
 function App() {
   return (
@@ -36,6 +40,8 @@ function App() {
           <Route path="/events" element={<Events />} />
           <Route path="/create-event" element={<EventFormPage />} />
           <Route path="/events/:id/edit" element={<EventFormPage />} />
+          <Route path="/workshops/:id/request-edit" element={<RequestEditForm />}/>
+          <Route path="/events/upcoming" element={<UpcomingEvents />} />
         </Route>
 
         {/* Professor-only routes (your feature) */}
@@ -44,8 +50,23 @@ function App() {
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
         </Route>
 
-        {/* General user dashboard (vendors, students, TAs, professors) */}
-        <Route element={<ProtectedRoute allowedRoles={["vendor", "student", "ta", "professor"]} />}>
+        {/*Student-only routes */}
+        <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
+          <Route path="/student/dashboard" element={<StudentDashboard />} />
+        </Route>
+
+        {/*Staff-only routes */}
+        <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
+          <Route path="/staff/dashboard" element={<StaffDashboard />} />
+        </Route>
+
+        {/*TA-only routes */}
+        <Route element={<ProtectedRoute allowedRoles={["ta"]} />}>
+          <Route path="/ta/dashboard" element={<TADashboard />} />
+        </Route>
+
+        {/* General user dashboard (vendors, TAs, professors) */}
+        <Route element={<ProtectedRoute allowedRoles={["vendor", "professor"]} />}> {/*you removed student from here */}
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>
 

@@ -87,7 +87,7 @@ router.patch('/:eventId/vendors/:vendorId', requireAuth, updateVendorStatus);
 
 
 // 📌 General event routes
-router.get('/upcoming', getUpcomingEvents);
+//router.get('/upcoming', getUpcomingEvents);
 router.get('/', getAllEvents);
 
 // Fetch all bazaars and booths I registered for
@@ -111,8 +111,6 @@ router.get('/trips', requireAuth, async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch trips', error: err.message });
   }
 });
-
-
 
 
 router.post('/createConference', requireAuth, requireEventOfficer,createConference);
