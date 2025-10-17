@@ -9,6 +9,9 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import EventOfficerDashboard from "./pages/EventOfficerDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CreateGymSession from "./pages/CreateGymSession";
+import GymSchedule from "./pages/GymSchedule";
+
 
 function App() {
   return (
@@ -27,6 +30,8 @@ function App() {
         {/* Event Officer Routes */}
         <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
           <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
+          <Route path="/create-gym-session" element={<CreateGymSession />} />
+          <Route path="/gym-schedule" element={<GymSchedule />} /> 
         </Route>
 
         {/* General User Dashboard (vendors, students, etc.) */}
@@ -36,7 +41,8 @@ function App() {
 
         {/* 404 fallback */}
         <Route path="*" element={<NotFound />} />
-      </Routes>
+      </Routes> 
+
     </div>
   );
 }

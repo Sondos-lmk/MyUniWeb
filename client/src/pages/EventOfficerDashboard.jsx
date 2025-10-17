@@ -1,6 +1,7 @@
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate , Link } from "react-router-dom";
 import ApprovingEvents from "../components/ApprovingEvents.jsx";
+
 
 function EventOfficerDashboard() {
   const navigate = useNavigate();
@@ -25,6 +26,21 @@ function EventOfficerDashboard() {
           Logout
         </button>
       </div>
+      <div className="flex gap-4 mb-8">
+      <Link
+        to="/create-gym-session"
+        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+      >
+        Create Gym Session
+      </Link>
+
+      <Link
+        to="/gym-schedule"
+        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+      >
+        View Gym Schedule
+      </Link>
+    </div>
 
       {/* Use the new component */}
       <ApprovingEvents token={token} />
