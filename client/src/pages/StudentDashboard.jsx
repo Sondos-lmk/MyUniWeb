@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import UpcomingEvents from "../components/UpcomingEvents";
 import api from "../services/api";
 
 const StudentDashboard = () => {
@@ -51,11 +52,12 @@ const StudentDashboard = () => {
     fetchData();
   }, [navigate]);
 
-  // Logout
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
+    const handleLogout = () => {
+      console.log('Logging out from StudentDashboard, token:', localStorage.getItem('token'));
+      localStorage.removeItem('token');
+      navigate('/');
+    };
+
 
   // Fetch all courts
   const fetchCourts = async () => {
@@ -89,17 +91,16 @@ const StudentDashboard = () => {
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Student Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
-      </div>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Student Dashboard</h1>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
 
       {/* Toggle buttons */}
       <div className="flex justify-center gap-4 mt-4">
@@ -124,6 +125,11 @@ const StudentDashboard = () => {
         </button>
       </div>
 
+      {/* Upcoming Events Section */}
+      <div className="mt-10">
+        <UpcomingEvents />
+      </div>
+      </div>
       {/* Upcoming Events */}
       {!showCourts && (
         <div className="mt-6">

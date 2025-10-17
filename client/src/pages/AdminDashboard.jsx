@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import UpcomingEvents from "../components/UpcomingEvents";
+
 
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -349,6 +351,9 @@ const AdminDashboard = () => {
           </ul>
         )}
       </div>
+      {/* Upcoming Events Section */}
+      <div className="mt-10">
+        <UpcomingEvents />
 
       {/* ✅ Manage Events Section */}
       <div className="mt-10">

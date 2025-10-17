@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import UpcomingEvents from "../components/UpcomingEvents";
 
 
 const TADashboard = () => {
@@ -33,13 +34,13 @@ const TADashboard = () => {
     fetchData();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
+    const handleLogout = () => {
+      console.log('Logging out from StudentDashboard, token:', localStorage.getItem('token'));
+      localStorage.removeItem('token');
+      navigate('/');
+    };
 
   return (
-    <ProtectedDashboard allowedRoles={["ta"]}>
       <div className="p-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Teaching Assistant Dashboard</h1>
@@ -59,28 +60,11 @@ const TADashboard = () => {
         </div>
         */}
 
-        {/* Section 2: Upcoming Events */}
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Upcoming Events</h2>
-          {upcomingEvents.length === 0 ? (
-            <p>No upcoming events available.</p>
-          ) : (
-            <ul className="space-y-2">
-              {upcomingEvents.map((event) => (
-                <li key={event.id} className="border p-2 rounded">
-                  <p><strong>{event.title}</strong> — {event.type}</p>
-                  <p>{event.location}</p>
-                  <p>
-                    {new Date(event.startDate).toLocaleDateString()} to{" "}
-                    {new Date(event.endDate).toLocaleDateString()}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      {/* Upcoming Events Section */}
+      <div className="mt-10">
+        <UpcomingEvents />
       </div>
-    </ProtectedDashboard>
+      </div>
   );
 };
 

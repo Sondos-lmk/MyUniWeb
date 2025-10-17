@@ -20,9 +20,13 @@ export default function Login() {
         nav('/admin');
       } else if (loggedInUser.role === 'eventOfficer') {
         nav('/eventOfficer/dashboard');
-      }else if (loggedInUser.role === "student") {
-           nav("/student/dashboard");}
-       else {
+      } else if (loggedInUser.role === 'student') {
+      nav('/student/dashboard'); 
+      }else if (loggedInUser.role === 'staff'){
+      nav('/staff/dashboard'); 
+      }else if (loggedInUser.role === 'ta'){
+      nav('/ta/dashboard')
+      }else {
         nav('/dashboard');
       }
     } catch (err) {

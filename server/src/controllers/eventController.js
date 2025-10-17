@@ -295,14 +295,11 @@ export const searchEvents = async (req, res) => {
   try {
     const { name, type } = req.query;
     const searchRegex = name ? new RegExp(name, "i") : null; // Case-insensitive search
-    const filters = { status: "approved" }; // Only approved events
 
-    // Apply type filter if provided
-    if (type) {
-      filters.type = type.toLowerCase();
-    }
+    // Common filters: only approved events
+    const baseFilter = { status: "approved" };
 
-    // Helper function to format all event types consistently
+    // Helper: formats all events consistently
     const formatEvent = (event, type) => ({
       id: event._id,
       type,
@@ -314,71 +311,105 @@ export const searchEvents = async (req, res) => {
       status: event.status,
     });
 
-    // Search in parallel across models
-    const [
-      workshops,
-      trips,
-      bazaars,
-      booths,
-      conferences
-    ] = await Promise.all([
-      Workshop.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
-      }).populate("professorsParticipating", "name email"),
-      Trip.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
-      }),
-      Bazaar.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
-      }).populate("registeredVendors.vendor", "name email"),
-      Booth.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }] } : {})
-      }).populate("registeredVendors.vendor", "name email"),
-      Conference.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
-      })
-    ]);
+    // Build a list of promises depending on requested type
+    const promises = [];
 
-    // Combine all found events
-    let allResults = [
-      ...workshops.map((e) => formatEvent(e, "workshop")),
-      ...trips.map((e) => formatEvent(e, "trip")),
-      ...bazaars.map((e) => formatEvent(e, "bazaar")),
-      ...booths.map((e) => formatEvent(e, "booth")),
-      ...conferences.map((e) => formatEvent(e, "conference")),
-    ];
+    const include = (wanted) =>
+      !type || type.toLowerCase() === wanted; // if no type filter, include all
 
-    // ✅ If searching by professor name, filter further from populated professors
+    if (include("workshop")) {
+      promises.push(
+        Workshop.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {}),
+        }).populate("professorsParticipating", "name email")
+      );
+    }
+
+    if (include("trip")) {
+      promises.push(
+        Trip.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {}),
+        })
+      );
+    }
+
+    if (include("bazaar")) {
+      promises.push(
+        Bazaar.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {}),
+        }).populate("registeredVendors.vendor", "name email")
+      );
+    }
+
+    if (include("booth")) {
+      promises.push(
+        Booth.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }] } : {}),
+        }).populate("registeredVendors.vendor", "name email")
+      );
+    }
+
+    if (include("conference")) {
+      promises.push(
+        Conference.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {}),
+        })
+      );
+    }
+
+    // Run all applicable searches in parallel
+    const results = await Promise.all(promises);
+
+    // Flatten and label results
+    const allResults = [];
+
+    if (include("workshop"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "workshop")));
+    if (include("trip"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "trip")));
+    if (include("bazaar"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "bazaar")));
+    if (include("booth"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "booth")));
+    if (include("conference"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "conference")));
+
+    // If searching by professor name, refine workshops
+    let finalResults = allResults;
     if (name) {
-      allResults = allResults.filter((ev) => {
+      finalResults = allResults.filter((ev) => {
         if (ev.type === "workshop" && ev.professorsParticipating) {
           return ev.professorsParticipating.some((p) =>
             p.name.toLowerCase().includes(name.toLowerCase())
           );
         }
-        return true;
+        return (
+          ev.title.toLowerCase().includes(name.toLowerCase()) ||
+          ev.description.toLowerCase().includes(name.toLowerCase())
+        );
       });
     }
 
-    if (allResults.length === 0) {
+    if (finalResults.length === 0) {
       return res.status(404).json({ message: "No events found matching your search." });
     }
 
     res.status(200).json({
       message: "Search results fetched successfully",
-      count: allResults.length,
-      events: allResults,
+      count: finalResults.length,
+      events: finalResults,
     });
   } catch (err) {
     console.error("Error searching events:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Create event
 export const createEvent = async (req, res) => {
