@@ -113,7 +113,7 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
         {/* ✅ Event Officer Actions */}
         <div className="mt-5 flex items-center gap-3">
           {/* Request to Edit — only for Workshops */}
-          {userRole === "eventofficer" && event.type === "workshop" && (
+          {userRole === "eventOfficer" && event.type === "workshop" && (
             <button
               onClick={() => navigate(`/workshops/${event._id}/request-edit`)}
               className="rounded-xl px-4 py-2 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
@@ -122,7 +122,7 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
             </button>
           )}
         {/* Edit Event — only for Trips, Bazaars, Conferences */}
-        {userRole === "eventofficer" &&
+        {userRole === "eventOfficer" &&
           ["trip", "bazaar", "conference"].includes(event.type) && (
             <button
               onClick={() => navigate(`/events/${event._id}/edit`)}
