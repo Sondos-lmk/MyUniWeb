@@ -53,7 +53,6 @@ function EventOfficerDashboard() {
 
         {/* Uncomment when ready to show events */}
         {/* <ApprovingEvents /> */}
-      
         {/* Upcoming Events Section */}
         <div className="mt-10">
           <UpcomingEvents />

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents";
 import AllUsers from "./AllUsers";
 
+import ApprovingEvents from "../components/ApprovingEvents";
 
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -378,6 +379,9 @@ const AdminDashboard = () => {
           </ul>
         )}
       </div>
+      <div className="mt-10">
+      <ApprovingEvents />
+     </div>
 
       {/* Upcoming Events */}
       <div className="mt-10">
