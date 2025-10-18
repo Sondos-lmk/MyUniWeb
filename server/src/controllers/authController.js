@@ -64,7 +64,7 @@ export async function register(req, res) {
     }
 
      if (['staff', 'ta', 'professor', 'admin'].includes(role)) {
-      if (!email.endsWith('@guc.edu.eg')  ) {
+      if (!email.endsWith('@guc.edu.eg') ) { 
         return res.status(400).json({
           message: `${role} email must end with @guc.edu.eg`,
         });

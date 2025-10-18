@@ -34,19 +34,31 @@ export default function Navbar() {
 
           {token && (
             <>
-              {/* Navigate to ApprovedEvents */}
+              {/* ✅ Vendor Requests */}
               <Link to="/approved-events" className={active("/approved-events")}>
                 Vendor Requests
               </Link>
 
-               <Link to="/events" className={active("/events")}>
+              {/* ✅ All Events */}
+              <Link to="/events" className={active("/events")}>
                 Events
               </Link>
 
+              {/* ✅ Event Officer Only Links */}
               {role === "eventOfficer" && (
-                <Link to="/create-event" className={active("/create-event")}>
-                  Create Event
-                </Link>
+                <>
+                  <Link to="/create-event" className={active("/create-event")}>
+                    Create Event
+                  </Link>
+
+                  {/* ✅ NEW Approve Workshops Link */}
+                  <Link
+                    to="/eventOfficer/approveWorkshops"
+                    className={active("/eventOfficer/approveWorkshops")}
+                  >
+                    Approve Workshops
+                  </Link>
+                </>
               )}
             </>
           )}

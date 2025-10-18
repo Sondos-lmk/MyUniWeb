@@ -6,6 +6,11 @@ import MyApplications from "../components/MyApplications";
 import API from "../services/api";
 import CreateWorkshop from "./CreateWorkshop";
 import { getMyWorkshops } from "../services/workshop";
+import UpcomingEvents from "../components/UpcomingEvents";
+import MyRegisteredEvents from "./MyRegisteredEvents";
+import RegisterForEvent from "./RegisterForEvent";
+import GymSchedule from "./GymSchedule";
+
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -188,6 +193,29 @@ function Dashboard() {
               </div>
             )}
           </div>
+              <div style={{ marginTop: 40 }}>
+                {/* Professor Events Section */}
+                <div style={{ marginTop: 40 }}>
+                  <h2 className="text-2xl font-bold mb-4 text-blue-700">My Registered Events</h2>
+                  <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
+                    <MyRegisteredEvents />
+                  </div>
+
+                  <h2 className="text-2xl font-bold mb-4 text-blue-700">Register for Event</h2>
+                  <div className="bg-gray-50 border p-4 rounded-lg shadow-md">
+                    <RegisterForEvent />
+                  </div>
+                </div>
+              <div className="bg-gray-50 border p-4 rounded-lg shadow-md">
+                <UpcomingEvents />
+              </div>
+              {/* Gym Schedule Section */}
+              <div style={{ marginTop: 40 }}>
+                <div className="bg-gray-50 border p-4 rounded-lg shadow-md">
+                  <GymSchedule />
+                </div>
+              </div>
+            </div>
         </>
       )}
 

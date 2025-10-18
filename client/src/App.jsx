@@ -5,17 +5,24 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
-import StudentDashboard from "./pages/StudentDashboard";
+import ApproveWorkshops from "./components/ApproveWorkshops";
 
 import CreateWorkshop from "./pages/CreateWorkshop";
 import EditWorkshop from "./pages/EditWorkshop";
 import EventOfficerDashboard from "./pages/EventOfficerDashboard";
+import StudentDashboard from './pages/StudentDashboard';
+import StaffDashboard from './pages/StaffDashboard';
 import ProtectedRoute from "./components/ProtectedRoute";
+import CreateGymSession from "./pages/CreateGymSession";
+import GymSchedule from "./pages/GymSchedule";
+
 import "./App.css";
 import ApprovedEvents from "./components/ApprovingEvents";
 import Events from "./components/Events"
 import EventFormPage from "./components/EventFormPage";
-
+import RequestEditForm from './components/WorkshopEditRequestForm';
+import TADashboard from './pages/TADashboard';
+import UpcomingEvents from './components/UpcomingEvents';
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -33,32 +40,47 @@ function App() {
         {/* Event Officer routes */}
         <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
           <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
+          <Route path="/create-gym-session" element={<CreateGymSession />} />
+          <Route path="/gym-schedule" element={<GymSchedule />} /> 
           <Route path="/approved-events" element={<ApprovedEvents />} />
           <Route path="/events" element={<Events />} />
           <Route path="/create-event" element={<EventFormPage />} />
           <Route path="/events/:id/edit" element={<EventFormPage />} />
-        </Route>
-        {/* Student routes */}
-         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route path="/workshops/:id/request-edit" element={<RequestEditForm />}/>
+          <Route path="/events/upcoming" element={<UpcomingEvents />}/>
+          <Route path="/eventOfficer/approveWorkshops" element={<ApproveWorkshops />} />
         </Route>
       
-
-
         {/* Professor-only routes (your feature) */}
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
           <Route path="/professor/workshops/new" element={<CreateWorkshop />} />
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
         </Route>
 
-        {/* General user dashboard (vendors, students, TAs, professors) */}
-        <Route element={<ProtectedRoute allowedRoles={["vendor", "student", "ta", "professor"]} />}>
+        {/*Student-only routes */}
+        <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
+          <Route path="/student/dashboard" element={<StudentDashboard />} /> 
+        </Route>
+
+        {/*Staff-only routes */}
+        <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
+          <Route path="/staff/dashboard" element={<StaffDashboard />} />
+        </Route>
+
+        {/*TA-only routes */}
+        <Route element={<ProtectedRoute allowedRoles={["ta"]} />}>
+          <Route path="/ta/dashboard" element={<TADashboard />} />
+        </Route>
+
+        {/* General user dashboard (vendors, TAs, professors) */}
+        <Route element={<ProtectedRoute allowedRoles={["vendor", "professor"]} />}> {/*you removed student from here */}
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>
 
         {/* 404 fallback */}
         <Route path="*" element={<NotFound />} />
-      </Routes>
+      </Routes> 
+
     </div>
   );
 }
