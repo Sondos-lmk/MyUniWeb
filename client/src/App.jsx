@@ -23,7 +23,6 @@ import EventFormPage from "./components/EventFormPage";
 import RequestEditForm from './components/WorkshopEditRequestForm';
 import TADashboard from './pages/TADashboard';
 import UpcomingEvents from './components/UpcomingEvents';
-
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -51,13 +50,7 @@ function App() {
           <Route path="/events/upcoming" element={<UpcomingEvents />}/>
           <Route path="/eventOfficer/approveWorkshops" element={<ApproveWorkshops />} />
         </Route>
-        {/* Student routes */}
-         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
-        </Route>
       
-
-
         {/* Professor-only routes (your feature) */}
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
           <Route path="/professor/workshops/new" element={<CreateWorkshop />} />
@@ -66,7 +59,7 @@ function App() {
 
         {/*Student-only routes */}
         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route path="/student/dashboard" element={<StudentDashboard />} /> 
         </Route>
 
         {/*Staff-only routes */}

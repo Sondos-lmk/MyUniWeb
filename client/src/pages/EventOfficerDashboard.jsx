@@ -11,10 +11,10 @@ function EventOfficerDashboard() {
   const { user } = useAuth();
   const token = localStorage.getItem("token");
 
-  const handleLogout = () => {
+   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/");
-  };
+   navigate("/");
+   };
 
   return (
     <div>
@@ -58,6 +58,9 @@ function EventOfficerDashboard() {
           <UpcomingEvents />
         </div>
     </div>
+    
+          
+    
   );
 }
 export default EventOfficerDashboard;

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents";
+import AllUsers from "./AllUsers";
+
 import ApprovingEvents from "../components/ApprovingEvents";
 
 const AdminDashboard = () => {
@@ -436,6 +438,10 @@ const AdminDashboard = () => {
           </div>
         )}
       </div>
+      {/* All Users Table at the Bottom */}
+        <div className="mt-12">
+          <AllUsers />
+        </div>
     </div>
   );
 };

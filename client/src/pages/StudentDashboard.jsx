@@ -2,20 +2,21 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import UpcomingEvents from "../components/UpcomingEvents";
+import MyRegisteredEvents from "./MyRegisteredEvents";
+import RegisterForEvent from "./RegisterForEvent";
+import GymSchedule from "./GymSchedule";
 import api from "../services/api";
 
 const StudentDashboard = () => {
-  const [upcomingEvents, setUpcomingEvents] = useState([]); // store upcoming approved events
-  const [myEvents, setMyEvents] = useState([]);             // store events the student registered for
-  const [showCourts, setShowCourts] = useState(false);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [myEvents, setMyEvents] = useState([]);
+  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "courts" | "gym"
   const [courts, setCourts] = useState([]);
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [availability, setAvailability] = useState([]);
   const [loadingCourts, setLoadingCourts] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  console.log("✅ StudentDashboard loaded");
 
   // Fetch upcoming events and registered ones
   useEffect(() => {
@@ -35,7 +36,7 @@ const StudentDashboard = () => {
         });
         setUpcomingEvents(eventsRes.data.events || []);
 
-        // Fetch student’s registered events
+        // Fetch student's registered events
         const myEventsRes = await axios.get(`${apiUrl}/api/events/my-registered`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -52,12 +53,12 @@ const StudentDashboard = () => {
     fetchData();
   }, [navigate]);
 
-    const handleLogout = () => {
-      console.log('Logging out from StudentDashboard, token:', localStorage.getItem('token'));
-      localStorage.removeItem('token');
-      navigate('/');
-    };
-
+  // Logout
+  const handleLogout = () => {
+    console.log("Logging out from StudentDashboard, token:", localStorage.getItem("token"));
+    localStorage.removeItem("token");
+    navigate("/");
+  };
 
   // Fetch all courts
   const fetchCourts = async () => {
@@ -91,76 +92,124 @@ const StudentDashboard = () => {
   };
 
   return (
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Student Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-          >
-            Logout
-          </button>
-        </div>
-
-      {/* Toggle buttons */}
-      <div className="flex justify-center gap-4 mt-4">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-blue-700">Student Dashboard</h1>
         <button
-          onClick={() => setShowCourts(false)}
+          onClick={handleLogout}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+        >
+          Logout
+        </button>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex justify-center gap-4 mt-4 mb-8">
+        <button
+          onClick={() => setActiveTab("events")}
           className={`px-4 py-2 rounded ${
-            !showCourts ? "bg-blue-600 text-white" : "bg-gray-200"
+            activeTab === "events"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
           }`}
         >
-          Events
+          Upcoming Events
         </button>
+
+        <button
+          onClick={() => setActiveTab("registered")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "registered"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          My Registered Events
+        </button>
+
+        <button
+          onClick={() => setActiveTab("register")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "register"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Register for Event
+        </button>
+
         <button
           onClick={() => {
-            setShowCourts(true);
+            setActiveTab("courts");
             fetchCourts();
           }}
           className={`px-4 py-2 rounded ${
-            showCourts ? "bg-blue-600 text-white" : "bg-gray-200"
+            activeTab === "courts"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
           }`}
         >
           View Courts
         </button>
+
+        <button
+          onClick={() => setActiveTab("gym")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "gym"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Gym Schedule
+        </button>
       </div>
 
-      {/* Upcoming Events Section */}
-      <div className="mt-10">
-        <UpcomingEvents />
-      </div>
-      
-      {/* Upcoming Events */}
-        {!showCourts && (
-  <div className="mt-6">
-    <h2 className="text-xl font-semibold mb-2">Upcoming Events</h2>
-    {upcomingEvents.length === 0 ? (
-      <p>No upcoming events available.</p>
-    ) : (
-      <ul className="space-y-2">
-        {upcomingEvents.map((event) => (
-          <li key={event._id} className="border p-2 rounded">
-            <p>
-              <strong>{event.title}</strong> — {event.type}
-            </p>
-            <p>{event.location}</p>
-            <p>
-              {new Date(event.startDate).toLocaleDateString()} to{" "}
-              {new Date(event.endDate).toLocaleDateString()}
-            </p>
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
-)}
+      {/* EVENTS VIEW */}
+      {activeTab === "events" && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-4">Upcoming Events</h2>
+          {upcomingEvents.length === 0 ? (
+            <p className="text-gray-600">No upcoming events available.</p>
+          ) : (
+            <ul className="space-y-3">
+              {upcomingEvents.map((event) => (
+                <li
+                  key={event._id}
+                  className="border p-4 rounded bg-white shadow-sm hover:shadow-md transition"
+                >
+                  <p className="font-semibold text-blue-700">{event.title}</p>
+                  <p className="text-gray-700">{event.type}</p>
+                  <p className="text-gray-500">{event.location}</p>
+                  <p className="text-sm text-gray-600">
+                    {new Date(event.startDate).toLocaleDateString()} -{" "}
+                    {new Date(event.endDate).toLocaleDateString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
+      {/* MY REGISTERED EVENTS */}
+      {activeTab === "registered" && (
+        <div className="mt-6">
+          <MyRegisteredEvents />
+        </div>
+      )}
 
-      {/* Courts View */}
-      {showCourts && (
+      {/* REGISTER FOR EVENT */}
+      {activeTab === "register" && (
+        <div className="mt-6">
+          <RegisterForEvent />
+        </div>
+      )}
+
+      {/* COURTS VIEW */}
+      {activeTab === "courts" && (
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-center mb-4">Campus Courts</h2>
-
           {error && <p className="text-red-600 text-center">{error}</p>}
           {loadingCourts ? (
             <p className="text-center">Loading...</p>
@@ -210,6 +259,13 @@ const StudentDashboard = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* GYM SCHEDULE */}
+      {activeTab === "gym" && (
+        <div className="mt-6">
+          <GymSchedule />
         </div>
       )}
     </div>
