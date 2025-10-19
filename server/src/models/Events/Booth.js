@@ -7,7 +7,7 @@ const boothSchema = new mongoose.Schema({
   registeredVendors: {
     type: [
       {
-        vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor', required: true },
+        vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'vendor', required: true },
         reps: [
           {
             name: { type: String, required: true },

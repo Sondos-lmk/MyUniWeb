@@ -64,11 +64,18 @@ export async function register(req, res) {
     }
 
      if (['staff', 'ta', 'professor', 'admin'].includes(role)) {
-      if (!email.endsWith('@guc.edu.eg') ) { 
+      if (!email.endsWith('@guc.edu.eg')  ) { 
         return res.status(400).json({
-          message: `${role} email must end with @guc.edu.eg (or @gmail.com for testing)`,
+          message: `${role} email must end with @guc.edu.eg `,
         });
       }
+    }
+
+    // Require companyName for vendor(to solve vendor sign up server error)
+    if (role === 'vendor' && (!companyName || companyName === '')) {
+      return res.status(400).json({
+        message: 'Company name is required for vendors',
+      });
     }
 
     // Choose correct model
@@ -84,15 +91,27 @@ export async function register(req, res) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const user = new Model({
+  let user;
+  if (role === 'vendor') {
+    user = new Vendor({
+      email,
+      passwordHash,
+      role: 'vendor',
+      companyName: companyName.trim(),
+      isVerified: true,
+    });
+  } else {
+    const Model = getModelByRole(role);
+    user = new Model({
       name,
       email,
       passwordHash,
       role,
-      isVerified: ['student', 'vendor'].includes(role),
-      uniID: ['student', 'staff', 'ta', 'professor'].includes(role) ? uniID : undefined,
-      companyName: role === 'vendor' ? companyName : undefined,
+      uniID,
+      isVerified: ['student'].includes(role),
     });
+  }
+
 
     await user.save();
     console.log('User registered:', { email, name, role });

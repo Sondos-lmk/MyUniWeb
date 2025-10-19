@@ -32,18 +32,17 @@ export default function Signup() {
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
-        role: formData.role,
+        role: formData.role.toLowerCase(),
       };
 
       if (["student", "staff", "ta", "professor"].includes(formData.role)) {
         payload.name = formData.name;
         payload.uniID = formData.uniID;
-      }
-
-      if (formData.role === "vendor") {
+      }else if (formData.role === "vendor") {
         payload.companyName = formData.companyName;
       }
 
+      console.log("Sending signup payload:", payload);
       const res = await API.post("/auth/register", payload);
       setMessage("Signup successful! Check your email for verification.");
       navigate("/");

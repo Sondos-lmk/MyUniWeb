@@ -11,7 +11,7 @@ export default function MyRegisteredEvents() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await API.get("/events/my-events");
+        const res = await API.get("/events/my-registered");
         setEvents(res.data);
       } catch (err) {
         console.error("Error fetching registered events:", err);
