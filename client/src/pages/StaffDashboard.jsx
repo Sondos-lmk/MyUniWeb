@@ -102,30 +102,10 @@ const StaffDashboard = () => {
         </button>
       </div>
 
-      {/* Upcoming Events */}
+      {/* EVENTS VIEW */}
       {activeTab === "events" && (
         <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-4">Upcoming Events</h2>
-          {upcomingEvents.length === 0 ? (
-            <p>No upcoming events available.</p>
-          ) : (
-            <ul className="space-y-3">
-              {upcomingEvents.map((event) => (
-                <li
-                  key={event._id}
-                  className="border p-4 rounded bg-white shadow-sm hover:shadow-md transition"
-                >
-                  <p className="font-semibold text-blue-700">{event.title}</p>
-                  <p className="text-gray-700">{event.type}</p>
-                  <p className="text-gray-500">{event.location}</p>
-                  <p className="text-sm text-gray-600">
-                    {new Date(event.startDate).toLocaleDateString()} -{" "}
-                    {new Date(event.endDate).toLocaleDateString()}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
+          <UpcomingEvents /> 
         </div>
       )}
 

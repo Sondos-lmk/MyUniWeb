@@ -8,4 +8,4 @@ const vendorSchema = new mongoose.Schema({
   appliedEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
 });
 
-export const Vendor = User.discriminator('Vendor', vendorSchema);
+export const Vendor = User.discriminator('vendor', vendorSchema); 

@@ -584,6 +584,113 @@ export const rejectEvent = async (req, res) => {
   }
 };
 
+export const registerForWorkshopOrTrip = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id || req.user.id;
+
+    // 1️⃣ Find the event and ensure it exists
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    // 2️⃣ Allow only workshops and trips
+    if (event.type !== "workshop" && event.type !== "trip") {
+      return res.status(400).json({
+        error: "You can only register for workshops or trips",
+      });
+    }
+
+    // 3️⃣ Check if the user’s role is allowed
+    const allowedRoles = ["student", "staff", "ta", "professor"];
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: "This role is not allowed to register for events",
+      });
+    }
+
+    // 4️⃣ Prevent duplicate registration
+    event.registeredStudents = event.registeredStudents || [];
+    if (event.registeredStudents.includes(userId)) {
+      return res.status(400).json({ error: "Already registered for this event" });
+    }
+
+    // 5️⃣ Add user to the event’s registered list
+    event.registeredStudents.push(userId);
+    await event.save();
+
+    // 6️⃣ Add event to user’s registeredEvents list
+    const roleModelMap = {
+      student: Student,
+      staff: Staff,
+      ta: TA,
+      professor: Professor,
+    };
+    const UserModel = roleModelMap[req.user.role];
+
+    if (UserModel) {
+      const user = await UserModel.findById(userId);
+      if (user) {
+        user.registeredEvents = user.registeredEvents || [];
+        if (!user.registeredEvents.includes(eventId)) {
+          user.registeredEvents.push(eventId);
+          await user.save();
+        }
+      }
+    }
+
+    // 7️⃣ Send success message only
+    res.status(200).json({ message: "Successfully registered for the event" });
+  } catch (err) {
+    console.error("Error registering for event:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+export const getMyRegisteredEventsFromUser = async (req, res) => {
+  try {
+    // 1️⃣ Get user ID from the JWT (set by requireAuth)
+    const userId = req.user.id || req.user._id;
+
+    // 2️⃣ Determine which user model to use (based on role)
+    const role = req.user.role?.toLowerCase();
+    const models = {
+      student: (await import("../models/Users/Student.js")).Student,
+      staff: (await import("../models/Users/Staff.js")).Staff,
+      ta: (await import("../models/Users/TA.js")).TA,
+      professor: (await import("../models/Users/Professor.js")).Professor,
+    };
+
+    const Model = models[role];
+    if (!Model)
+      return res
+        .status(403)
+        .json({ message: "This role cannot register for events" });
+
+    // 3️⃣ Find the user and populate their registered events
+    const user = await Model.findById(userId).populate(
+      "registeredEvents",
+      "title type startDate endDate location description"
+    );
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    // 4️⃣ Return the populated registeredEvents
+    const events = user.registeredEvents || [];
+    res.status(200).json(user.registeredEvents || []);
+
+  } catch (err) {
+    console.error("❌ Error in getMyRegisteredEventsFromUser:", err);
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
+
+
 // ----------------------
 // CREATE WORKSHOP BY PROFESSOR
 // ----------------------
@@ -816,6 +923,7 @@ export const registerForEvent = async (req, res) => {
 
     res.status(200).json({ message: 'Successfully registered', event });
   } catch (err) {
+    console.error("Error in registerForEvent:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -830,6 +938,7 @@ export const getMyRegisteredEvents = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
