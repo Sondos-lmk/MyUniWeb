@@ -12,7 +12,7 @@ const bazaarSchema = new mongoose.Schema({
   registeredVendors: {
     type: [
       {
-        vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
+        vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'vendor' },
         status: { type: String, enum: ['pending','approved','rejected'], default: 'pending' },
         reps: [
           { _id: false,  // optional: also disable _id for reps if you want

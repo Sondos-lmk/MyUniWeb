@@ -23,6 +23,8 @@ import {
   registerBooth,
   updateVendorStatus,
   getMyEventApplications,
+  registerForWorkshopOrTrip,
+  getMyRegisteredEventsFromUser,
  
 } from '../controllers/eventController.js';
 
@@ -67,6 +69,10 @@ router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWor
 // My applications / My events
 router.get('/my-events', requireAuth, getMyRegisteredEvents);  // for students
 router.get('/my-applications', requireAuth, getMyEventApplications);
+router.post("/register/:eventId", requireAuth, registerForWorkshopOrTrip);
+router.get("/my-registered", requireAuth, getMyRegisteredEventsFromUser);
+
+
 router.get('/:id', getEventById);
 
 // Workshop edit request
