@@ -4,6 +4,7 @@ import { User } from './User.js';
 const professorSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     isVerified: { type: Boolean, default: false },
+    registeredEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }],
   favoritesLists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
   wallet: { type: Number, default: 0 },
   notifications: [{ type: String }],

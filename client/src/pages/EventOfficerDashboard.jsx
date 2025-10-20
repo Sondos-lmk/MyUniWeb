@@ -1,22 +1,32 @@
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate , Link } from "react-router-dom";
 import ApprovingEvents from "../components/ApprovingEvents.jsx";
+import UpcomingEvents from "../components/UpcomingEvents.jsx";
+
+import Navbar from "../components/Navbar.jsx";
+
 
 function EventOfficerDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const token = localStorage.getItem("token");
 
-  const handleLogout = () => {
+   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/");
-  };
+   navigate("/");
+   };
 
   return (
-    <div className="p-10">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          Welcome, {user?.name ? user.name.charAt(0).toUpperCase() + user.name.slice(1) : "Event Officer"}
+    <div>
+      {/* ✅ Navbar appears at the top */}
+      <Navbar />
+
+      <div className="p-10">
+        <h1 className="text-2xl font-bold mb-6">
+          Welcome,{" "}
+          {user?.name
+            ? user.name.charAt(0).toUpperCase() + user.name.slice(1)
+            : "Event Officer"}
         </h1>
         <button
           onClick={handleLogout}
@@ -25,11 +35,32 @@ function EventOfficerDashboard() {
           Logout
         </button>
       </div>
+      <div className="flex gap-4 mb-8">
+      <Link
+        to="/create-gym-session"
+        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+      >
+        Create Gym Session
+      </Link>
 
-      {/* Use the new component */}
-      <ApprovingEvents token={token} />
+      <Link
+        to="/gym-schedule"
+        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+      >
+        View Gym Schedule
+      </Link>
     </div>
+
+        {/* Uncomment when ready to show events */}
+        {/* <ApprovingEvents /> */}
+        {/* Upcoming Events Section */}
+        <div className="mt-10">
+          <UpcomingEvents />
+        </div>
+    </div>
+    
+          
+    
   );
 }
-
 export default EventOfficerDashboard;

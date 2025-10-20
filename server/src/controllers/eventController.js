@@ -22,8 +22,8 @@ import mongoose from "mongoose";
 const baseEventSchema = Joi.object({
   type: Joi.string().valid('bazaar', 'booth', 'conference', 'trip', 'workshop', 'gym').required(),
   status: Joi.string().valid('pending', 'approved', 'rejected', 'completed'),
-  createdBy: Joi.string().required(),
-  organizerId: Joi.string().required(),
+  createdBy: Joi.string().optional(),
+  organizerId: Joi.string().optional(),
 });
 
 const bazaarSchema = baseEventSchema.keys({
@@ -295,14 +295,11 @@ export const searchEvents = async (req, res) => {
   try {
     const { name, type } = req.query;
     const searchRegex = name ? new RegExp(name, "i") : null; // Case-insensitive search
-    const filters = { status: "approved" }; // Only approved events
 
-    // Apply type filter if provided
-    if (type) {
-      filters.type = type.toLowerCase();
-    }
+    // Common filters: only approved events
+    const baseFilter = { status: "approved" };
 
-    // Helper function to format all event types consistently
+    // Helper: formats all events consistently
     const formatEvent = (event, type) => ({
       id: event._id,
       type,
@@ -314,65 +311,98 @@ export const searchEvents = async (req, res) => {
       status: event.status,
     });
 
-    // Search in parallel across models
-    const [
-      workshops,
-      trips,
-      bazaars,
-      booths,
-      conferences
-    ] = await Promise.all([
-      Workshop.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
-      }).populate("professorsParticipating", "name email"),
-      Trip.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
-      }),
-      Bazaar.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
-      }).populate("registeredVendors.vendor", "name email"),
-      Booth.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }] } : {})
-      }).populate("registeredVendors.vendor", "name email"),
-      Conference.find({
-        ...filters,
-        ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {})
-      })
-    ]);
+    // Build a list of promises depending on requested type
+    const promises = [];
 
-    // Combine all found events
-    let allResults = [
-      ...workshops.map((e) => formatEvent(e, "workshop")),
-      ...trips.map((e) => formatEvent(e, "trip")),
-      ...bazaars.map((e) => formatEvent(e, "bazaar")),
-      ...booths.map((e) => formatEvent(e, "booth")),
-      ...conferences.map((e) => formatEvent(e, "conference")),
-    ];
+    const include = (wanted) =>
+      !type || type.toLowerCase() === wanted; // if no type filter, include all
 
-    // ✅ If searching by professor name, filter further from populated professors
+    if (include("workshop")) {
+      promises.push(
+        Workshop.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {}),
+        }).populate("professorsParticipating", "name email")
+      );
+    }
+
+    if (include("trip")) {
+      promises.push(
+        Trip.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {}),
+        })
+      );
+    }
+
+    if (include("bazaar")) {
+      promises.push(
+        Bazaar.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {}),
+        }).populate("registeredVendors.vendor", "name email")
+      );
+    }
+
+    if (include("booth")) {
+      promises.push(
+        Booth.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }] } : {}),
+        }).populate("registeredVendors.vendor", "name email")
+      );
+    }
+
+    if (include("conference")) {
+      promises.push(
+        Conference.find({
+          ...baseFilter,
+          ...(searchRegex ? { $or: [{ title: searchRegex }, { desc: searchRegex }] } : {}),
+        })
+      );
+    }
+
+    // Run all applicable searches in parallel
+    const results = await Promise.all(promises);
+
+    // Flatten and label results
+    const allResults = [];
+
+    if (include("workshop"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "workshop")));
+    if (include("trip"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "trip")));
+    if (include("bazaar"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "bazaar")));
+    if (include("booth"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "booth")));
+    if (include("conference"))
+      allResults.push(...results.shift().map((e) => formatEvent(e, "conference")));
+
+    // If searching by professor name, refine workshops
+    let finalResults = allResults;
     if (name) {
-      allResults = allResults.filter((ev) => {
+      finalResults = allResults.filter((ev) => {
         if (ev.type === "workshop" && ev.professorsParticipating) {
           return ev.professorsParticipating.some((p) =>
             p.name.toLowerCase().includes(name.toLowerCase())
           );
         }
-        return true;
+        return (
+          ev.title.toLowerCase().includes(name.toLowerCase()) ||
+          ev.description.toLowerCase().includes(name.toLowerCase())
+        );
       });
     }
 
-    if (allResults.length === 0) {
+    if (finalResults.length === 0) {
       return res.status(404).json({ message: "No events found matching your search." });
     }
 
     res.status(200).json({
       message: "Search results fetched successfully",
-      count: allResults.length,
-      events: allResults,
+      count: finalResults.length,
+      events: finalResults,
     });
   } catch (err) {
     console.error("Error searching events:", err);
@@ -380,9 +410,11 @@ export const searchEvents = async (req, res) => {
   }
 };
 
+
 // Create event
 export const createEvent = async (req, res) => {
   try {
+    console.log("🧾 Received body:", req.body);
     const { type } = req.body;
     const schema = getValidationSchema(type);
 
@@ -552,6 +584,113 @@ export const rejectEvent = async (req, res) => {
   }
 };
 
+export const registerForWorkshopOrTrip = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id || req.user.id;
+
+    // 1️⃣ Find the event and ensure it exists
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    // 2️⃣ Allow only workshops and trips
+    if (event.type !== "workshop" && event.type !== "trip") {
+      return res.status(400).json({
+        error: "You can only register for workshops or trips",
+      });
+    }
+
+    // 3️⃣ Check if the user’s role is allowed
+    const allowedRoles = ["student", "staff", "ta", "professor"];
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: "This role is not allowed to register for events",
+      });
+    }
+
+    // 4️⃣ Prevent duplicate registration
+    event.registeredStudents = event.registeredStudents || [];
+    if (event.registeredStudents.includes(userId)) {
+      return res.status(400).json({ error: "Already registered for this event" });
+    }
+
+    // 5️⃣ Add user to the event’s registered list
+    event.registeredStudents.push(userId);
+    await event.save();
+
+    // 6️⃣ Add event to user’s registeredEvents list
+    const roleModelMap = {
+      student: Student,
+      staff: Staff,
+      ta: TA,
+      professor: Professor,
+    };
+    const UserModel = roleModelMap[req.user.role];
+
+    if (UserModel) {
+      const user = await UserModel.findById(userId);
+      if (user) {
+        user.registeredEvents = user.registeredEvents || [];
+        if (!user.registeredEvents.includes(eventId)) {
+          user.registeredEvents.push(eventId);
+          await user.save();
+        }
+      }
+    }
+
+    // 7️⃣ Send success message only
+    res.status(200).json({ message: "Successfully registered for the event" });
+  } catch (err) {
+    console.error("Error registering for event:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+export const getMyRegisteredEventsFromUser = async (req, res) => {
+  try {
+    // 1️⃣ Get user ID from the JWT (set by requireAuth)
+    const userId = req.user.id || req.user._id;
+
+    // 2️⃣ Determine which user model to use (based on role)
+    const role = req.user.role?.toLowerCase();
+    const models = {
+      student: (await import("../models/Users/Student.js")).Student,
+      staff: (await import("../models/Users/Staff.js")).Staff,
+      ta: (await import("../models/Users/TA.js")).TA,
+      professor: (await import("../models/Users/Professor.js")).Professor,
+    };
+
+    const Model = models[role];
+    if (!Model)
+      return res
+        .status(403)
+        .json({ message: "This role cannot register for events" });
+
+    // 3️⃣ Find the user and populate their registered events
+    const user = await Model.findById(userId).populate(
+      "registeredEvents",
+      "title type startDate endDate location description"
+    );
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    // 4️⃣ Return the populated registeredEvents
+    const events = user.registeredEvents || [];
+    res.status(200).json(user.registeredEvents || []);
+
+  } catch (err) {
+    console.error("❌ Error in getMyRegisteredEventsFromUser:", err);
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
+
+
 // ----------------------
 // CREATE WORKSHOP BY PROFESSOR
 // ----------------------
@@ -701,12 +840,28 @@ export const registerForTrip = async (req, res) => {
 
 export const getPendingWorkshops = async (req, res) => {
   try {
-    const workshops = await Workshop.find({ status: 'pending' })
-      .populate('organizerId', 'name email role')
-      .populate('professorsParticipating', 'name email');
-    res.status(200).json(workshops);
+    // ✅ Fetch from Event collection, not Workshop
+    const workshops = await Event.find({ type: "workshop", status: "pending" })
+      .populate("createdBy", "name email role") // assuming workshops are created by professors
+      .populate("professorsParticipating", "name email");
+
+    if (!workshops || workshops.length === 0) {
+      return res.status(200).json({
+        message: "No pending workshops found.",
+        workshops: [],
+      });
+    }
+
+    res.status(200).json({
+      message: "Pending workshops fetched successfully.",
+      workshops,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error fetching pending workshops:", err);
+    res.status(500).json({
+      message: "Failed to fetch pending workshops.",
+      error: err.message,
+    });
   }
 };
 
@@ -768,6 +923,7 @@ export const registerForEvent = async (req, res) => {
 
     res.status(200).json({ message: 'Successfully registered', event });
   } catch (err) {
+    console.error("Error in registerForEvent:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -782,6 +938,7 @@ export const getMyRegisteredEvents = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1148,6 +1305,7 @@ export const createBazaar = async (req, res) => {
       return res.status(403).json({ message: 'Only Event Officers can create bazaars' });
     }
 
+    console.log("🧾 Received body:", req.body);
     // Automatically set organizer and createdBy
     const userId = req.user.id || req.user._id;
     req.body.organizerId = req.body.organizerId || userId;
@@ -1171,6 +1329,8 @@ export const createConference = async (req, res) => {
     if (req.user.role !== 'eventOfficer') {
       return res.status(403).json({ error: 'Only Event Officers can create conferences.' });
     }
+
+    console.log("🧾 Received body:", req.body);
 
     const userId = req.user.id || req.user._id;
     req.body.organizerId = req.body.organizerId || userId;
