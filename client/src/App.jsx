@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
+import SignupSelection from "./pages/SignupSelection";
+
 import ApproveWorkshops from "./components/ApproveWorkshops";
 
 import CreateWorkshop from "./pages/CreateWorkshop";
@@ -29,7 +31,10 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/signup" element={<SignupSelection />} />
+        <Route path="/signup/student" element={<Signup role="student" />} />
+        <Route path="/signup/faculty" element={<Signup role="faculty" />} />
+        <Route path="/signup/vendor" element={<Signup role="vendor" />} />
         <Route path="/verify/:token" element={<Verify />} />
 
         {/* Admin routes */}

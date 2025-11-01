@@ -1,13 +1,15 @@
 import express from 'express';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireAuth, requireAdmin, requireEventOfficerOrAdmin } from '../middleware/auth.js';
 import { User } from '../models/Users/User.js';
 import { Staff } from '../models/Users/Staff.js';
+import { Student } from '../models/Users/Student.js';
 import { getAllUsers } from '../controllers/adminController.js';
 import { Professor } from '../models/Users/Professor.js';
 import { TA } from '../models/Users/TA.js';
 import { EventOfficer } from '../models/Users/EventsOfficer.js';
 import { sendEmail } from '../utils/email.js';
 import { createUserByAdmin, deleteUserByAdmin } from '../controllers/adminController.js';
+import { getAttendeesReport } from '../controllers/eventController.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
@@ -16,7 +18,8 @@ const router = express.Router();
 // Get pending users
 router.get('/pending-users', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const pendingUsers = await User.find({ isVerified: false, role: { $nin: ['student', 'vendor', 'admin'] } });
+    // Fetch pending users across user models but exclude students (they receive verification immediately)
+    const pendingUsers = await User.find({ isVerified: false, role: { $nin: ['vendor', 'admin', 'student'] } });
     const pendingStaff = await Staff.find({ isVerified: false });
     const pendingProf = await Professor.find({ isVerified: false });
     const pendingTA = await TA.find({ isVerified: false });
@@ -47,17 +50,19 @@ router.post('/approve-user/:id', requireAuth, requireAdmin, async (req, res) => 
     const { role } = req.body;
     const { id } = req.params;
 
-    const validRoles = ['staff', 'ta', 'professor'];
+  const validRoles = ['staff', 'ta', 'professor', 'student'];
     if (role && !validRoles.includes(role)) {
       console.log('Invalid role:', role);
       return res.status(400).json({ message: 'Invalid role. Must be staff, ta, or professor.' });
     }
 
+    // Try to find the user across all relevant models, including Student
     let user =
       (await User.findById(id)) ||
       (await Staff.findById(id)) ||
       (await Professor.findById(id)) ||
-      (await TA.findById(id));
+      (await TA.findById(id)) ||
+      (await Student.findById(id));
 
     if (!user) {
       console.log('User not found:', id);
@@ -77,6 +82,7 @@ router.post('/approve-user/:id', requireAuth, requireAdmin, async (req, res) => 
     let newUser;
     if (role && role !== user.role) {
       const Model =
+        role === 'student' ? Student :
         role === 'staff' ? Staff :
         role === 'professor' ? Professor :
         role === 'ta' ? TA :
@@ -145,6 +151,10 @@ router.get('/event-officers', requireAuth, requireAdmin, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+// Reports: attendees per event (filterable)
+// Allow both Admins and Event Officers to access this report
+router.get('/reports/attendees', requireAuth, requireEventOfficerOrAdmin, getAttendeesReport);
 
 // Create admin or event officer
 router.post('/create/:role', requireAuth, requireAdmin, createUserByAdmin);

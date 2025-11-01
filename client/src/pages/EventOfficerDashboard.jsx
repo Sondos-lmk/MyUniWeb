@@ -2,6 +2,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate , Link } from "react-router-dom";
 import ApprovingEvents from "../components/ApprovingEvents.jsx";
 import UpcomingEvents from "../components/UpcomingEvents.jsx";
+import AttendeesReport from "../components/AttendeesReport";
 
 import Navbar from "../components/Navbar.jsx";
 
@@ -56,6 +57,10 @@ function EventOfficerDashboard() {
         {/* Upcoming Events Section */}
         <div className="mt-10">
           <UpcomingEvents />
+        </div>
+        {/* Attendees Report available to Event Officers */}
+        <div className="mt-10">
+          <AttendeesReport />
         </div>
     </div>
     

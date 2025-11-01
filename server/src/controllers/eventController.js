@@ -896,6 +896,108 @@ export const getProfessorWorkshops = async (req, res) => {
   }
 };
 
+// Get attendees report (total attendees per event) with optional filters
+export const getAttendeesReport = async (req, res) => {
+  try {
+    const { name, type, startDate, endDate } = req.query;
+
+    // Build flexible query: support events that use `startDate` or `date`, and search multiple fields for name
+    const conditions = [];
+    if (type) conditions.push({ type });
+    if (name) {
+      const regex = new RegExp(name, 'i');
+      conditions.push({
+        $or: [
+          { title: regex },
+          { desc: regex },
+          { location: regex },
+          { locationInPlatform: regex }
+        ]
+      });
+    }
+
+    if (startDate || endDate) {
+      const range = {};
+      if (startDate) range.$gte = new Date(startDate);
+      if (endDate) range.$lte = new Date(endDate);
+
+      // Match events where either `startDate` or `date` falls in the range
+      conditions.push({
+        $or: [
+          { startDate: range },
+          { date: range }
+        ]
+      });
+    }
+
+    const query = conditions.length ? { $and: conditions } : {};
+
+    // Find events matching filters (flexible for different event shapes)
+    const events = await Event.find(query).lean();
+
+    // For each event compute attendee counts (breakdown by role when possible)
+    const report = await Promise.all(events.map(async (ev) => {
+      // initialize breakdown
+      let students = 0;
+      let staff = 0;
+      let ta = 0;
+      let professors = 0;
+      let vendors = 0;
+
+      // If the event document stores registeredVendors (bazaar/booth)
+      if (ev.registeredVendors && Array.isArray(ev.registeredVendors)) {
+        // registeredVendors may be array of vendor IDs or objects
+        vendors = ev.registeredVendors.length;
+      }
+
+      // If event stores registeredStudents
+      if (ev.registeredStudents && Array.isArray(ev.registeredStudents)) {
+        students = ev.registeredStudents.length;
+      }
+
+      // If event stores participants (gym sessions)
+      if (ev.participants && Array.isArray(ev.participants)) {
+        // participants may include mixed roles; we count as students here unless user models used
+        students = ev.participants.length;
+      }
+
+      // Fallback: count across user collections who have this event in their registeredEvents
+      if (!vendors && !students) {
+        const eventId = ev._id;
+        const [sCount, stfCount, taCount, profCount, vCount] = await Promise.all([
+          (await import('../models/Users/Student.js')).Student.countDocuments({ registeredEvents: eventId }),
+          (await import('../models/Users/Staff.js')).Staff.countDocuments({ registeredEvents: eventId }),
+          (await import('../models/Users/TA.js')).TA.countDocuments({ registeredEvents: eventId }),
+          (await import('../models/Users/Professor.js')).Professor.countDocuments({ registeredEvents: eventId }),
+          (await import('../models/Users/Vendor.js')).Vendor.countDocuments({ registeredEvents: eventId }),
+        ]);
+        students = sCount;
+        staff = stfCount;
+        ta = taCount;
+        professors = profCount;
+        vendors = vCount;
+      }
+
+      const attendees = students + staff + ta + professors + vendors;
+
+      return {
+        id: ev._id,
+        title: ev.title || ev.type || 'Untitled',
+        type: ev.type || 'event',
+        startDate: ev.startDate || ev.date || null,
+        endDate: ev.endDate || null,
+        attendees,
+        breakdown: { students, staff, ta, professors, vendors }
+      };
+    }));
+
+    res.status(200).json({ count: report.length, report });
+  } catch (err) {
+    console.error('Error building attendees report:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 
 
 
