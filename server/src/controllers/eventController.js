@@ -76,7 +76,10 @@ const conferenceSchema = baseEventSchema.keys({
   endDate: Joi.date().required(),
   registrationDeadline: Joi.date(),
   fullAgenda: Joi.string().allow(''),
-  websiteLink: Joi.string().uri().required(),
+  websiteLink: Joi.string().uri().required().messages({
+    'string.uri': 'Link format is incorrect. Please enter a valid URL (e.g., https://example.com)',
+    'any.required': 'Website link is required'
+  }),
   requiredBudget: Joi.number(),
   fundraisingSource: Joi.string().valid('GUC', 'External'),
   extraRequiredResource: Joi.string().allow(''),
@@ -236,24 +239,32 @@ export const getUpcomingEvents = async (req, res) => {
     const now = new Date();
 
     // Helper function to format each event consistently
-    const formatEvent = (event, type) => ({
-      id: event._id,
-      type,
-      title: event.title,
-      description: event.desc || "",
-      location: event.location || event.locationInPlatform || "N/A",
-      startDate: event.startDate,
-      endDate: event.endDate,
-      registrationDeadline: event.registrationDeadline,
-      vendors:
-        type === "bazaar" || type === "booth"
-          ? event.registeredVendors || []
-          : [],
-      status: event.status || "N/A",
-    });
+    const formatEvent = (event, type) => {
+      const baseEvent = {
+        id: event._id,
+        type,
+        title: event.title,
+        description: event.desc || "",
+        location: event.location || event.locationInPlatform || "N/A",
+        startDate: event.startDate,
+        endDate: event.endDate,
+        registrationDeadline: event.registrationDeadline,
+        vendors:
+          type === "bazaar" || type === "booth"
+            ? event.registeredVendors || []
+            : [],
+      };
+
+      // Only include status for workshops and booths (which require approval)
+      if (type === "workshop" || type === "booth") {
+        baseEvent.status = event.status || "N/A";
+      }
+
+      return baseEvent;
+    };
 
     // Fetch approved upcoming events from all collections in parallel
-    const [workshops, trips, bazaars, booths, conferences] = await Promise.all([
+    const [workshops, trips, bazaars, booths, conferences, gymSessions] = await Promise.all([
       Workshop.find({ startDate: { $gt: now }, status: "approved" }),
       Trip.find({ startDate: { $gt: now }, status: "approved" }),
       Bazaar.find({ startDate: { $gt: now }, status: "approved" }).populate(
@@ -265,6 +276,7 @@ export const getUpcomingEvents = async (req, res) => {
         "name email"
       ),
       Conference.find({ startDate: { $gt: now }, status: "approved" }),
+      GymSession.find({ date: { $gt: now }, status: "approved" }),
     ]);
 
     // Combine all events into a single list
@@ -274,10 +286,24 @@ export const getUpcomingEvents = async (req, res) => {
       ...bazaars.map((e) => formatEvent(e, "bazaar")),
       ...booths.map((e) => formatEvent(e, "booth")),
       ...conferences.map((e) => formatEvent(e, "conference")),
+      ...gymSessions.map((e) => ({
+        id: e._id,
+        type: "gym",
+        sessionType: e.sessionType,
+        date: e.date,
+        time: e.time,
+        duration: e.duration,
+        maxParticipants: e.maxParticipants,
+        participants: e.participants?.length || 0,
+      })),
     ];
 
     // Sort by startDate (earliest first)
-    allUpcoming.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    allUpcoming.sort((a, b) => {
+      const aDate = a.startDate ? new Date(a.startDate) : a.date ? new Date(a.date) : 0;
+      const bDate = b.startDate ? new Date(b.startDate) : b.date ? new Date(b.date) : 0;
+      return aDate - bDate;
+    });
 
     res.status(200).json({
       message: "Approved upcoming events fetched successfully",
@@ -300,16 +326,24 @@ export const searchEvents = async (req, res) => {
     const baseFilter = { status: "approved" };
 
     // Helper: formats all events consistently
-    const formatEvent = (event, type) => ({
-      id: event._id,
-      type,
-      title: event.title,
-      description: event.desc || "",
-      location: event.location || event.locationInPlatform || "N/A",
-      startDate: event.startDate,
-      endDate: event.endDate,
-      status: event.status,
-    });
+    const formatEvent = (event, type) => {
+      const baseEvent = {
+        id: event._id,
+        type,
+        title: event.title,
+        description: event.desc || "",
+        location: event.location || event.locationInPlatform || "N/A",
+        startDate: event.startDate,
+        endDate: event.endDate,
+      };
+
+      // Only include status for workshops and booths (which require approval)
+      if (type === "workshop" || type === "booth") {
+        baseEvent.status = event.status;
+      }
+
+      return baseEvent;
+    };
 
     // Build a list of promises depending on requested type
     const promises = [];
@@ -362,6 +396,14 @@ export const searchEvents = async (req, res) => {
       );
     }
 
+    if (include("gym")) {
+      promises.push(
+        GymSession.find({
+          ...baseFilter,
+        })
+      );
+    }
+
     // Run all applicable searches in parallel
     const results = await Promise.all(promises);
 
@@ -378,6 +420,17 @@ export const searchEvents = async (req, res) => {
       allResults.push(...results.shift().map((e) => formatEvent(e, "booth")));
     if (include("conference"))
       allResults.push(...results.shift().map((e) => formatEvent(e, "conference")));
+    if (include("gym"))
+      allResults.push(...results.shift().map((e) => ({
+        id: e._id,
+        type: "gym",
+        sessionType: e.sessionType,
+        date: e.date,
+        time: e.time,
+        duration: e.duration,
+        maxParticipants: e.maxParticipants,
+        participants: e.participants?.length || 0,
+      })));
 
     // If searching by professor name, refine workshops
     let finalResults = allResults;
@@ -430,6 +483,11 @@ export const createEvent = async (req, res) => {
     if (authUserId) {
       payload.organizerId = authUserId;
       payload.createdBy = authUserId; // 👈 add it here, AFTER validation
+    }
+
+    // Auto-approve trips, bazaars, and conferences
+    if (type === 'trip' || type === 'bazaar' || type === 'conference') {
+      payload.status = 'approved';
     }
 
     const Model = getEventModel(type);
@@ -1441,6 +1499,9 @@ export const createConference = async (req, res) => {
 
     const { error, value } = conferenceSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
+
+    // Auto-approve conferences
+    value.status = 'approved';
 
     const newConference = new Conference(value);
     await newConference.save();

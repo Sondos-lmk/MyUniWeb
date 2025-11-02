@@ -3,6 +3,7 @@ import  api  from "../services/api";
 
 export default function CreateGymSession() {
   const [form, setForm] = useState({
+    sessionType: "",
     date: "",
     time: "",
     duration: "",
@@ -23,7 +24,7 @@ export default function CreateGymSession() {
     try {
       const res = await api.post("/gym", form);
       setMessage("✅ Gym session created successfully!");
-      setForm({ date: "", time: "", duration: "", maxParticipants: "" });
+      setForm({ sessionType: "", date: "", time: "", duration: "", maxParticipants: "" });
     } catch (err) {
       console.error(err);
       setMessage("❌ Failed to create session");
@@ -36,6 +37,23 @@ export default function CreateGymSession() {
     <div className="p-8 max-w-xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 text-center">Create Gym Session</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block mb-1">Session Type</label>
+          <select
+            name="sessionType"
+            value={form.sessionType}
+            onChange={handleChange}
+            className="border rounded-lg w-full p-2"
+            required
+          >
+            <option value="">-- Select Type --</option>
+            <option value="yoga">Yoga</option>
+            <option value="pilates">Pilates</option>
+            <option value="zumba">Zumba</option>
+            <option value="cross circuit">Cross Circuit</option>
+            <option value="kickboxing">Kickboxing</option>
+          </select>
+        </div>
         <div>
           <label className="block mb-1">Date</label>
           <input

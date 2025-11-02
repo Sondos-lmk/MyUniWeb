@@ -80,9 +80,11 @@ export default function MyRegisteredEvents() {
                   ? new Date(event.endDate).toLocaleDateString()
                   : "N/A"}
               </p>
-              <p className="text-gray-700 mb-1">
-                <strong>Status:</strong> {event.status || "N/A"}
-              </p>
+              {event.status && (event.type === "workshop" || event.type === "booth") && (
+                <p className="text-gray-700 mb-1">
+                  <strong>Status:</strong> {event.status}
+                </p>
+              )}
             </div>
           ))}
         </div>
