@@ -31,6 +31,7 @@ export default function GymSchedule() {
           <table className="min-w-full border border-gray-300 rounded-lg shadow-md">
             <thead className="bg-gray-100">
               <tr>
+                <th className="border p-2">Session Type</th>
                 <th className="border p-2">Date</th>
                 <th className="border p-2">Time</th>
                 <th className="border p-2">Duration</th>
@@ -40,6 +41,7 @@ export default function GymSchedule() {
             <tbody>
               {sessions.map((s) => (
                 <tr key={s._id} className="text-center">
+                  <td className="border p-2 capitalize">{s.sessionType || "N/A"}</td>
                   <td className="border p-2">{new Date(s.date).toDateString()}</td>
                   <td className="border p-2">{s.time}</td>
                   <td className="border p-2">{s.duration} min</td>

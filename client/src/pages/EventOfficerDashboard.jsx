@@ -1,5 +1,5 @@
 import { useAuth } from "../context/AuthContext";
-import { useNavigate , Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import ApprovingEvents from "../components/ApprovingEvents.jsx";
 import UpcomingEvents from "../components/UpcomingEvents.jsx";
 import AttendeesReport from "../components/AttendeesReport";
@@ -8,14 +8,7 @@ import Navbar from "../components/Navbar.jsx";
 
 
 function EventOfficerDashboard() {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const token = localStorage.getItem("token");
-
-   const handleLogout = () => {
-    localStorage.removeItem("token");
-   navigate("/");
-   };
 
   return (
     <div>
@@ -29,12 +22,7 @@ function EventOfficerDashboard() {
             ? user.name.charAt(0).toUpperCase() + user.name.slice(1)
             : "Event Officer"}
         </h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-        >
-          Logout
-        </button>
+        {/* Logout handled by Navbar */}
       </div>
       <div className="flex gap-4 mb-8">
       <Link

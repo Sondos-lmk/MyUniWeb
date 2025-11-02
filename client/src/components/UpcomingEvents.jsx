@@ -85,6 +85,7 @@ const UpcomingEvents = () => {
           <option value="bazaar">Bazaar</option>
           <option value="booth">Booth</option>
           <option value="conference">Conference</option>
+          <option value="gym">Gym Session</option>
         </select>
 
         <button
@@ -123,13 +124,41 @@ const UpcomingEvents = () => {
             key={event.id}
             className="border p-4 rounded-lg shadow-sm bg-white"
           >
-            <h3 className="text-lg font-bold">{event.title}</h3>
-            <p><strong>Type:</strong> {event.type}</p>
-            <p><strong>Description:</strong> {event.description || "No description"}</p>
-            <p><strong>Location:</strong> {event.location}</p>
-            <p><strong>Start:</strong> {new Date(event.startDate).toLocaleString()}</p>
-            <p><strong>End:</strong> {new Date(event.endDate).toLocaleString()}</p>
-            <p><strong>Status:</strong> {event.status}</p>
+            {event.type === "gym" ? (
+              <>
+                <h3 className="text-lg font-bold">
+                  Gym Session{event.sessionType ? ` - ${event.sessionType.charAt(0).toUpperCase() + event.sessionType.slice(1)}` : ''}
+                </h3>
+                <p><strong>Type:</strong> {event.type}</p>
+                {event.sessionType && (
+                  <p><strong>Session Type:</strong> <span className="capitalize">{event.sessionType}</span></p>
+                )}
+                {event.date && (
+                  <p><strong>Date:</strong> {new Date(event.date).toLocaleDateString()}</p>
+                )}
+                {event.time && (
+                  <p><strong>Time:</strong> {event.time}</p>
+                )}
+                {event.duration && (
+                  <p><strong>Duration:</strong> {event.duration} minutes</p>
+                )}
+                {event.maxParticipants !== undefined && (
+                  <p><strong>Max Participants:</strong> {event.maxParticipants}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-bold">{event.title}</h3>
+                <p><strong>Type:</strong> {event.type}</p>
+                <p><strong>Description:</strong> {event.description || "No description"}</p>
+                <p><strong>Location:</strong> {event.location}</p>
+                <p><strong>Start:</strong> {new Date(event.startDate).toLocaleString()}</p>
+                <p><strong>End:</strong> {new Date(event.endDate).toLocaleString()}</p>
+                {event.status && (event.type === "workshop" || event.type === "booth") && (
+                  <p><strong>Status:</strong> {event.status}</p>
+                )}
+              </>
+            )}
           </div>
         ))}
       </div>

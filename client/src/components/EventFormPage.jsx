@@ -69,7 +69,8 @@ export default function EventFormPage() {
       navigate("/eventOfficer/dashboard");
     } catch (error) {
       console.error(error);
-      alert("Failed to submit event");
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || "Failed to submit event";
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
