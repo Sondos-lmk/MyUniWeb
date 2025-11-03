@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../services/api";
+import { useNavigate } from "react-router-dom";
+
 
 export default function RegisterForEvent() {
   const [events, setEvents] = useState([]);
@@ -9,6 +11,10 @@ export default function RegisterForEvent() {
   const [uniID, setUniID] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+   const navigate = useNavigate();
+   const handleViewMyEvents = () => {
+  navigate("/my-registered-events");
+};
 
   // Fetch only workshops & trips
   useEffect(() => {
@@ -57,9 +63,12 @@ export default function RegisterForEvent() {
     } finally {
       setLoading(false);
     }
+   
+
   };
 
   return (
+    
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
       <form
         onSubmit={handleSubmit}
@@ -68,6 +77,7 @@ export default function RegisterForEvent() {
         <h2 className="text-2xl font-bold mb-6 text-center">
           Register for Workshop / Trip
         </h2>
+
 
         {/* Name */}
         <input
@@ -122,16 +132,26 @@ export default function RegisterForEvent() {
         </select>
 
         <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-        >
-          {loading ? "Registering..." : "Register"}
-        </button>
+  type="submit"
+  disabled={loading}
+  className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+>
+  {loading ? "Registering..." : "Register"}
+</button>
 
-        {message && (
-          <p className="text-center mt-3 text-gray-700 font-medium">{message}</p>
-        )}
+{/* 🟢 New Button */}
+<button
+  type="button"
+  onClick={handleViewMyEvents}
+  className="w-full mt-3 bg-gray-200 text-blue-600 py-3 rounded-lg hover:bg-gray-300 transition"
+>
+  View My Registered Events
+</button>
+
+{message && (
+  <p className="text-center mt-3 text-gray-700 font-medium">{message}</p>
+)}
+
       </form>
     </div>
   );

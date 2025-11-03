@@ -23,6 +23,9 @@ import EventFormPage from "./components/EventFormPage";
 import RequestEditForm from './components/WorkshopEditRequestForm';
 import TADashboard from './pages/TADashboard';
 import UpcomingEvents from './components/UpcomingEvents';
+import RegisterForEvent from "./pages/RegisterForEvent";
+import MyRegisteredEvents from "./pages/MyRegisteredEvents";
+
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -34,6 +37,9 @@ function App() {
         <Route path="/signup/faculty" element={<Signup role="faculty" />} />
         <Route path="/signup/vendor" element={<Signup role="vendor" />} />
         <Route path="/verify/:token" element={<Verify />} />
+{/* Event registration pages */}
+<Route path="/register-event" element={<RegisterForEvent />} />
+<Route path="/my-registered-events" element={<MyRegisteredEvents />} />
 
         {/* Admin routes */}
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>

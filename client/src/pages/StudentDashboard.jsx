@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import UpcomingEvents from "../components/UpcomingEvents";
-import MyRegisteredEvents from "./MyRegisteredEvents";
+//import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
@@ -117,16 +117,7 @@ const StudentDashboard = () => {
           Upcoming Events
         </button>
 
-        <button
-          onClick={() => setActiveTab("registered")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "registered"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          My Registered Events
-        </button>
+    
 
         <button
           onClick={() => setActiveTab("register")}

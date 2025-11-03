@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import CreateWorkshop from "./CreateWorkshop";
 import { getMyWorkshops } from "../services/workshop";
-import MyRegisteredEvents from "./MyRegisteredEvents";
+//import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import UpcomingEvents from "../components/UpcomingEvents";
 import GymSchedule from "./GymSchedule";
@@ -112,12 +112,8 @@ function ProfessorDashboard() {
 
       {/* Events Section */}
       <div style={{ marginTop: 40 }}>
-        <h2 className="text-2xl font-bold mb-4 text-blue-700">
-          My Registered Events
-        </h2>
-        <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
-          <MyRegisteredEvents />
-        </div>
+        
+        
 
         <h2 className="text-2xl font-bold mb-4 text-blue-700">
           Register for Event

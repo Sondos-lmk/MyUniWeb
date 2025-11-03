@@ -7,7 +7,7 @@ import API from "../services/api";
 import CreateWorkshop from "./CreateWorkshop";
 import { getMyWorkshops } from "../services/workshop";
 import UpcomingEvents from "../components/UpcomingEvents";
-import MyRegisteredEvents from "./MyRegisteredEvents";
+//import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 
