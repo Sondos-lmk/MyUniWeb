@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import CreateWorkshop from "./CreateWorkshop";
 import { getMyWorkshops } from "../services/workshop";
@@ -10,6 +10,7 @@ import GymSchedule from "./GymSchedule";
 
 function ProfessorDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [myList, setMyList] = useState([]);
   const [listErr, setListErr] = useState(null);
@@ -32,9 +33,25 @@ function ProfessorDashboard() {
 
   return (
     <div className="p-10">
-      <h1 className="text-2xl font-bold mb-6">
+      {/* Header + Logout */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">
+          Professor Dashboard
+        </h1>
+        <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            navigate("/");
+          }}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+        >
+          Logout
+        </button>
+      </div>
+
+      <h2 className="text-xl font-semibold mb-6">
         Welcome Professor {user?.name || "User"} 👋
-      </h1>
+      </h2>
 
       {/* Create Workshop */}
       <div style={{ marginTop: 24 }}>

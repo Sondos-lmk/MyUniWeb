@@ -77,8 +77,27 @@ export default function RequestEditForm() {
           <strong>Description:</strong> {workshop.desc || "No description"}
         </p>
         <p>
-          <strong>Professor:</strong>{" "}
-          {workshop.professor?.name || "Not assigned"}
+          <strong>Professors:</strong>{" "}
+          {(() => {
+            // 1) Prefer the free-text names entered on creation
+            const names = Array.isArray(workshop.professorNames)
+              ? workshop.professorNames.filter(Boolean)
+              : [];
+
+            if (names.length) return names.join(", ");
+
+            // 2) Fallback to populated participating professors
+            const participants = Array.isArray(workshop.professorsParticipating)
+              ? workshop.professorsParticipating
+              : [];
+            const participantNames = participants.map((p) => p?.name).filter(Boolean);
+            if (participantNames.length) return participantNames.join(", ");
+
+            // 3) Fallback to creator name
+            if (workshop?.createdBy?.name) return workshop.createdBy.name;
+
+            return "Unassigned";
+          })()}
         </p>
         <p>
           <strong>Status:</strong>{" "}

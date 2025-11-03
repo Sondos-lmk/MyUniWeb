@@ -117,6 +117,7 @@ const workshopSchema = baseEventSchema.keys({
     'Architecture'
   ),
   professorsParticipating: Joi.array().items(Joi.string()),
+  professorNames: Joi.array().items(Joi.string()),
   extraRequiredResource: Joi.string().allow(''),
   capacity: Joi.number().required(),
 });
@@ -225,10 +226,20 @@ export const getAllEvents = async (req, res) => {
 // Get event by ID
 export const getEventById = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id);
+    let event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    // Populate professors and creator details for workshops so names are available in request-edit view
+    if (event.type === 'workshop') {
+      event = await event.populate([
+        { path: 'createdBy', select: 'name email role' },
+        { path: 'professorsParticipating', select: 'name email role' },
+      ]);
+    }
+
     res.status(200).json(event);
   } catch (err) {
+    console.error('Error in getEventById:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -777,6 +788,11 @@ export const createWorkshop = async (req, res) => {
     value.createdBy = req.user._id;
     value.status = "pending";
     
+    // ✅ Normalize any free-text professor names if provided
+    if (req.body.professorNames && Array.isArray(req.body.professorNames)) {
+      value.professorNames = req.body.professorNames.map((n) => String(n).trim()).filter(Boolean);
+    }
+
     // ✅ Automatically include the creating professor
     value.professorsParticipating = [req.user._id];
     
