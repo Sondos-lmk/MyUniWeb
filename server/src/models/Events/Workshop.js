@@ -29,6 +29,8 @@ const workshopSchema = new mongoose.Schema({
     ],
   },
   professorsParticipating: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // Free-text names entered by the creating professor
+  professorNames: [{ type: String }],
   extraRequiredResource: { type: String },
   capacity: {type: Number,required: true},
   createdBy: {type: mongoose.Schema.Types.ObjectId,ref: "User",required: true},

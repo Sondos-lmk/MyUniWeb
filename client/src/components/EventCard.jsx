@@ -291,8 +291,8 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
         </div>
         {/* ✅ Event Officer Actions */}
         <div className="mt-5 flex items-center gap-3">
-          {/* Request to Edit — only for Workshops */}
-          {userRole === "eventOfficer" && event.type === "workshop" && (
+          {/* Request to Edit — only for Workshops and only if not approved */}
+          {userRole === "eventOfficer" && event.type === "workshop" && event.status !== "approved" && (
             <button
               onClick={() => navigate(`/workshops/${event._id}/request-edit`)}
               className="rounded-xl px-4 py-2 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
