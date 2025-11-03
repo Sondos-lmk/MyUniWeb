@@ -4,20 +4,18 @@ import Verify from './pages/Verify';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
-import Dashboard from './pages/Dashboard';
+import VendorDashboard from './pages/VendorDashboard';
 import SignupSelection from "./pages/SignupSelection";
-
 import ApproveWorkshops from "./components/ApproveWorkshops";
-
 import CreateWorkshop from "./pages/CreateWorkshop";
 import EditWorkshop from "./pages/EditWorkshop";
 import EventOfficerDashboard from "./pages/EventOfficerDashboard";
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
+import ProfessorDashboard from './pages/ProfessorDashboard';
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateGymSession from "./pages/CreateGymSession";
 import GymSchedule from "./pages/GymSchedule";
-
 import "./App.css";
 import ApprovedEvents from "./components/ApprovingEvents";
 import Events from "./components/Events"
@@ -78,8 +76,11 @@ function App() {
         </Route>
 
         {/* General user dashboard (vendors, TAs, professors) */}
-        <Route element={<ProtectedRoute allowedRoles={["vendor", "professor"]} />}> {/*you removed student from here */}
-          <Route path="/dashboard" element={<Dashboard />} />
+        <Route element={<ProtectedRoute allowedRoles={["vendor"]} />}>
+          <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+        </Route>
+        <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
+          <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
         </Route>
 
         {/* 404 fallback */}

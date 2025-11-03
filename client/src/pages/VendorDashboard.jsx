@@ -73,20 +73,6 @@ function Dashboard() {
     fetchEvents();
   }, [role, token]);
 
-  // 2) Professor: fetch my workshops
-  useEffect(() => {
-    if (user?.role !== "professor") return;
-
-    (async () => {
-      try {
-        const data = await getMyWorkshops(); // { message, workshops }
-        setMyList(data?.workshops || []);
-        setListErr(null);
-      } catch (e) {
-        setListErr(e?.response?.data?.message || e.message);
-      }
-    })();
-  }, [user?.role, token]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -139,85 +125,7 @@ function Dashboard() {
         </button>
       </div>
 
-      {/* Professor dashboard additions */}
-      {user?.role === "professor" && (
-        <>
-          <div style={{ marginTop: 24 }}>
-            <button
-              className="btn"
-              onClick={() => setShowCreate((v) => !v)}
-              style={{ marginBottom: 16 }}
-            >
-              {showCreate ? "Hide Create Workshop" : "Create Workshop"}
-            </button>
-
-            {showCreate && (
-              <div style={{ marginTop: 12 }}>
-                <CreateWorkshop />
-              </div>
-            )}
-          </div>
-
-          <div style={{ marginTop: 24, textAlign: "left" }}>
-            <h2 style={{ margin: "12px 0 8px", fontWeight: 600 }}>My Workshops</h2>
-
-            {listErr && <div className="alert alert--error">{listErr}</div>}
-
-            {myList.length === 0 ? (
-              <div className="read-the-docs">No workshops yet.</div>
-            ) : (
-              <div>
-                {myList.map((w) => (
-                  <div
-                    key={w._id || w.id}
-                    style={{
-                      padding: "10px 0",
-                      borderBottom: "1px solid #eee",
-                      display: "flex",
-                      gap: 12,
-                      alignItems: "center",
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600 }}>{w.title}</div>
-                      <div style={{ fontSize: 12, color: "#555" }}>
-                        Status: {w.status} • Reg. deadline:{" "}
-                        {new Date(w.registrationDeadline).toLocaleString()}
-                      </div>
-                    </div>
-                    <Link className="btn" to={`/professor/workshops/${w._id || w.id}/edit`}>
-                      Edit
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-              <div style={{ marginTop: 40 }}>
-                {/* Professor Events Section */}
-                <div style={{ marginTop: 40 }}>
-                  <h2 className="text-2xl font-bold mb-4 text-blue-700">My Registered Events</h2>
-                  <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
-                    <MyRegisteredEvents />
-                  </div>
-
-                  <h2 className="text-2xl font-bold mb-4 text-blue-700">Register for Event</h2>
-                  <div className="bg-gray-50 border p-4 rounded-lg shadow-md">
-                    <RegisterForEvent />
-                  </div>
-                </div>
-              <div className="bg-gray-50 border p-4 rounded-lg shadow-md">
-                <UpcomingEvents />
-              </div>
-              {/* Gym Schedule Section */}
-              <div style={{ marginTop: 40 }}>
-                <div className="bg-gray-50 border p-4 rounded-lg shadow-md">
-                  <GymSchedule />
-                </div>
-              </div>
-            </div>
-        </>
-      )}
+      
 
       {/* Vendor Dashboard */}
       {role === "vendor" && (
