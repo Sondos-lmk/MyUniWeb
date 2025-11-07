@@ -679,7 +679,7 @@ export const registerForWorkshopOrTrip = async (req, res) => {
       });
     }
 
-    // 4️⃣ Prevent duplicate registration
+    // 4️⃣ Prevent duplicate registration (on the Event model)
     event.registeredStudents = event.registeredStudents || [];
     if (event.registeredStudents.includes(userId)) {
       return res.status(400).json({ error: "Already registered for this event" });
@@ -689,7 +689,7 @@ export const registerForWorkshopOrTrip = async (req, res) => {
     event.registeredStudents.push(userId);
     await event.save();
 
-    // 6️⃣ Add event to user’s registeredEvents list
+    // 6️⃣ Add event to user’s registeredEvents list (--- MODIFIED SECTION ---)
     const roleModelMap = {
       student: Student,
       staff: Staff,
@@ -702,8 +702,15 @@ export const registerForWorkshopOrTrip = async (req, res) => {
       const user = await UserModel.findById(userId);
       if (user) {
         user.registeredEvents = user.registeredEvents || [];
-        if (!user.registeredEvents.includes(eventId)) {
-          user.registeredEvents.push(eventId);
+        
+        // --- CHANGE 1: Updated duplicate check ---
+        const isAlreadyRegistered = user.registeredEvents.some(
+          (reg) => reg.event.equals(eventId)
+        );
+
+        if (!isAlreadyRegistered) {
+          // --- CHANGE 2: Push the new object structure ---
+          user.registeredEvents.push({ event: eventId });
           await user.save();
         }
       }
@@ -739,7 +746,7 @@ export const getMyRegisteredEventsFromUser = async (req, res) => {
 
     // 3️⃣ Find the user and populate their registered events
     const user = await Model.findById(userId).populate(
-      "registeredEvents",
+      "registeredEvents.event",
       "title type startDate endDate location description"
     );
 
