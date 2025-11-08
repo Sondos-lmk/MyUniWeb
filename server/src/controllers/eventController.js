@@ -24,6 +24,8 @@ const baseEventSchema = Joi.object({
   status: Joi.string().valid('pending', 'approved', 'rejected', 'completed'),
   createdBy: Joi.string().optional(),
   organizerId: Joi.string().optional(),
+  allowedRoles: Joi.array().items(Joi.string().valid("student", "staff", "ta", "professor")),
+
 });
 
 const bazaarSchema = baseEventSchema.keys({
@@ -496,9 +498,12 @@ export const createEvent = async (req, res) => {
       payload.createdBy = authUserId; // 👈 add it here, AFTER validation
     }
 
+    // ✅ Optional roles allowed to register for the event
+    payload.allowedRoles = req.body.allowedRoles || ["student", "staff", "ta", "professor"];
+
     // Auto-approve trips, bazaars, and conferences
-    if (type === 'trip' || type === 'bazaar' || type === 'conference') {
-      payload.status = 'approved';
+    if (type === "trip" || type === "bazaar" || type === "conference") {
+      payload.status = "approved";
     }
 
     const Model = getEventModel(type);
@@ -514,6 +519,7 @@ export const createEvent = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 // Update event
@@ -664,6 +670,14 @@ export const registerForWorkshopOrTrip = async (req, res) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
+    // ✅  NEW: Role restriction check (this is the important part)
+    const userRole = req.user.role?.toLowerCase();
+    if (event.allowedRoles && !event.allowedRoles.includes(userRole)) {
+      return res.status(403).json({
+        error: `Registration not allowed for ${userRole}s for this event.`,
+      });
+    }
+
     // 2️⃣ Allow only workshops and trips
     if (event.type !== "workshop" && event.type !== "trip") {
       return res.status(400).json({
@@ -671,58 +685,45 @@ export const registerForWorkshopOrTrip = async (req, res) => {
       });
     }
 
-    // 3️⃣ Check if the user’s role is allowed
-    const allowedRoles = ["student", "staff", "ta", "professor"];
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        error: "This role is not allowed to register for events",
-      });
-    }
-
-    // 4️⃣ Prevent duplicate registration (on the Event model)
+    // 3️⃣ Prevent duplicate registration
     event.registeredStudents = event.registeredStudents || [];
     if (event.registeredStudents.includes(userId)) {
       return res.status(400).json({ error: "Already registered for this event" });
     }
 
-    // 5️⃣ Add user to the event’s registered list
+    // 4️⃣ Add user to event list
     event.registeredStudents.push(userId);
     await event.save();
 
-    // 6️⃣ Add event to user’s registeredEvents list (--- MODIFIED SECTION ---)
+    // 5️⃣ Add event to user’s registeredEvents
     const roleModelMap = {
       student: Student,
       staff: Staff,
       ta: TA,
       professor: Professor,
     };
-    const UserModel = roleModelMap[req.user.role];
-
+    const UserModel = roleModelMap[userRole];
     if (UserModel) {
       const user = await UserModel.findById(userId);
       if (user) {
         user.registeredEvents = user.registeredEvents || [];
-        
-        // --- CHANGE 1: Updated duplicate check ---
         const isAlreadyRegistered = user.registeredEvents.some(
-          (reg) => reg.event.equals(eventId)
+          (r) => r.event.equals(eventId)
         );
-
         if (!isAlreadyRegistered) {
-          // --- CHANGE 2: Push the new object structure ---
           user.registeredEvents.push({ event: eventId });
           await user.save();
         }
       }
     }
 
-    // 7️⃣ Send success message only
     res.status(200).json({ message: "Successfully registered for the event" });
   } catch (err) {
     console.error("Error registering for event:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+
 
 export const getMyRegisteredEventsFromUser = async (req, res) => {
   try {
