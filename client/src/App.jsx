@@ -23,6 +23,8 @@ import EventFormPage from "./components/EventFormPage";
 import RequestEditForm from './components/WorkshopEditRequestForm';
 import TADashboard from './pages/TADashboard';
 import UpcomingEvents from './components/UpcomingEvents';
+import AttendedEvents from "./pages/AttendedEvents.jsx";
+
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,22 +57,31 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
           <Route path="/professor/workshops/new" element={<CreateWorkshop />} />
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
+          
         </Route>
 
         {/*Student-only routes */}
         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
           <Route path="/student/dashboard" element={<StudentDashboard />} /> 
+          
         </Route>
 
         {/*Staff-only routes */}
         <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
           <Route path="/staff/dashboard" element={<StaffDashboard />} />
+          
         </Route>
 
         {/*TA-only routes */}
         <Route element={<ProtectedRoute allowedRoles={["ta"]} />}>
           <Route path="/ta/dashboard" element={<TADashboard />} />
+          
         </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["student", "staff", "ta", "professor"]} />}>
+  <Route path="/attended-events" element={<AttendedEvents />} />
+</Route>
+
 
         {/* General user dashboard (vendors, TAs, professors) */}
         <Route element={<ProtectedRoute allowedRoles={["vendor", "professor"]} />}> {/*you removed student from here */}

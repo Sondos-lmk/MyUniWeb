@@ -6,11 +6,14 @@ import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
+import { Link } from "react-router-dom";
+import AttendedEvents from "./AttendedEvents.jsx"; 
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
   const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "courts" | "gym"
+  
   const [courts, setCourts] = useState([]);
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [availability, setAvailability] = useState([]);
@@ -140,6 +143,17 @@ const StudentDashboard = () => {
         </button>
 
         <button
+  type="button"
+  onClick={() => setActiveTab("attended")}
+  className={activeTab === "attended"
+    ? "px-4 py-2 rounded bg-blue-600 text-white"
+    : "px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"}
+>
+  Attended Events
+</button>
+
+
+        <button
           onClick={() => {
             setActiveTab("courts");
             fetchCourts();
@@ -186,6 +200,14 @@ const StudentDashboard = () => {
           <RegisterForEvent />
         </div>
       )}
+
+      {/* ATTENDED EVENTS */}
+{activeTab === "attended" && (
+  <div className="mt-6">
+    <AttendedEvents />
+  </div>
+)}
+
 
       {/* COURTS VIEW */}
       {activeTab === "courts" && (

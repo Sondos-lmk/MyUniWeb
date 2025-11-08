@@ -13,8 +13,15 @@ import { Professor } from "../models/Users/Professor.js";
 import { TA } from "../models/Users/TA.js";
 
 import { Vendor } from "../models/Users/Vendor.js";
+import { ratingSummary } from '../models/Events/Event.js';
 
 import mongoose from "mongoose";
+
+const isEventFinished = (e) => {
+  const end = e.endDate || e.date || e.updatedAt;
+  return e.status === 'completed' || (end && new Date(end) < new Date());
+};
+
 
 // --------------------------------------
 // JOI VALIDATION SCHEMAS
@@ -224,7 +231,9 @@ export const getEventById = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ error: 'Event not found' });
-    res.status(200).json(event);
+    // attach derived rating field: 'unrated' or average
+    const rating = ratingSummary(event);
+    return res.status(200).json({ ...event.toObject(), rating });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -642,11 +651,185 @@ export const registerForWorkshopOrTrip = async (req, res) => {
 
     // 7️⃣ Send success message only
     res.status(200).json({ message: "Successfully registered for the event" });
-  } catch (err) {
+  } 
+  
+  
+  
+  catch (err) {
     console.error("Error registering for event:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
+
+  
 };
+// export const rateEvent = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { value } = req.body;
+//     const userId = req.user._id || req.user.id;
+
+//     if (![1,2,3,4,5].includes(Number(value))) {
+//       return res.status(400).json({ message: "Rating must be 1–5" });
+//     }
+
+//     const event = await Event.findById(id);
+//     if (!event) return res.status(404).json({ message: "Event not found" });
+
+//     // must be one of allowed roles & have registered & event finished
+//     const allowed = ["student", "staff", "ta", "professor"];
+//     if (!allowed.includes(req.user.role)) return res.status(403).json({ message: "Not allowed" });
+
+//     event.registeredStudents = event.registeredStudents || [];
+//     const isRegistered = event.registeredStudents.some(u => String(u) === String(userId));
+//     if (!isRegistered) return res.status(403).json({ message: "You did not attend this event" });
+
+//     if (!isEventFinished(event)) {
+//       return res.status(400).json({ message: "You can rate only after the event is finished" });
+//     }
+
+//     event.ratings = event.ratings || [];
+//     const idx = event.ratings.findIndex(r => String(r.user) === String(userId));
+//     if (idx >= 0) event.ratings[idx].value = Number(value);
+//     else event.ratings.push({ user: userId, value: Number(value) });
+
+//     await event.save();
+//     return res.status(200).json({ average: (event.ratings.reduce((a, r) => a + r.value, 0) / event.ratings.length) || 0, count: event.ratings.length });
+//   } catch (err) {
+//     return res.status(500).json({ message: "Server error", error: err.message });
+//   }
+// };
+export const rateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { value } = req.body;
+    const userId = req.user._id || req.user.id;
+
+    // validate rating range
+    if (![1, 2, 3, 4, 5].includes(Number(value))) {
+      return res.status(400).json({ message: "Rating must be 1–5" });
+    }
+
+    // find event
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // allowed roles
+    const allowed = ["student", "staff", "ta", "professor"];
+    if (!allowed.includes(req.user.role))
+      return res.status(403).json({ message: "Not allowed" });
+
+    // must be registered
+    event.registeredStudents = event.registeredStudents || [];
+    const isRegistered = event.registeredStudents.some(
+      (u) => String(u) === String(userId)
+    );
+    if (!isRegistered)
+      return res.status(403).json({ message: "You did not attend this event" });
+
+    // prevent rating before start date
+    const start = event.startDate || event.date;
+    const now = new Date();
+    const isUpcoming = start && new Date(start) > now;
+    if (isUpcoming) {
+      return res.status(400).json({ message: "Event has not started yet" });
+    }
+
+    // prevent rating multiple times
+    event.ratings = event.ratings || [];
+    const alreadyRated = event.ratings.some(
+      (r) => String(r.user) === String(userId)
+    );
+    if (alreadyRated) {
+      return res.status(403).json({ message: "You have already rated this event" });
+    }
+
+    // save rating
+    event.ratings.push({ user: userId, value: Number(value) });
+    await event.save();
+
+    // calculate average
+    const avg =
+      event.ratings.reduce((a, r) => a + r.value, 0) / event.ratings.length;
+    const roundedAvg = Math.round(avg * 10) / 10;
+
+    return res.status(200).json({
+      message: "Rating submitted successfully",
+      average: roundedAvg,
+      ratingsCount: event.ratings.length,
+    });
+  } catch (err) {
+    console.error("Rate Event Error:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+};
+
+// POST /api/events/:id/comment
+export const addComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+    const userId = req.user?._id || req.user?.id;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ message: "Comment text is required" });
+    }
+
+    const allowed = ["student", "staff", "ta", "professor"];
+    if (!allowed.includes(req.user.role)) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // must be registered
+    event.registeredStudents = event.registeredStudents || [];
+    const isRegistered = event.registeredStudents.some(
+      (u) => String(u) === String(userId)
+    );
+    if (!isRegistered) {
+      return res.status(403).json({ message: "You did not attend this event" });
+    }
+
+    // must be finished
+    if (!isEventFinished(event)) {
+      return res
+        .status(400)
+        .json({ message: "You can comment only after the event is finished" });
+    }
+
+    // one comment per user (block duplicates)
+    event.comments = event.comments || [];
+    const alreadyCommented = event.comments.some(
+      (c) => String(c.user) === String(userId)
+    );
+    if (alreadyCommented) {
+      return res
+        .status(409)
+        .json({ message: "You have already commented on this event" });
+    }
+
+    event.comments.push({
+      user: userId,
+      text: text.trim(),
+      createdAt: new Date(),
+    });
+
+    await event.save();
+    // return only safe fields
+    const last = event.comments[event.comments.length - 1];
+    return res.status(201).json({
+      message: "Comment added",
+      comment: { _id: last._id, user: last.user, text: last.text, createdAt: last.createdAt },
+      commentsCount: event.comments.length,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+  
 
 export const getMyRegisteredEventsFromUser = async (req, res) => {
   try {
@@ -938,6 +1121,47 @@ export const getMyRegisteredEvents = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+export const getAttendedEvents = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const now = new Date();
+
+    // Events this user registered for AND already ended
+    const events = await Event.find({
+      registeredStudents: userId,
+      $or: [
+        { endDate: { $lt: now } },
+        { date: { $lt: now } } // fallback if your model uses 'date'
+      ],
+      status: { $in: ["approved", "completed"] }
+    }).sort({ endDate: -1, date: -1 });
+
+    // attach derived rating (number or 'unrated')
+    const withRatings = events.map(e => {
+      const start = e.startDate || e.date;
+      const hasRatings = Array.isArray(e.ratings) && e.ratings.length > 0;
+      const avg = hasRatings
+        ? Math.round(
+            (e.ratings.reduce((a, r) => a + r.value, 0) / e.ratings.length) * 10
+          ) / 10
+        : null;
+
+      const rating =
+        (start && new Date(start) > now) || !hasRatings ? "unrated" : avg;
+
+      return { ...e.toObject(), averageRating: avg, rating };
+    });
+
+    return res.status(200).json({ events: withRatings });
+  } catch (err) {
+    console.error("getAttendedEvents error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////

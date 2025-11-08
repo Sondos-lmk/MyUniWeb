@@ -25,8 +25,13 @@ import {
   getMyEventApplications,
   registerForWorkshopOrTrip,
   getMyRegisteredEventsFromUser,
+  rateEvent,
+  getAttendedEvents,
+  addComment
+
  
 } from '../controllers/eventController.js';
+import Joi from 'joi';
 
 import {
   requireAuth,
@@ -34,6 +39,7 @@ import {
   requireEventOfficerOrAdmin,
   requireProfessor,
 } from '../middleware/auth.js';
+import { Event } from '../models/Events/Event.js';
 
 const router = Router();
 
@@ -71,16 +77,18 @@ router.get('/my-events', requireAuth, getMyRegisteredEvents);  // for students
 router.get('/my-applications', requireAuth, getMyEventApplications);
 router.post("/register/:eventId", requireAuth, registerForWorkshopOrTrip);
 router.get("/my-registered", requireAuth, getMyRegisteredEventsFromUser);
+router.get('/attended', requireAuth, getAttendedEvents);
 
 
 router.get('/:id', getEventById);
+router.post('/:id/rate', requireAuth, rateEvent);
+router.post('/:id/comment', requireAuth, addComment);
 
 // Workshop edit request
 router.patch('/workshop/:id/request-edit', requireAuth, requireEventOfficer, requestWorkshopEdit);
 
 
  
-router.patch("/workshop/:id/request-edit",requireAuth,requireEventOfficer,requestWorkshopEdit);
 
 // Bazaar and Booth registration
 router.post('/bazaar/:bazaarId/register', requireAuth, registerForBazaar);

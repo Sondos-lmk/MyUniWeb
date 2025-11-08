@@ -5,7 +5,7 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
-
+import AttendedEvents from "./AttendedEvents.jsx";             
 const TADashboard = () => {
   const [activeTab, setActiveTab] = useState("events");
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -89,6 +89,15 @@ const TADashboard = () => {
         >
           Register for Event
         </button>
+   <button
+  type="button"
+  onClick={() => setActiveTab("attended")}
+  className={activeTab === "attended"
+    ? "px-4 py-2 rounded bg-blue-600 text-white"
+    : "px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"}
+>
+  Attended Events
+</button>
 
         <button
           onClick={() => setActiveTab("gym")}
@@ -123,6 +132,13 @@ const TADashboard = () => {
           <RegisterForEvent />
         </div>
       )}
+      {/* ATTENDED EVENTS */}
+{activeTab === "attended" && (
+  <div className="mt-6">
+    <AttendedEvents />
+  </div>
+)}
+
 
       {/* Gym Schedule */}
       {activeTab === "gym" && (
