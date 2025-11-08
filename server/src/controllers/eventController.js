@@ -14,6 +14,7 @@ import { TA } from "../models/Users/TA.js";
 
 import { Vendor } from "../models/Users/Vendor.js";
 import { ratingSummary } from '../models/Events/Event.js';
+import { Favorite } from "../models/Favorite.js";
 
 import mongoose from "mongoose";
 
@@ -830,6 +831,87 @@ export const addComment = async (req, res) => {
   }
 };
   
+// ROLES allowed to favorite events
+const FAVORITE_ALLOWED = ["student", "staff", "ta", "professor"];
+
+// POST /api/events/:id/favorite
+export const addEventToFavorites = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const role = (req.user.role || "").toLowerCase();
+    const eventId = req.params.id;
+
+    if (!FAVORITE_ALLOWED.includes(role)) {
+      return res.status(403).json({ message: "Only students, staff, TAs, and professors can favorite events." });
+    }
+
+    // Ensure the event exists
+    const exists = await Event.exists({ _id: eventId });
+    if (!exists) return res.status(404).json({ message: "Event not found" });
+
+    // Upsert & add once
+    const fav = await Favorite.findOneAndUpdate(
+      { user: userId },
+      { $addToSet: { events: eventId } },
+      { upsert: true, new: true }
+    );
+
+    return res.status(200).json({ message: "Event added to favorites", favoritesCount: fav.events.length });
+  } catch (err) {
+    console.error("addEventToFavorites error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// DELETE /api/events/:id/favorite
+export const removeEventFromFavorites = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const role = (req.user.role || "").toLowerCase();
+    const eventId = req.params.id;
+
+    if (!FAVORITE_ALLOWED.includes(role)) {
+      return res.status(403).json({ message: "Only students, staff, TAs, and professors can unfavorite events." });
+    }
+
+    const fav = await Favorite.findOneAndUpdate(
+      { user: userId },
+      { $pull: { events: eventId } },
+      { new: true }
+    );
+
+    // If user has no favorites doc yet, just succeed silently
+    const count = fav?.events?.length || 0;
+    return res.status(200).json({ message: "Event removed from favorites", favoritesCount: count });
+  } catch (err) {
+    console.error("removeEventFromFavorites error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// GET /api/events/my/favorites
+export const getMyFavoriteEvents = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const role = (req.user.role || "").toLowerCase();
+
+    if (!FAVORITE_ALLOWED.includes(role)) {
+      return res.status(403).json({ message: "Only students, staff, TAs, and professors can view favorites." });
+    }
+
+    const fav = await Favorite.findOne({ user: userId })
+      .populate("events", "title type startDate endDate location desc status createdAt");
+
+    return res.status(200).json({
+      message: "Favorites fetched successfully",
+      count: fav?.events?.length || 0,
+      events: fav?.events || [],
+    });
+  } catch (err) {
+    console.error("getMyFavoriteEvents error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 
 export const getMyRegisteredEventsFromUser = async (req, res) => {
   try {

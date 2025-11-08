@@ -27,7 +27,10 @@ import {
   getMyRegisteredEventsFromUser,
   rateEvent,
   getAttendedEvents,
-  addComment
+  addComment,
+  addEventToFavorites,
+  removeEventFromFavorites,
+  getMyFavoriteEvents,
 
  
 } from '../controllers/eventController.js';
@@ -78,6 +81,10 @@ router.get('/my-applications', requireAuth, getMyEventApplications);
 router.post("/register/:eventId", requireAuth, registerForWorkshopOrTrip);
 router.get("/my-registered", requireAuth, getMyRegisteredEventsFromUser);
 router.get('/attended', requireAuth, getAttendedEvents);
+// Favorites
+router.post("/:id/favorite", requireAuth, addEventToFavorites);
+router.delete("/:id/favorite", requireAuth, removeEventFromFavorites);
+router.get("/my/favorites", requireAuth, getMyFavoriteEvents);
 
 
 router.get('/:id', getEventById);
