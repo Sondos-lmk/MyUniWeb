@@ -163,21 +163,41 @@ const getEventModel = (type) => {
 // Get all events (optionally filter by type)
 export const getAllEvents = async (req, res) => {
   try {
-    const { type } = req.query;
+    const { type, title, location, date } = req.query;
+
+    // Pick correct model (based on type or default Event)
     const Model = type ? getEventModel(type) : Event;
 
-    console.log("Query type:", type);
-    console.log("Using model:", Model.modelName);
+    //  Build flexible query
+    const query = {};
+    if (type) query.type = type;
+    if (title) query.title = { $regex: title, $options: "i" }; // case-insensitive
+    if (location) query.location = { $regex: location, $options: "i" };
+    if (date) {
+      const targetDate = new Date(date);
+      query.$or = [
+        { startDate: { $lte: targetDate }, endDate: { $gte: targetDate } },
+        { date: targetDate }, // gym sessions, etc.
+      ];
+    }
+    let sortOrder = 1; // default ascending (oldest → newest)
+    if (req.query.sort === "desc") sortOrder = -1;
 
-    const events = await Model.find({});
-    console.log("Fetched events from DB:", events); // <--- Add this
+    //  Fetch events
+    const events = await Model.find(query).sort({ startDate: sortOrder });
 
-    res.status(200).json(events);
+    // Return response
+    res.status(200).json({
+      message: "Filtered events fetched successfully",
+      count: events.length,
+      events,
+    });
   } catch (err) {
-    console.error("Error in getAllEvents:", err);
+    console.error("Error filtering events:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 
