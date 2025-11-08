@@ -15,6 +15,7 @@ import StaffDashboard from './pages/StaffDashboard';
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateGymSession from "./pages/CreateGymSession";
 import GymSchedule from "./pages/GymSchedule";
+import Favorites from "./pages/Favorites.jsx";
 
 import "./App.css";
 import ApprovedEvents from "./components/ApprovingEvents";
@@ -77,6 +78,15 @@ function App() {
           <Route path="/ta/dashboard" element={<TADashboard />} />
           
         </Route>
+        <Route
+  path="/favorites"
+  element={
+    <ProtectedRoute roles={['student','staff','ta','professor']}>
+      <Favorites />
+    </ProtectedRoute>
+  }
+/>
+
 
         <Route element={<ProtectedRoute allowedRoles={["student", "staff", "ta", "professor"]} />}>
   <Route path="/attended-events" element={<AttendedEvents />} />

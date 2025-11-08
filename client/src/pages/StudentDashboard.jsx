@@ -8,6 +8,7 @@ import GymSchedule from "./GymSchedule";
 import api from "../services/api";
 import { Link } from "react-router-dom";
 import AttendedEvents from "./AttendedEvents.jsx"; 
+import Favorites from "./Favorites";
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -130,6 +131,14 @@ const StudentDashboard = () => {
         >
           My Registered Events
         </button>
+<button
+  className={`px-4 py-2 rounded-md font-medium ${
+    activeTab === "favorites" ? "bg-blue-600 text-white" : "bg-gray-100"
+  }`}
+  onClick={() => setActiveTab("favorites")}
+>
+  Favorites
+</button>
 
         <button
           onClick={() => setActiveTab("register")}
@@ -264,6 +273,9 @@ const StudentDashboard = () => {
           )}
         </div>
       )}
+
+{activeTab === "favorites" && <Favorites />}
+
 
       {/* GYM SCHEDULE */}
       {activeTab === "gym" && (

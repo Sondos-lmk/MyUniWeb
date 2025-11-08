@@ -5,7 +5,9 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
-import AttendedEvents from "./AttendedEvents.jsx";             
+import AttendedEvents from "./AttendedEvents.jsx";
+import Favorites from "./Favorites";
+
 const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "gym"
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -78,6 +80,14 @@ const StaffDashboard = () => {
         >
           My Registered Events
         </button>
+<button
+  className={`px-4 py-2 rounded-md font-medium ${
+    activeTab === "favorites" ? "bg-blue-600 text-white" : "bg-gray-100"
+  }`}
+  onClick={() => setActiveTab("favorites")}
+>
+  Favorites
+</button>
 
         <button
           onClick={() => setActiveTab("register")}
@@ -138,6 +148,7 @@ const StaffDashboard = () => {
   </div>
 )}
 
+{activeTab === "favorites" && <Favorites />}
 
       {/* Gym Schedule */}
       {activeTab === "gym" && (

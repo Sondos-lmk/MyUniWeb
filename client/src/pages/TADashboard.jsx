@@ -78,6 +78,15 @@ const TADashboard = () => {
         >
           My Registered Events
         </button>
+<button
+  className={`px-4 py-2 rounded-md font-medium ${
+    activeTab === "favorites" ? "bg-blue-600 text-white" : "bg-gray-100"
+  }`}
+  onClick={() => setActiveTab("favorites")}
+>
+  Favorites
+</button>
+
 
         <button
           onClick={() => setActiveTab("register")}
@@ -139,6 +148,7 @@ const TADashboard = () => {
   </div>
 )}
 
+  {activeTab === "favorites" && <FavoritesList />}
 
       {/* Gym Schedule */}
       {activeTab === "gym" && (
