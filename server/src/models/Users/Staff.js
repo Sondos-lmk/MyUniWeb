@@ -15,7 +15,12 @@ const staffSchema = new mongoose.Schema({
         required: true,
         enum: ['not paid', 'paid', 'refunded'],
         default: 'not paid'
-      } }],
+      },
+      priceAtRegistration: {
+        type: Number,
+        required: true
+      }
+    }],
   wallet: { type: Number, default: 0 },
   notifications: [{ type: String }],
 });

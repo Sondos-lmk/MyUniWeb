@@ -710,7 +710,17 @@ export const registerForWorkshopOrTrip = async (req, res) => {
 
         if (!isAlreadyRegistered) {
           // --- CHANGE 2: Push the new object structure ---
-          user.registeredEvents.push({ event: eventId });
+          let priceToSave = 0;
+          if (event.type === 'trip') {
+            priceToSave = event.price;
+          } else if (event.type === 'workshop') {
+            priceToSave = event.requiredBudget;
+          }
+         user.registeredEvents.push({ 
+            event: eventId,
+            priceAtRegistration: priceToSave
+            // paymentStatus will default to 'not paid'
+          });
           await user.save();
         }
       }
