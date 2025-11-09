@@ -26,8 +26,10 @@ export default function Login() {
       nav('/staff/dashboard'); 
       }else if (loggedInUser.role === 'ta'){
       nav('/ta/dashboard')
+      }else if (loggedInUser.role === 'professor'){
+        nav('/professor/dashboard');
       }else {
-        nav('/dashboard');
+        nav('/vendor/dashboard');
       }
     } catch (err) {
       console.error(err);

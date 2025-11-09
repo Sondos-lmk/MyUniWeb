@@ -4,7 +4,17 @@ import { User } from './User.js';
 const professorSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     isVerified: { type: Boolean, default: false },
-    registeredEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }],
+    registeredEvents: [{ event: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Event',
+        required: true
+      },
+      paymentStatus: {
+        type: String,
+        required: true,
+        enum: ['not paid', 'paid', 'refunded'],
+        default: 'not paid'
+      } }],
   favoritesLists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
   wallet: { type: Number, default: 0 },
   notifications: [{ type: String }],

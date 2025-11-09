@@ -11,28 +11,41 @@ const {
   EMAIL_USER,
 } = process.env;
 
-console.log('Email config:', {
-  CLIENT_ID: CLIENT_ID ? '✅' : '❌',
-  CLIENT_SECRET: CLIENT_SECRET ? '✅' : '❌',
-  REDIRECT_URI: REDIRECT_URI ? '✅' : '❌',
-  REFRESH_TOKEN: REFRESH_TOKEN ? '✅ Loaded' : '❌ Missing',
-  EMAIL_USER: EMAIL_USER ? '✅' : '❌',
-});
+// Check if email service is properly configured
+const emailConfigured = !!(
+  CLIENT_ID &&
+  CLIENT_SECRET &&
+  REDIRECT_URI &&
+  REFRESH_TOKEN &&
+  EMAIL_USER
+);
 
-if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI || !REFRESH_TOKEN || !EMAIL_USER) {
-  throw new Error('Missing required email environment variables');
+if (!emailConfigured) {
+  console.warn('⚠️ Email service disabled: Missing Gmail OAuth2 environment variables');
+  console.warn('Emails will not be sent. Manually verify users in MongoDB if needed.');
+} else {
+  console.log('✅ Email service enabled with OAuth2');
 }
 
-const oauth2Client = new OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+let oauth2Client;
+if (emailConfigured) {
+  oauth2Client = new OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+  oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+}
 
 export const sendEmail = async ({ to, subject, html }) => {
+  // Graceful handling if email not configured
+  if (!oauth2Client) {
+    console.warn(`⚠️ Email not sent (service disabled): to=${to}, subject="${subject}"`);
+    return { disabled: true, accepted: [], rejected: [] };
+  }
+
   try {
     const { token } = await oauth2Client.getAccessToken();
     if (!token) {
       throw new Error('Failed to obtain access token');
     }
-    console.log('✅ Access token obtained:', token);
+    console.log('✅ Access token obtained');
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -47,11 +60,11 @@ export const sendEmail = async ({ to, subject, html }) => {
     });
 
     const mailOptions = {
-      from: `"Innovex App" <${EMAIL_USER}>`, // Friendly name for sender
+      from: `"Innovex App" <${EMAIL_USER}>`, // Friendly sender name
       to,
       subject,
       html,
-      text: html.replace(/<[^>]+>/g, ''), // Plain text for Outlook
+      text: html.replace(/<[^>]+>/g, ''), // plain text fallback
     };
 
     const result = await transporter.sendMail(mailOptions);

@@ -13,8 +13,18 @@ const eventSchema = new mongoose.Schema(
       enum: ['pending', 'approved', 'rejected', 'completed'],
       default: 'pending',
     },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Users' }, // Who created the event in the system
-  },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Who created the event in the system
+
+    // ✅ Add this new field here:
+ 
+     allowedRoles: {
+  type: [String],
+  enum: ["student", "staff", "ta", "professor"],
+  default: ["student", "staff", "ta", "professor"], // optional
+},
+ // default: open to all academic users
+    },
+
   baseOptions
 );
 

@@ -14,8 +14,8 @@ export default function Register() {
     e.preventDefault()
     setError('')
     try {
-      await register(name, email, password)
-      nav('/perks')
+  await register(name, email, password)
+  nav('/')
     } catch (err) {
       setError(err?.response?.data?.message || 'Register failed')
     }

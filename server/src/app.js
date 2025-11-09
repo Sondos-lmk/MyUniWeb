@@ -9,7 +9,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 
-import perkRoutes from './routes/perks.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import eventRoutes from './routes/event.js';
@@ -38,7 +37,6 @@ app.use(express.json());
 
 // ✅ Routes
 app.get('/api/health', (req, res) => res.json({ ok: true }));
-app.use('/api/perks', perkRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/auth', authRoutes);

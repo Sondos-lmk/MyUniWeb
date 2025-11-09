@@ -69,7 +69,8 @@ export default function EventFormPage() {
       navigate("/eventOfficer/dashboard");
     } catch (error) {
       console.error(error);
-      alert("Failed to submit event");
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || "Failed to submit event";
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -85,22 +86,48 @@ export default function EventFormPage() {
 
   const renderFormFields = () => {
     switch (eventType) {
-      case "trip":
-        return (
-          <>
-            <input name="title" value={formData.title || ""} placeholder="Trip Name" {...inputProps} />
-            <input name="location" value={formData.location || ""} placeholder="Location" {...inputProps} />
-            <input name="price" type="number" value={formData.price || ""} placeholder="Price (EGP)" {...inputProps} />
-            <label className={labelClass}>Start Date & Time</label>
-            <input name="startDate" type="datetime-local" value={formData.startDate?.slice(0, 16) || ""} {...inputProps} />
-            <label className={labelClass}>End Date & Time</label>
-            <input name="endDate" type="datetime-local" value={formData.endDate?.slice(0, 16) || ""} {...inputProps} />
-            <textarea name="desc" value={formData.desc || ""} placeholder="Short Description" {...inputProps} />
-            <input name="capacity" type="number" value={formData.capacity || ""} placeholder="Capacity" {...inputProps} />
-            <label className={labelClass}>Registration Deadline</label>
-            <input name="registrationDeadline" type="datetime-local" value={formData.registrationDeadline?.slice(0, 16) || ""} {...inputProps} />
-          </>
-        );
+   case "trip":
+  return (
+    <>
+      <input name="title" value={formData.title || ""} placeholder="Trip Name" {...inputProps} />
+      <input name="location" value={formData.location || ""} placeholder="Location" {...inputProps} />
+      <input name="price" type="number" value={formData.price || ""} placeholder="Price (EGP)" {...inputProps} />
+      <label className={labelClass}>Start Date & Time</label>
+      <input name="startDate" type="datetime-local" value={formData.startDate?.slice(0, 16) || ""} {...inputProps} />
+      <label className={labelClass}>End Date & Time</label>
+      <input name="endDate" type="datetime-local" value={formData.endDate?.slice(0, 16) || ""} {...inputProps} />
+      <textarea name="desc" value={formData.desc || ""} placeholder="Short Description" {...inputProps} />
+      <input name="capacity" type="number" value={formData.capacity || ""} placeholder="Capacity" {...inputProps} />
+      <label className={labelClass}>Registration Deadline</label>
+      <input name="registrationDeadline" type="datetime-local" value={formData.registrationDeadline?.slice(0, 16) || ""} {...inputProps} />
+
+      {/* ✅ Allowed Roles Section (Requirement 50) */}
+      <div>
+        <label className={labelClass}>Allowed Roles :</label>
+        <div className="flex gap-4 flex-wrap">
+          {["student", "staff", "ta", "professor"].map((role) => (
+            <label key={role} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.allowedRoles?.includes(role) || false}
+                onChange={(e) => {
+                  let updated = formData.allowedRoles ? [...formData.allowedRoles] : [];
+                  if (e.target.checked) {
+                    updated.push(role);
+                  } else {
+                    updated = updated.filter((r) => r !== role);
+                  }
+                  setFormData({ ...formData, allowedRoles: updated });
+                }}
+              />
+              <span className="capitalize">{role}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
 
       case "bazaar":
         return (

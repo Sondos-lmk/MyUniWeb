@@ -1,22 +1,29 @@
 import express from 'express';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireAuth, requireAdmin, requireEventOfficerOrAdmin } from '../middleware/auth.js';
 import { User } from '../models/Users/User.js';
 import { Staff } from '../models/Users/Staff.js';
+import { Student } from '../models/Users/Student.js';
 import { getAllUsers } from '../controllers/adminController.js';
 import { Professor } from '../models/Users/Professor.js';
 import { TA } from '../models/Users/TA.js';
 import { EventOfficer } from '../models/Users/EventsOfficer.js';
 import { sendEmail } from '../utils/email.js';
 import { createUserByAdmin, deleteUserByAdmin } from '../controllers/adminController.js';
+import { getAttendeesReport } from '../controllers/eventController.js';
+import { blockUser, unblockUser } from "../controllers/adminController.js";
+
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 const router = express.Router();
 
+
+
 // Get pending users
 router.get('/pending-users', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const pendingUsers = await User.find({ isVerified: false, role: { $nin: ['student', 'vendor', 'admin'] } });
+    // Fetch pending users across user models but exclude students (they receive verification immediately)
+    const pendingUsers = await User.find({ isVerified: false, role: { $nin: ['vendor', 'admin', 'student'] } });
     const pendingStaff = await Staff.find({ isVerified: false });
     const pendingProf = await Professor.find({ isVerified: false });
     const pendingTA = await TA.find({ isVerified: false });
@@ -39,7 +46,8 @@ router.get('/pending-users', requireAuth, requireAdmin, async (req, res) => {
 
 // Admin view all users (Requirement 2)
 router.get('/users', requireAuth, requireAdmin, getAllUsers);
-
+router.patch("/users/:id/block", requireAuth, requireAdmin, blockUser);
+router.patch("/users/:id/unblock", requireAuth, requireAdmin, unblockUser);
 
 // Approve user and send verification email
 router.post('/approve-user/:id', requireAuth, requireAdmin, async (req, res) => {
@@ -47,17 +55,19 @@ router.post('/approve-user/:id', requireAuth, requireAdmin, async (req, res) => 
     const { role } = req.body;
     const { id } = req.params;
 
-    const validRoles = ['staff', 'ta', 'professor'];
+  const validRoles = ['staff', 'ta', 'professor', 'student'];
     if (role && !validRoles.includes(role)) {
       console.log('Invalid role:', role);
       return res.status(400).json({ message: 'Invalid role. Must be staff, ta, or professor.' });
     }
 
+    // Try to find the user across all relevant models, including Student
     let user =
       (await User.findById(id)) ||
       (await Staff.findById(id)) ||
       (await Professor.findById(id)) ||
-      (await TA.findById(id));
+      (await TA.findById(id)) ||
+      (await Student.findById(id));
 
     if (!user) {
       console.log('User not found:', id);
@@ -77,6 +87,7 @@ router.post('/approve-user/:id', requireAuth, requireAdmin, async (req, res) => 
     let newUser;
     if (role && role !== user.role) {
       const Model =
+        role === 'student' ? Student :
         role === 'staff' ? Staff :
         role === 'professor' ? Professor :
         role === 'ta' ? TA :
@@ -146,61 +157,15 @@ router.get('/event-officers', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// Reports: attendees per event (filterable)
+// Allow both Admins and Event Officers to access this report
+router.get('/reports/attendees', requireAuth, requireEventOfficerOrAdmin, getAttendeesReport);
+
 // Create admin or event officer
 router.post('/create/:role', requireAuth, requireAdmin, createUserByAdmin);
 
 // Delete admin or event officer
 router.delete('/delete-user/:id', requireAuth, requireAdmin, deleteUserByAdmin);
-
-// ✅ Requirement 3: Admin block or unblock a user
-router.patch('/toggle-user/:id', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Try to find the user in all possible models
-    const models = [
-      (await import('../models/Users/Student.js')).Student,
-      (await import('../models/Users/Staff.js')).Staff,
-      (await import('../models/Users/Professor.js')).Professor,
-      (await import('../models/Users/Admin.js')).Admin,
-      (await import('../models/Users/EventsOfficer.js')).EventOfficer,
-    ];
-
-    let userFound = null;
-
-    for (const Model of models) {
-      const found = await Model.findById(id);
-      if (found) {
-        userFound = found;
-        break;
-      }
-    }
-
-    if (!userFound) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Flip the isActive flag
-    userFound.isActive = !userFound.isActive;
-    await userFound.save();
-
-    res.status(200).json({
-      message: userFound.isActive
-        ? `${userFound.name} has been unblocked`
-        : `${userFound.name} has been blocked`,
-      user: {
-        id: userFound._id,
-        name: userFound.name,
-        email: userFound.email,
-        role: userFound.role,
-        isActive: userFound.isActive
-      }
-    });
-  } catch (error) {
-    console.error('Toggle user active status error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
 
 
 export default router;

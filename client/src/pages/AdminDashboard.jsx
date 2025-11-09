@@ -5,6 +5,7 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import AllUsers from "./AllUsers";
 
 import ApprovingEvents from "../components/ApprovingEvents";
+import AttendeesReport from "../components/AttendeesReport";
 
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -15,10 +16,12 @@ const AdminDashboard = () => {
     role: "",
   });
   const [admins, setAdmins] = useState([]);
+  const [selectedRoles, setSelectedRoles] = useState({});
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
   const navigate = useNavigate();
 
   // Fetch pending users
@@ -247,6 +250,10 @@ const AdminDashboard = () => {
           Logout
         </button>
       </div>
+      {/* Attendees Report (shared component: shows only total attendees) */}
+      <div className="mt-8 mb-8">
+        <AttendeesReport />
+      </div>
 
       {/* Create Admin/Event Officer */}
       <div className="mb-8">
@@ -358,21 +365,38 @@ const AdminDashboard = () => {
                   {user.name} ({user.email}) - {user.role}
                 </span>
                 <div>
-                  <select
-                    defaultValue={user.role}
-                    onChange={(e) => handleApprove(user._id, e.target.value)}
-                    className="border p-1 mr-2"
-                  >
-                    <option value="staff">Staff</option>
-                    <option value="ta">TA</option>
-                    <option value="professor">Professor</option>
-                  </select>
-                  <button
-                    onClick={() => handleApprove(user._id, user.role)}
-                    className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
-                  >
-                    Approve
-                  </button>
+                  {/* If the pending user is a student, do not show role selector - admin cannot change student role */}
+                  {user.role === 'student' ? (
+                    <>
+                      <span className="mr-4">Student</span>
+                      <button
+                        onClick={() => handleApprove(user._id, 'student')}
+                        className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                      >
+                        Approve
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        value={selectedRoles[user._id] ?? user.role}
+                        onChange={(e) =>
+                          setSelectedRoles({ ...selectedRoles, [user._id]: e.target.value })
+                        }
+                        className="border p-1 mr-2"
+                      >
+                        <option value="staff">Staff</option>
+                        <option value="ta">TA</option>
+                        <option value="professor">Professor</option>
+                      </select>
+                      <button
+                        onClick={() => handleApprove(user._id, selectedRoles[user._id] ?? user.role)}
+                        className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                      >
+                        Approve
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}

@@ -26,6 +26,9 @@ const userSchema = new mongoose.Schema(
     verificationToken: { type: String },
     verificationExpires: { type: Date },
     isVerified: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true },
+
+
   },
   baseOptions
 );

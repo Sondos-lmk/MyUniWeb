@@ -24,6 +24,8 @@ const baseEventSchema = Joi.object({
   status: Joi.string().valid('pending', 'approved', 'rejected', 'completed'),
   createdBy: Joi.string().optional(),
   organizerId: Joi.string().optional(),
+  allowedRoles: Joi.array().items(Joi.string().valid("student", "staff", "ta", "professor")),
+
 });
 
 const bazaarSchema = baseEventSchema.keys({
@@ -76,7 +78,10 @@ const conferenceSchema = baseEventSchema.keys({
   endDate: Joi.date().required(),
   registrationDeadline: Joi.date(),
   fullAgenda: Joi.string().allow(''),
-  websiteLink: Joi.string().uri().required(),
+  websiteLink: Joi.string().uri().required().messages({
+    'string.uri': 'Link format is incorrect. Please enter a valid URL (e.g., https://example.com)',
+    'any.required': 'Website link is required'
+  }),
   requiredBudget: Joi.number(),
   fundraisingSource: Joi.string().valid('GUC', 'External'),
   extraRequiredResource: Joi.string().allow(''),
@@ -114,6 +119,7 @@ const workshopSchema = baseEventSchema.keys({
     'Architecture'
   ),
   professorsParticipating: Joi.array().items(Joi.string()),
+  professorNames: Joi.array().items(Joi.string()),
   extraRequiredResource: Joi.string().allow(''),
   capacity: Joi.number().required(),
 });
@@ -157,21 +163,41 @@ const getEventModel = (type) => {
 // Get all events (optionally filter by type)
 export const getAllEvents = async (req, res) => {
   try {
-    const { type } = req.query;
+    const { type, title, location, date } = req.query;
+
+    // Pick correct model (based on type or default Event)
     const Model = type ? getEventModel(type) : Event;
 
-    console.log("Query type:", type);
-    console.log("Using model:", Model.modelName);
+    //  Build flexible query
+    const query = {};
+    if (type) query.type = type;
+    if (title) query.title = { $regex: title, $options: "i" }; // case-insensitive
+    if (location) query.location = { $regex: location, $options: "i" };
+    if (date) {
+      const targetDate = new Date(date);
+      query.$or = [
+        { startDate: { $lte: targetDate }, endDate: { $gte: targetDate } },
+        { date: targetDate }, // gym sessions, etc.
+      ];
+    }
+    let sortOrder = 1; // default ascending (oldest → newest)
+    if (req.query.sort === "desc") sortOrder = -1;
 
-    const events = await Model.find({});
-    console.log("Fetched events from DB:", events); // <--- Add this
+    //  Fetch events
+    const events = await Model.find(query).sort({ startDate: sortOrder });
 
-    res.status(200).json(events);
+    // Return response
+    res.status(200).json({
+      message: "Filtered events fetched successfully",
+      count: events.length,
+      events,
+    });
   } catch (err) {
-    console.error("Error in getAllEvents:", err);
+    console.error("Error filtering events:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 
@@ -222,10 +248,20 @@ export const getAllEvents = async (req, res) => {
 // Get event by ID
 export const getEventById = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id);
+    let event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    // Populate professors and creator details for workshops so names are available in request-edit view
+    if (event.type === 'workshop') {
+      event = await event.populate([
+        { path: 'createdBy', select: 'name email role' },
+        { path: 'professorsParticipating', select: 'name email role' },
+      ]);
+    }
+
     res.status(200).json(event);
   } catch (err) {
+    console.error('Error in getEventById:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -236,24 +272,32 @@ export const getUpcomingEvents = async (req, res) => {
     const now = new Date();
 
     // Helper function to format each event consistently
-    const formatEvent = (event, type) => ({
-      id: event._id,
-      type,
-      title: event.title,
-      description: event.desc || "",
-      location: event.location || event.locationInPlatform || "N/A",
-      startDate: event.startDate,
-      endDate: event.endDate,
-      registrationDeadline: event.registrationDeadline,
-      vendors:
-        type === "bazaar" || type === "booth"
-          ? event.registeredVendors || []
-          : [],
-      status: event.status || "N/A",
-    });
+    const formatEvent = (event, type) => {
+      const baseEvent = {
+        id: event._id,
+        type,
+        title: event.title,
+        description: event.desc || "",
+        location: event.location || event.locationInPlatform || "N/A",
+        startDate: event.startDate,
+        endDate: event.endDate,
+        registrationDeadline: event.registrationDeadline,
+        vendors:
+          type === "bazaar" || type === "booth"
+            ? event.registeredVendors || []
+            : [],
+      };
+
+      // Only include status for workshops and booths (which require approval)
+      if (type === "workshop" || type === "booth") {
+        baseEvent.status = event.status || "N/A";
+      }
+
+      return baseEvent;
+    };
 
     // Fetch approved upcoming events from all collections in parallel
-    const [workshops, trips, bazaars, booths, conferences] = await Promise.all([
+    const [workshops, trips, bazaars, booths, conferences, gymSessions] = await Promise.all([
       Workshop.find({ startDate: { $gt: now }, status: "approved" }),
       Trip.find({ startDate: { $gt: now }, status: "approved" }),
       Bazaar.find({ startDate: { $gt: now }, status: "approved" }).populate(
@@ -265,6 +309,7 @@ export const getUpcomingEvents = async (req, res) => {
         "name email"
       ),
       Conference.find({ startDate: { $gt: now }, status: "approved" }),
+      GymSession.find({ date: { $gt: now }, status: "approved" }),
     ]);
 
     // Combine all events into a single list
@@ -274,10 +319,24 @@ export const getUpcomingEvents = async (req, res) => {
       ...bazaars.map((e) => formatEvent(e, "bazaar")),
       ...booths.map((e) => formatEvent(e, "booth")),
       ...conferences.map((e) => formatEvent(e, "conference")),
+      ...gymSessions.map((e) => ({
+        id: e._id,
+        type: "gym",
+        sessionType: e.sessionType,
+        date: e.date,
+        time: e.time,
+        duration: e.duration,
+        maxParticipants: e.maxParticipants,
+        participants: e.participants?.length || 0,
+      })),
     ];
 
     // Sort by startDate (earliest first)
-    allUpcoming.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    allUpcoming.sort((a, b) => {
+      const aDate = a.startDate ? new Date(a.startDate) : a.date ? new Date(a.date) : 0;
+      const bDate = b.startDate ? new Date(b.startDate) : b.date ? new Date(b.date) : 0;
+      return aDate - bDate;
+    });
 
     res.status(200).json({
       message: "Approved upcoming events fetched successfully",
@@ -300,16 +359,24 @@ export const searchEvents = async (req, res) => {
     const baseFilter = { status: "approved" };
 
     // Helper: formats all events consistently
-    const formatEvent = (event, type) => ({
-      id: event._id,
-      type,
-      title: event.title,
-      description: event.desc || "",
-      location: event.location || event.locationInPlatform || "N/A",
-      startDate: event.startDate,
-      endDate: event.endDate,
-      status: event.status,
-    });
+    const formatEvent = (event, type) => {
+      const baseEvent = {
+        id: event._id,
+        type,
+        title: event.title,
+        description: event.desc || "",
+        location: event.location || event.locationInPlatform || "N/A",
+        startDate: event.startDate,
+        endDate: event.endDate,
+      };
+
+      // Only include status for workshops and booths (which require approval)
+      if (type === "workshop" || type === "booth") {
+        baseEvent.status = event.status;
+      }
+
+      return baseEvent;
+    };
 
     // Build a list of promises depending on requested type
     const promises = [];
@@ -362,6 +429,14 @@ export const searchEvents = async (req, res) => {
       );
     }
 
+    if (include("gym")) {
+      promises.push(
+        GymSession.find({
+          ...baseFilter,
+        })
+      );
+    }
+
     // Run all applicable searches in parallel
     const results = await Promise.all(promises);
 
@@ -378,6 +453,17 @@ export const searchEvents = async (req, res) => {
       allResults.push(...results.shift().map((e) => formatEvent(e, "booth")));
     if (include("conference"))
       allResults.push(...results.shift().map((e) => formatEvent(e, "conference")));
+    if (include("gym"))
+      allResults.push(...results.shift().map((e) => ({
+        id: e._id,
+        type: "gym",
+        sessionType: e.sessionType,
+        date: e.date,
+        time: e.time,
+        duration: e.duration,
+        maxParticipants: e.maxParticipants,
+        participants: e.participants?.length || 0,
+      })));
 
     // If searching by professor name, refine workshops
     let finalResults = allResults;
@@ -432,6 +518,14 @@ export const createEvent = async (req, res) => {
       payload.createdBy = authUserId; // 👈 add it here, AFTER validation
     }
 
+    // ✅ Optional roles allowed to register for the event
+    payload.allowedRoles = req.body.allowedRoles || ["student", "staff", "ta", "professor"];
+
+    // Auto-approve trips, bazaars, and conferences
+    if (type === "trip" || type === "bazaar" || type === "conference") {
+      payload.status = "approved";
+    }
+
     const Model = getEventModel(type);
     const newEvent = new Model(payload);
     await newEvent.save();
@@ -445,6 +539,7 @@ export const createEvent = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 // Update event
@@ -595,6 +690,14 @@ export const registerForWorkshopOrTrip = async (req, res) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
+    // ✅  NEW: Role restriction check (this is the important part)
+    const userRole = req.user.role?.toLowerCase();
+    if (event.allowedRoles && !event.allowedRoles.includes(userRole)) {
+      return res.status(403).json({
+        error: `Registration not allowed for ${userRole}s for this event.`,
+      });
+    }
+
     // 2️⃣ Allow only workshops and trips
     if (event.type !== "workshop" && event.type !== "trip") {
       return res.status(400).json({
@@ -602,51 +705,45 @@ export const registerForWorkshopOrTrip = async (req, res) => {
       });
     }
 
-    // 3️⃣ Check if the user’s role is allowed
-    const allowedRoles = ["student", "staff", "ta", "professor"];
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        error: "This role is not allowed to register for events",
-      });
-    }
-
-    // 4️⃣ Prevent duplicate registration
+    // 3️⃣ Prevent duplicate registration
     event.registeredStudents = event.registeredStudents || [];
     if (event.registeredStudents.includes(userId)) {
       return res.status(400).json({ error: "Already registered for this event" });
     }
 
-    // 5️⃣ Add user to the event’s registered list
+    // 4️⃣ Add user to event list
     event.registeredStudents.push(userId);
     await event.save();
 
-    // 6️⃣ Add event to user’s registeredEvents list
+    // 5️⃣ Add event to user’s registeredEvents
     const roleModelMap = {
       student: Student,
       staff: Staff,
       ta: TA,
       professor: Professor,
     };
-    const UserModel = roleModelMap[req.user.role];
-
+    const UserModel = roleModelMap[userRole];
     if (UserModel) {
       const user = await UserModel.findById(userId);
       if (user) {
         user.registeredEvents = user.registeredEvents || [];
-        if (!user.registeredEvents.includes(eventId)) {
-          user.registeredEvents.push(eventId);
+        const isAlreadyRegistered = user.registeredEvents.some(
+          (r) => r.event.equals(eventId)
+        );
+        if (!isAlreadyRegistered) {
+          user.registeredEvents.push({ event: eventId });
           await user.save();
         }
       }
     }
 
-    // 7️⃣ Send success message only
     res.status(200).json({ message: "Successfully registered for the event" });
   } catch (err) {
     console.error("Error registering for event:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+
 
 export const getMyRegisteredEventsFromUser = async (req, res) => {
   try {
@@ -670,7 +767,7 @@ export const getMyRegisteredEventsFromUser = async (req, res) => {
 
     // 3️⃣ Find the user and populate their registered events
     const user = await Model.findById(userId).populate(
-      "registeredEvents",
+      "registeredEvents.event",
       "title type startDate endDate location description"
     );
 
@@ -719,6 +816,11 @@ export const createWorkshop = async (req, res) => {
     value.createdBy = req.user._id;
     value.status = "pending";
     
+    // ✅ Normalize any free-text professor names if provided
+    if (req.body.professorNames && Array.isArray(req.body.professorNames)) {
+      value.professorNames = req.body.professorNames.map((n) => String(n).trim()).filter(Boolean);
+    }
+
     // ✅ Automatically include the creating professor
     value.professorsParticipating = [req.user._id];
     
@@ -893,6 +995,108 @@ export const getProfessorWorkshops = async (req, res) => {
       message: "Server error while fetching workshops.",
       error: error.message,
     });
+  }
+};
+
+// Get attendees report (total attendees per event) with optional filters
+export const getAttendeesReport = async (req, res) => {
+  try {
+    const { name, type, startDate, endDate } = req.query;
+
+    // Build flexible query: support events that use `startDate` or `date`, and search multiple fields for name
+    const conditions = [];
+    if (type) conditions.push({ type });
+    if (name) {
+      const regex = new RegExp(name, 'i');
+      conditions.push({
+        $or: [
+          { title: regex },
+          { desc: regex },
+          { location: regex },
+          { locationInPlatform: regex }
+        ]
+      });
+    }
+
+    if (startDate || endDate) {
+      const range = {};
+      if (startDate) range.$gte = new Date(startDate);
+      if (endDate) range.$lte = new Date(endDate);
+
+      // Match events where either `startDate` or `date` falls in the range
+      conditions.push({
+        $or: [
+          { startDate: range },
+          { date: range }
+        ]
+      });
+    }
+
+    const query = conditions.length ? { $and: conditions } : {};
+
+    // Find events matching filters (flexible for different event shapes)
+    const events = await Event.find(query).lean();
+
+    // For each event compute attendee counts (breakdown by role when possible)
+    const report = await Promise.all(events.map(async (ev) => {
+      // initialize breakdown
+      let students = 0;
+      let staff = 0;
+      let ta = 0;
+      let professors = 0;
+      let vendors = 0;
+
+      // If the event document stores registeredVendors (bazaar/booth)
+      if (ev.registeredVendors && Array.isArray(ev.registeredVendors)) {
+        // registeredVendors may be array of vendor IDs or objects
+        vendors = ev.registeredVendors.length;
+      }
+
+      // If event stores registeredStudents
+      if (ev.registeredStudents && Array.isArray(ev.registeredStudents)) {
+        students = ev.registeredStudents.length;
+      }
+
+      // If event stores participants (gym sessions)
+      if (ev.participants && Array.isArray(ev.participants)) {
+        // participants may include mixed roles; we count as students here unless user models used
+        students = ev.participants.length;
+      }
+
+      // Fallback: count across user collections who have this event in their registeredEvents
+      if (!vendors && !students) {
+        const eventId = ev._id;
+        const [sCount, stfCount, taCount, profCount, vCount] = await Promise.all([
+          (await import('../models/Users/Student.js')).Student.countDocuments({ registeredEvents: eventId }),
+          (await import('../models/Users/Staff.js')).Staff.countDocuments({ registeredEvents: eventId }),
+          (await import('../models/Users/TA.js')).TA.countDocuments({ registeredEvents: eventId }),
+          (await import('../models/Users/Professor.js')).Professor.countDocuments({ registeredEvents: eventId }),
+          (await import('../models/Users/Vendor.js')).Vendor.countDocuments({ registeredEvents: eventId }),
+        ]);
+        students = sCount;
+        staff = stfCount;
+        ta = taCount;
+        professors = profCount;
+        vendors = vCount;
+      }
+
+      const attendees = students + staff + ta + professors + vendors;
+
+      return {
+        id: ev._id,
+        title: ev.title || ev.type || 'Untitled',
+        type: ev.type || 'event',
+        startDate: ev.startDate || ev.date || null,
+        endDate: ev.endDate || null,
+        attendees,
+        breakdown: { students, staff, ta, professors, vendors }
+      };
+    }));
+
+    res.status(200).json({ count: report.length, report });
+  } catch (err) {
+    console.error('Error building attendees report:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
@@ -1339,6 +1543,9 @@ export const createConference = async (req, res) => {
 
     const { error, value } = conferenceSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
+
+    // Auto-approve conferences
+    value.status = 'approved';
 
     const newConference = new Conference(value);
     await newConference.save();

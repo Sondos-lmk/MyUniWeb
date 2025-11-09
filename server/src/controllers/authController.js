@@ -10,6 +10,7 @@ import { Student } from '../models/Users/Student.js';
 import { Vendor } from '../models/Users/Vendor.js';
 import Joi from 'joi'; // ✅ Add Joi for validation
 import { sendEmail } from '../utils/email.js';
+import crypto from 'crypto';
 
 function getModelByRole(role) {
   const roleMap = {
@@ -91,31 +92,65 @@ export async function register(req, res) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-  let user;
-  if (role === 'vendor') {
-    user = new Vendor({
-      email,
-      passwordHash,
-      role: 'vendor',
-      companyName: companyName.trim(),
-      isVerified: true,
-    });
-  } else {
-    const Model = getModelByRole(role);
+    let user;
+    if (role === 'vendor') {
+      user = new Vendor({
+        email,
+        passwordHash,
+        role: 'vendor',
+        companyName: companyName.trim(),
+        isVerified: true,
+      });
+      await user.save();
+      console.log('Vendor registered (auto-verified):', { email });
+      return res.status(201).json({ message: 'Vendor registered successfully' });
+    }
+
     user = new Model({
       name,
       email,
       passwordHash,
       role,
       uniID,
-      isVerified: ['student'].includes(role),
+      isVerified: false,
     });
-  }
 
+    // If the registrant is a student, generate verification token and send email immediately
+    if (role === 'student') {
+      try {
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+  const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        user.verificationToken = verificationToken;
+        user.verificationExpires = verificationExpires;
+      } catch (err) {
+        console.error('Error generating verification token:', err);
+      }
+    }
 
     await user.save();
-    console.log('User registered:', { email, name, role });
 
+    // Send verification email for students (do not block registration on email failure)
+    if (role === 'student') {
+      const verifyLink = `${process.env.BACKEND_URL}/api/auth/verify/${user.verificationToken}`;
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'Verify Your University Event Management Account',
+          html: `
+            <p>Hello ${user.name || 'Student'},</p>
+            <p>Thanks for registering. Please verify your email by clicking the link below:</p>
+            <a href="${verifyLink}" target="_blank">${verifyLink}</a>
+            <p>This link will expire in 24 hours.</p>
+          `,
+        });
+        console.log('Verification email sent to:', user.email);
+      } catch (err) {
+        console.error('Failed to send verification email:', err);
+        // Do not fail registration if email sending fails; return 201 but warn client/logs
+      }
+    }
+
+    console.log('User registered:', { email, name, role });
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Register Error:', err);
@@ -134,25 +169,33 @@ export async function login(req, res) {
     const { email, password } = value;
     console.log('Login Attempt:', { email });
 
-    // Find user in all models
+    // Find user in all models (include Student, Vendor, Admin, EventOfficer)
     let user =
       (await User.findOne({ email })) ||
+      (await Student.findOne({ email })) ||
       (await Staff.findOne({ email })) ||
       (await Professor.findOne({ email })) ||
-      (await TA.findOne({ email }));
+      (await TA.findOne({ email })) ||
+      (await Admin.findOne({ email })) ||
+      (await EventOfficer.findOne({ email })) ||
+      (await Vendor.findOne({ email }));
 
     if (!user)
       return res.status(401).json({ message: 'Invalid credentials' });
 
     // Check verification (except student/vendor/admin)
-    if (!['student', 'vendor', 'admin'].includes(user.role) && !user.isVerified)
+    if (!['vendor', 'admin'].includes(user.role) && !user.isVerified)
       return res.status(403).json({ message: 'Account not verified' });
-
+if (!user.isActive) {
+  return res
+    .status(403)
+    .json({ message: "Your account has been blocked by an admin." });
+}
     // Check password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch)
       return res.status(401).json({ message: 'Invalid credentials' });
-
+   
     // ✅ Use your helper function to sign the token
     const token = signToken(user);
 
@@ -183,9 +226,12 @@ export async function verifyEmail(req, res) {
 
     const user =
       (await User.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
+      (await Student.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
       (await Staff.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
       (await Professor.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
-      (await TA.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } }));
+      (await TA.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
+      (await EventOfficer.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
+      (await Admin.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } }));
 
     if (!user)
       return res.status(400).send('<h1>Invalid or expired verification link</h1>');
