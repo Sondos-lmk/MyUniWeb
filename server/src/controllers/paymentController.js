@@ -1,4 +1,5 @@
 import { User } from '../models/Users/User.js'; // Import base User model
+import { Event } from '../models/Events/Event.js';
 import Stripe from 'stripe';
 
 // Initialize Stripe with your secret key
@@ -54,45 +55,60 @@ export const payWithWallet = async (req, res) => {
 
 // --- 2. REQUEST REFUND (from Wallet) ---
 
+// controllers/paymentController.js
+
 export const requestRefund = async (req, res) => {
   try {
     const { eventId } = req.body;
-    const user = req.user;
+    const user = req.user; // This is the Mongoose doc
 
-    // Find the registration
-    const registration = user.registeredEvents.find(
+    // 1. Find the event to check its date
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: "Event details not found." });
+    }
+
+    // 2. The 2-Week Business Rule (Server-side check)
+    const eventStartDate = new Date(event.startDate);
+    const today = new Date();
+    const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
+
+    if (eventStartDate.getTime() - today.getTime() < twoWeeksInMs) {
+      return res.status(400).json({ 
+        error: "Cancellation failed: The event is less than 2 weeks away." 
+      });
+    }
+
+    // 3. Find the registration in the user's array
+    const regIndex = user.registeredEvents.findIndex(
       (reg) => reg.event.equals(eventId)
     );
 
-    if (!registration) {
-      return res.status(404).json({ error: "Registration not found." });
+    if (regIndex === -1) {
+      return res.status(404).json({ error: "Registration not found in user profile." });
+    }
+    
+    // Get the specific registration object
+    const registration = user.registeredEvents[regIndex];
+
+    // 4. Process refund (if they paid)
+    if (registration.paymentStatus === 'paid') {
+      user.wallet += registration.priceAtRegistration;
     }
 
-    // Check status. Can only refund if 'paid'.
-    if (registration.paymentStatus === 'not paid') {
-      return res.status(400).json({ error: "Cannot refund an unpaid event." });
-    }
-    if (registration.paymentStatus === 'refunded') {
-      return res.status(400).json({ error: "This event has already been refunded." });
-    }
+    // 5. Remove (cancel) the registration from the array
+    user.registeredEvents.splice(regIndex, 1);
 
-    // Get the amount to refund
-    const priceToRefund = registration.priceAtRegistration;
-
-    // Perform the refund transaction
-    user.wallet += priceToRefund;
-    registration.paymentStatus = 'refunded';
-
-    // Save the user document
+    // 6. Save the user document
     await user.save();
 
     res.status(200).json({ 
-      message: "Refund successful!",
+      message: "Cancellation and refund successful!",
       newBalance: user.wallet
     });
 
   } catch (err) {
-    console.error("Error processing refund:", err);
+    console.error("Error processing refund/cancellation:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
@@ -166,7 +182,7 @@ export const stripeWebhook = async (req, res) => {
 
   try {
     // req.rawBody is provided by the special middleware
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
   } catch (err) {
     console.log(`Webhook signature verification failed: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -196,6 +212,7 @@ export const stripeWebhook = async (req, res) => {
 
       // Update payment status
       registration.paymentStatus = 'paid';
+      console.log(registration)
       await user.save();
       
       console.log(`Successfully updated payment for user ${userId} and event ${eventId}`);

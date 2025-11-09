@@ -92,17 +92,37 @@ export default function MyRegisteredEvents() {
   };
 
   // --- REFUND FUNCTION ---
-  const handleRefund = async (eventId) => {
-    if (!window.confirm("Are you sure you want to request a refund?")) {
+  // --- (MODIFIED) REFUND/CANCEL FUNCTION ---
+  const handleRefund = async (registration) => {
+    // 1. Get event details from the registration object
+    const eventId = registration.event._id;
+    const eventStartDate = new Date(registration.event.startDate);
+
+    // 2. The 2-Week Business Rule (Client-side check)
+    const today = new Date();
+    const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000; // 14 days
+
+    if (eventStartDate.getTime() - today.getTime() < twoWeeksInMs) {
+      alert("Cancellation failed: You can only cancel events that are more than 2 weeks away.");
       return;
     }
 
+    // 3. Confirmation
+    if (!window.confirm("Are you sure you want to cancel this event? This action cannot be undone.")) {
+      return;
+    }
+
+    // 4. API Call
     setLoading(true);
     try {
+      // The endpoint is the same, but the logic on the server is new
       await API.post("/payment/request-refund", { eventId });
-      await fetchEvents(); // Refresh the list to show "Refunded"
+      
+      // Refresh the list. The event will be gone.
+      await fetchEvents(); 
     } catch (err) {
       console.error("Refund error:", err);
+      // Display the error from the server (e.g., if the deadline passed just now)
       alert(err.response?.data?.error || "Refund request failed.");
     } finally {
       setLoading(false);
@@ -199,12 +219,20 @@ export default function MyRegisteredEvents() {
                     {reg.event.title || "Untitled Event"}
                   </h2>
                   <p className="text-gray-700 mb-1">
-                    <strong>Type:</strong> {reg.event.type || "N/A"}
-                  </p>
-                  <p className="text-gray-700 mb-1">
                     <strong>Price:</strong> ${reg.priceAtRegistration}
                   </p>
-                  {/* ... other event details ... */}
+                  <p className="text-gray-700 mb-1">
+                    <strong>Start Date:</strong>{" "}
+                    {reg.event.startDate
+                      ? new Date(reg.event.startDate).toLocaleDateString()
+                      : "N/A"}
+                  </p>
+                  <p className="text-gray-700 mb-1">
+                    <strong>End Date:</strong>{" "}
+                    {reg.event.endDate
+                      ? new Date(reg.event.endDate).toLocaleDateString()
+                      : "N/A"}
+                  </p>
                 </div>
 
                 {/* --- CONDITIONAL PAYMENT/REFUND SECTION --- */}
@@ -229,13 +257,13 @@ export default function MyRegisteredEvents() {
                   {reg.paymentStatus === "paid" && (
                     <>
                       <p className="text-sm font-semibold text-green-600 mb-2">
-                        You have paid for this event
+                        You can cancel you registartion and refund your money
                       </p>
                       <button
-                        onClick={() => handleRefund(reg.event._id)}
+                        onClick={() => handleRefund(reg)}
                         className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 transition"
                       >
-                        Request Refund
+                        cancel & refund
                       </button>
                     </>
                   )}

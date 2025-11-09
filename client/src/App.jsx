@@ -25,6 +25,7 @@ import TADashboard from './pages/TADashboard';
 import UpcomingEvents from './components/UpcomingEvents';
 import RegisterForEvent from "./pages/RegisterForEvent";
 import MyRegisteredEvents from "./pages/MyRegisteredEvents";
+import PaymentSuccess from './pages/PaymentSuccess';
 
 function App() {
   return (
@@ -91,6 +92,8 @@ function App() {
 
         {/* 404 fallback */}
         <Route path="*" element={<NotFound />} />
+        {/* --- ADD THIS NEW ROUTE --- */}
+        <Route path="/payment-success" element={<PaymentSuccess />} />
       </Routes> 
 
     </div>
