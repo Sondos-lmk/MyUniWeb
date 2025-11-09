@@ -1,9 +1,80 @@
 import { User } from '../models/Users/User.js'; // Import base User model
 import { Event } from '../models/Events/Event.js';
+import { sendEmail } from '../utils/email.js';
 import Stripe from 'stripe';
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// --- NEW: PAYMENT RECEIPT HELPER FUNCTION ---
+/**
+ * Sends a payment receipt email to the user.
+ * @param {object} user - The full user Mongoose document.
+ * @param {object} registration - The specific registration object.
+ * @param {string} paymentMethod - e.g., "Wallet" or "Credit Card".
+ */
+// controllers/paymentController.js
+
+const sendPaymentReceipt = async (user, registration, paymentMethod) => {
+  try {
+    // We must ensure the event details are populated
+    if (!registration.event) {
+      throw new Error("Cannot send receipt; associated event not found.");
+    }
+
+    const eventTitle = registration.event.title;
+    const amountPaid = registration.priceAtRegistration;
+    const paymentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    const subject = `Payment Receipt for: ${eventTitle}`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="color: #004a99;">Payment Successful!</h2>
+        <p>Hi ${user.name},</p>
+        <p>This is a receipt for your payment for the event: <strong>${eventTitle}</strong>.</p>
+        <hr style="border: 0; border-top: 1px solid #eee;">
+        <h3 style="color: #333;">Payment Details:</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 8px 0;"><strong>Amount Paid:</strong></td>
+              <td style="padding: 8px 0; text-align: right;">$${amountPaid.toFixed(2)}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 8px 0;"><strong>Payment Method:</strong></td>
+              <td style="padding: 8px 0; text-align: right;">${paymentMethod}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0;"><strong>Payment Date:</strong></td>
+              <td style="padding: 8px 0; text-align: right;">${paymentDate}</td>
+            </tr>
+          </tbody>
+        </table>
+        <hr style="border: 0; border-top: 1px solid #eee;">
+        <p style="margin-top: 20px;">Thank you for your registration!</p>
+        <p style="font-size: 0.9em; color: #777;"><em>The Innovex Team</em></p>
+      </div>
+    `;
+
+    // --- THIS IS THE FIX ---
+    // We are now passing a single object instead of 3 arguments.
+    await sendEmail({
+      to: "ziadwalid2003@gmail.com",
+      subject: subject,
+      html: html
+    });
+    // --- END OF FIX ---
+    
+    console.log(`Payment receipt sent to ziadwalid2003@gmail.com`);
+  
+  } catch (emailError) {
+    // We log the *full* error to see what went wrong
+    console.error(`Failed to send payment receipt to ziadwalid2003@gmail.com:`, emailError);
+  }
+};
 
 // --- 1. PAY WITH WALLET ---
 
@@ -41,6 +112,14 @@ export const payWithWallet = async (req, res) => {
 
     // Save the user document
     await user.save();
+
+    await user.populate('registeredEvents.event');
+    // Find the registration object again (now populated)
+    const populatedReg = user.registeredEvents.find(
+      (reg) => reg.event._id.equals(eventId)
+    );
+
+    sendPaymentReceipt(user, populatedReg, 'Wallet');
 
     res.status(200).json({ 
       message: "Payment successful!",
@@ -214,6 +293,14 @@ export const stripeWebhook = async (req, res) => {
       registration.paymentStatus = 'paid';
       console.log(registration)
       await user.save();
+
+      await user.populate('registeredEvents.event');
+        // Find the populated registration
+        const populatedReg = user.registeredEvents.find(
+          (reg) => reg.event._id.equals(eventId)
+        );
+
+      sendPaymentReceipt(user, populatedReg, 'Credit Card');
       
       console.log(`Successfully updated payment for user ${userId} and event ${eventId}`);
 
