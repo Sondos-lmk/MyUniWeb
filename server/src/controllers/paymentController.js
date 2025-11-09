@@ -59,20 +59,18 @@ const sendPaymentReceipt = async (user, registration, paymentMethod) => {
       </div>
     `;
 
-    // --- THIS IS THE FIX ---
-    // We are now passing a single object instead of 3 arguments.
+    // --- SEND TO USER'S ACTUAL EMAIL ---
     await sendEmail({
-      to: "ziadwalid2003@gmail.com",
+      to: user.email,
       subject: subject,
       html: html
     });
-    // --- END OF FIX ---
     
-    console.log(`Payment receipt sent to ziadwalid2003@gmail.com`);
+    console.log(`Payment receipt sent to ${user.email}`);
   
   } catch (emailError) {
     // We log the *full* error to see what went wrong
-    console.error(`Failed to send payment receipt to ziadwalid2003@gmail.com:`, emailError);
+    console.error(`Failed to send payment receipt to ${user.email}:`, emailError);
   }
 };
 
@@ -100,6 +98,11 @@ export const payWithWallet = async (req, res) => {
 
     // Get the price from when they registered
     const priceToPay = registration.priceAtRegistration;
+
+    // Ensure wallet is initialized (default to 0 if undefined)
+    if (typeof user.wallet !== 'number' || isNaN(user.wallet)) {
+      user.wallet = 0;
+    }
 
     // Check wallet balance
     if (user.wallet < priceToPay) {
@@ -172,6 +175,10 @@ export const requestRefund = async (req, res) => {
 
     // 4. Process refund (if they paid)
     if (registration.paymentStatus === 'paid') {
+      // Ensure wallet is initialized
+      if (typeof user.wallet !== 'number' || isNaN(user.wallet)) {
+        user.wallet = 0;
+      }
       user.wallet += registration.priceAtRegistration;
     }
 
