@@ -11,6 +11,7 @@ import { Student } from "../models/Users/Student.js";
 import { Staff } from "../models/Users/Staff.js";
 import { Professor } from "../models/Users/Professor.js";
 import { TA } from "../models/Users/TA.js";
+import { EventOfficer } from "../models/Users/EventsOfficer.js";
 
 import { Vendor } from "../models/Users/Vendor.js";
 
@@ -679,15 +680,22 @@ export const rejectEvent = async (req, res) => {
   }
 };
 
+
 export const registerForWorkshopOrTrip = async (req, res) => {
+  // 1. Start a Mongoose session
+  const session = await mongoose.startSession();
+  
   try {
+    // 2. Start the transaction
+    session.startTransaction();
+
     const { eventId } = req.params;
     const userId = req.user._id || req.user.id;
 
-    // 1️⃣ Find the event and ensure it exists
-    const event = await Event.findById(eventId);
+    // 3. Find event *using the session*
+    const event = await Event.findById(eventId).session(session);
     if (!event) {
-      return res.status(404).json({ error: "Event not found" });
+      throw new Error("Event not found");
     }
 
     // ✅  NEW: Role restriction check (this is the important part)
@@ -699,48 +707,91 @@ export const registerForWorkshopOrTrip = async (req, res) => {
     }
 
     // 2️⃣ Allow only workshops and trips
+    // 4. Validate event type
     if (event.type !== "workshop" && event.type !== "trip") {
-      return res.status(400).json({
-        error: "You can only register for workshops or trips",
-      });
+      throw new Error("You can only register for workshops or trips");
     }
 
-    // 3️⃣ Prevent duplicate registration
-    event.registeredStudents = event.registeredStudents || [];
-    if (event.registeredStudents.includes(userId)) {
-      return res.status(400).json({ error: "Already registered for this event" });
+    // 5. Validate user role
+    const allowedRoles = ["student", "staff", "ta", "professor"];
+    if (!allowedRoles.includes(req.user.role)) {
+      throw new Error("This role is not allowed to register for events");
     }
 
-    // 4️⃣ Add user to event list
-    event.registeredStudents.push(userId);
-    await event.save();
+    // 6. Get the price
+    let priceToSave;
+    if (event.type === 'trip') {
+      priceToSave = event.price;
+    } else if (event.type === 'workshop') {
+      priceToSave = event.requiredBudget;
+    }
 
-    // 5️⃣ Add event to user’s registeredEvents
+    // 7. Validate the price
+    if (priceToSave === null || priceToSave === undefined) {
+      throw new Error(`Event ${eventId} is missing its price/budget field.`);
+    }
+
+    // 8. Find the user *using the session*
     const roleModelMap = {
       student: Student,
       staff: Staff,
       ta: TA,
       professor: Professor,
     };
-    const UserModel = roleModelMap[userRole];
-    if (UserModel) {
-      const user = await UserModel.findById(userId);
-      if (user) {
-        user.registeredEvents = user.registeredEvents || [];
-        const isAlreadyRegistered = user.registeredEvents.some(
-          (r) => r.event.equals(eventId)
-        );
-        if (!isAlreadyRegistered) {
-          user.registeredEvents.push({ event: eventId });
-          await user.save();
-        }
-      }
+    const UserModel = roleModelMap[req.user.role];
+    const user = await UserModel.findById(userId).session(session);
+
+    if (!user) {
+      throw new Error("User not found.");
     }
 
+    // 9. Check for duplicates and clean up invalid registrations
+
+    event.registeredStudents = event.registeredStudents || [];
+    user.registeredEvents = user.registeredEvents || [];
+    
+    // Clean up any invalid registrations (missing event or price)
+    user.registeredEvents = user.registeredEvents.filter((reg) => {
+      return reg && reg.event && reg.priceAtRegistration != null;
+    });
+    
+    if (event.registeredStudents.includes(userId)) {
+      throw new Error("Already registered (in event list)");
+    }
+    // Safe check: handle both ObjectId and plain ID strings
+    if (user.registeredEvents.some((reg) => {
+      if (!reg || !reg.event) return false;
+      return reg.event.equals ? reg.event.equals(eventId) : reg.event.toString() === eventId.toString();
+    })) {
+      throw new Error("Already registered (in user list)");
+    }
+
+    // 10. Update both documents
+    event.registeredStudents.push(userId);
+    user.registeredEvents.push({ 
+      event: eventId,
+      priceAtRegistration: priceToSave 
+    });
+
+    // 11. Save both documents *using the session*
+    await event.save({ session });
+    await user.save({ session });
+
+    // 12. Commit the transaction if both saves worked
+    await session.commitTransaction();
+
     res.status(200).json({ message: "Successfully registered for the event" });
+
   } catch (err) {
-    console.error("Error registering for event:", err);
-    res.status(500).json({ error: "Server error", details: err.message });
+    // 13. If anything failed, abort the transaction
+    await session.abortTransaction();
+    
+    console.error("Error registering for event (transaction aborted):", err);
+    // Send the error message from the 'throw new Error'
+    res.status(500).json({ error: err.message || "Server error" });
+  } finally {
+    // 14. Always end the session
+    session.endSession();
   }
 };
 
@@ -774,9 +825,12 @@ export const getMyRegisteredEventsFromUser = async (req, res) => {
     if (!user)
       return res.status(404).json({ message: "User not found" });
 
-    // 4️⃣ Return the populated registeredEvents
-    const events = user.registeredEvents || [];
-    res.status(200).json(user.registeredEvents || []);
+    // 4️⃣ Filter out any registrations where the event was deleted
+    const validRegistrations = (user.registeredEvents || []).filter(
+      (reg) => reg.event != null
+    );
+
+    res.status(200).json(validRegistrations);
 
   } catch (err) {
     console.error("❌ Error in getMyRegisteredEventsFromUser:", err);
@@ -827,6 +881,17 @@ export const createWorkshop = async (req, res) => {
     // ✅ Save the workshop
     const newWorkshop = new Workshop(value);
     await newWorkshop.save();
+
+     //  NEW: Notify all Event Officers about this new pending workshop
+    const eventOfficers = await EventOfficer.find();
+    const notificationMessage = `📢 New workshop request from Professor ${req.user.name || "Unknown"}: "${newWorkshop.title}"`;
+
+    await Promise.all(
+      eventOfficers.map(async (officer) => {
+        officer.notifications.push(notificationMessage);
+        await officer.save();
+      })
+    );
 
     res.status(201).json({
       message: "Workshop created successfully and is pending approval.",
