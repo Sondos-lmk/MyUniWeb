@@ -186,12 +186,16 @@ export async function login(req, res) {
     // Check verification (except student/vendor/admin)
     if (!['vendor', 'admin'].includes(user.role) && !user.isVerified)
       return res.status(403).json({ message: 'Account not verified' });
-
+if (!user.isActive) {
+  return res
+    .status(403)
+    .json({ message: "Your account has been blocked by an admin." });
+}
     // Check password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch)
       return res.status(401).json({ message: 'Invalid credentials' });
-
+   
     // ✅ Use your helper function to sign the token
     const token = signToken(user);
 
