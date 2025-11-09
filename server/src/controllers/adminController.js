@@ -1,3 +1,4 @@
+import { User } from "../models/Users/User.js";
 import { Staff } from '../models/Users/Staff.js';
 import { Professor } from '../models/Users/Professor.js';
 import { Student } from '../models/Users/Student.js';
@@ -90,6 +91,50 @@ export const createUserByAdmin = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// Helper function: find user by ID across all user models
+async function findUserById(id) {
+  return (
+    (await User.findById(id)) ||
+    (await Student.findById(id)) ||
+    (await Staff.findById(id)) ||
+    (await Professor.findById(id)) ||
+    (await TA.findById(id)) ||
+    (await Admin.findById(id)) ||
+    (await EventOfficer.findById(id)) ||
+    (await Vendor.findById(id))
+  );
+}
+
+export const blockUser = async (req, res) => {
+  try {
+    const user = await findUserById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.isActive = false;
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({ message: `${user.name} has been blocked.` });
+  } catch (err) {
+    console.error("Block user error:", err);
+    res.status(500).json({ message: "Failed to block user" });
+  }
+};
+
+export const unblockUser = async (req, res) => {
+  try {
+    const user = await findUserById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.isActive = true;
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({ message: `${user.name} has been unblocked.` });
+  } catch (err) {
+    console.error("Unblock user error:", err);
+    res.status(500).json({ message: "Failed to unblock user" });
+  }
+};
+
 
 //admin deleting event officer or other admin by id 
 export const deleteUserByAdmin = async (req, res) => {
@@ -123,7 +168,8 @@ export const getAllUsers = async (req, res) => {
 
     // Loop through each model and collect users
     for (const Model of models) {
-      const users = await Model.find({}, "name email role isVerified createdAt");
+      const users = await Model.find({}, "name email role isVerified isActive createdAt");
+
       allUsers.push(...users);
     }
 
@@ -133,4 +179,3 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
