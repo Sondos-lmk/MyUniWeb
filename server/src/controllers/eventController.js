@@ -680,15 +680,22 @@ export const rejectEvent = async (req, res) => {
   }
 };
 
+
 export const registerForWorkshopOrTrip = async (req, res) => {
+  // 1. Start a Mongoose session
+  const session = await mongoose.startSession();
+  
   try {
+    // 2. Start the transaction
+    session.startTransaction();
+
     const { eventId } = req.params;
     const userId = req.user._id || req.user.id;
 
-    // 1️⃣ Find the event and ensure it exists
-    const event = await Event.findById(eventId);
+    // 3. Find event *using the session*
+    const event = await Event.findById(eventId).session(session);
     if (!event) {
-      return res.status(404).json({ error: "Event not found" });
+      throw new Error("Event not found");
     }
 
     // ✅  NEW: Role restriction check (this is the important part)
@@ -700,48 +707,82 @@ export const registerForWorkshopOrTrip = async (req, res) => {
     }
 
     // 2️⃣ Allow only workshops and trips
+    // 4. Validate event type
     if (event.type !== "workshop" && event.type !== "trip") {
-      return res.status(400).json({
-        error: "You can only register for workshops or trips",
-      });
+      throw new Error("You can only register for workshops or trips");
     }
 
-    // 3️⃣ Prevent duplicate registration
-    event.registeredStudents = event.registeredStudents || [];
-    if (event.registeredStudents.includes(userId)) {
-      return res.status(400).json({ error: "Already registered for this event" });
+    // 5. Validate user role
+    const allowedRoles = ["student", "staff", "ta", "professor"];
+    if (!allowedRoles.includes(req.user.role)) {
+      throw new Error("This role is not allowed to register for events");
     }
 
-    // 4️⃣ Add user to event list
-    event.registeredStudents.push(userId);
-    await event.save();
+    // 6. Get the price
+    let priceToSave;
+    if (event.type === 'trip') {
+      priceToSave = event.price;
+    } else if (event.type === 'workshop') {
+      priceToSave = event.requiredBudget;
+    }
 
-    // 5️⃣ Add event to user’s registeredEvents
+    // 7. Validate the price
+    if (priceToSave === null || priceToSave === undefined) {
+      throw new Error(`Event ${eventId} is missing its price/budget field.`);
+    }
+
+    // 8. Find the user *using the session*
     const roleModelMap = {
       student: Student,
       staff: Staff,
       ta: TA,
       professor: Professor,
     };
-    const UserModel = roleModelMap[userRole];
-    if (UserModel) {
-      const user = await UserModel.findById(userId);
-      if (user) {
-        user.registeredEvents = user.registeredEvents || [];
-        const isAlreadyRegistered = user.registeredEvents.some(
-          (r) => r.event.equals(eventId)
-        );
-        if (!isAlreadyRegistered) {
-          user.registeredEvents.push({ event: eventId });
-          await user.save();
-        }
-      }
+    const UserModel = roleModelMap[req.user.role];
+    const user = await UserModel.findById(userId).session(session);
+
+    if (!user) {
+      throw new Error("User not found.");
     }
 
+    // 9. Check for duplicates
+
+    event.registeredStudents = event.registeredStudents || [];
+    user.registeredEvents = user.registeredEvents || [];
+    
+    if (event.registeredStudents.includes(userId)) {
+      throw new Error("Already registered (in event list)");
+    }
+    if (user.registeredEvents.some((reg) => reg.event.equals(eventId))) {
+      throw new Error("Already registered (in user list)");
+    }
+
+    // 10. Update both documents
+    event.registeredStudents.push(userId);
+    user.registeredEvents.push({ 
+      event: eventId,
+      priceAtRegistration: priceToSave 
+    });
+
+    // 11. Save both documents *using the session*
+    await event.save({ session });
+    await user.save({ session });
+
+    // 12. Commit the transaction if both saves worked
+    await session.commitTransaction();
+
     res.status(200).json({ message: "Successfully registered for the event" });
+
   } catch (err) {
-    console.error("Error registering for event:", err);
-    res.status(500).json({ error: "Server error", details: err.message });
+    // 13. If anything failed, abort the transaction
+    await session.abortTransaction();
+    
+    console.error("Error registering for event (transaction aborted):", err);
+    // Send the error message from the 'throw new Error'
+    res.status(500).json({ error: err.message || "Server error" });
+  } finally {
+    // 14. Always end the session
+    session.endSession();
   }
 };
 

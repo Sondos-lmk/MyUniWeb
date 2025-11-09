@@ -13,7 +13,12 @@ const studentSchema = new mongoose.Schema({
         required: true,
         enum: ['not paid', 'paid', 'refunded'],
         default: 'not paid'
-      } }],
+      },
+      priceAtRegistration: {
+        type: Number,
+        required: true
+      }
+    }],
   isActive: { type: Boolean, default: true },
   isVerified: { type: Boolean, default: false },
   wallet: { type: Number, default: 0 },
