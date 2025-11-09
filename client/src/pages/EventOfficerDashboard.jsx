@@ -4,6 +4,7 @@ import ApprovingEvents from "../components/ApprovingEvents.jsx";
 import UpcomingEvents from "../components/UpcomingEvents.jsx";
 import AttendeesReport from "../components/AttendeesReport";
 
+
 import Navbar from "../components/Navbar.jsx";
 
 
