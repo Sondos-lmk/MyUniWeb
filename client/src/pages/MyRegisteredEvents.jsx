@@ -19,13 +19,16 @@ export default function MyRegisteredEvents() {
   const fetchEvents = async () => {
     setLoading(true);
     try {
+      console.log("Fetching registered events...");
       const res = await API.get("/events/my-registered");
+      console.log("Response:", res.data);
       setRegistrations(res.data);
       setError("");
     } catch (err) {
       console.error("Error fetching registered events:", err);
+      console.error("Error details:", err.response);
       setError(
-        err.response?.data?.error || "Failed to load your registered events."
+        err.response?.data?.error || err.response?.data?.message || err.message || "Failed to load your registered events."
       );
     } finally {
       setLoading(false);
@@ -208,7 +211,9 @@ export default function MyRegisteredEvents() {
           </p>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {registrations.map((reg) => (
+            {registrations
+              .filter((reg) => reg.event) // Only show registrations with valid events
+              .map((reg) => (
               <div
                 key={reg.event._id}
                 className="bg-white p-5 rounded-xl shadow hover:shadow-lg transition flex flex-col justify-between"

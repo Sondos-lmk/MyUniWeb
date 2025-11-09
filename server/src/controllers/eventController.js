@@ -745,15 +745,24 @@ export const registerForWorkshopOrTrip = async (req, res) => {
       throw new Error("User not found.");
     }
 
-    // 9. Check for duplicates
+    // 9. Check for duplicates and clean up invalid registrations
 
     event.registeredStudents = event.registeredStudents || [];
     user.registeredEvents = user.registeredEvents || [];
     
+    // Clean up any invalid registrations (missing event or price)
+    user.registeredEvents = user.registeredEvents.filter((reg) => {
+      return reg && reg.event && reg.priceAtRegistration != null;
+    });
+    
     if (event.registeredStudents.includes(userId)) {
       throw new Error("Already registered (in event list)");
     }
-    if (user.registeredEvents.some((reg) => reg.event.equals(eventId))) {
+    // Safe check: handle both ObjectId and plain ID strings
+    if (user.registeredEvents.some((reg) => {
+      if (!reg || !reg.event) return false;
+      return reg.event.equals ? reg.event.equals(eventId) : reg.event.toString() === eventId.toString();
+    })) {
       throw new Error("Already registered (in user list)");
     }
 
@@ -816,9 +825,12 @@ export const getMyRegisteredEventsFromUser = async (req, res) => {
     if (!user)
       return res.status(404).json({ message: "User not found" });
 
-    // 4️⃣ Return the populated registeredEvents
-    const events = user.registeredEvents || [];
-    res.status(200).json(user.registeredEvents || []);
+    // 4️⃣ Filter out any registrations where the event was deleted
+    const validRegistrations = (user.registeredEvents || []).filter(
+      (reg) => reg.event != null
+    );
+
+    res.status(200).json(validRegistrations);
 
   } catch (err) {
     console.error("❌ Error in getMyRegisteredEventsFromUser:", err);
