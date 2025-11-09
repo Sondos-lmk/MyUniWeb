@@ -11,6 +11,7 @@ import { Student } from "../models/Users/Student.js";
 import { Staff } from "../models/Users/Staff.js";
 import { Professor } from "../models/Users/Professor.js";
 import { TA } from "../models/Users/TA.js";
+import { EventOfficer } from "../models/Users/EventsOfficer.js";
 
 import { Vendor } from "../models/Users/Vendor.js";
 
@@ -868,6 +869,17 @@ export const createWorkshop = async (req, res) => {
     // ✅ Save the workshop
     const newWorkshop = new Workshop(value);
     await newWorkshop.save();
+
+     //  NEW: Notify all Event Officers about this new pending workshop
+    const eventOfficers = await EventOfficer.find();
+    const notificationMessage = `📢 New workshop request from Professor ${req.user.name || "Unknown"}: "${newWorkshop.title}"`;
+
+    await Promise.all(
+      eventOfficers.map(async (officer) => {
+        officer.notifications.push(notificationMessage);
+        await officer.save();
+      })
+    );
 
     res.status(201).json({
       message: "Workshop created successfully and is pending approval.",
