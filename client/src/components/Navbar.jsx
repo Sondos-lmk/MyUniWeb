@@ -1,5 +1,7 @@
 // client/src/components/Navbar.jsx
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import NotificationBell from "./NotificationBell";
+
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -64,7 +66,10 @@ export default function Navbar() {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          {/* Show bell only when logged in as Event Officer */}
+             {token && (role === "eventOfficer" || role === "admin") && <NotificationBell />}
+
           {!token ? (
             <>
               <Link

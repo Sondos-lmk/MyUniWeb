@@ -35,7 +35,9 @@ const workshopSchema = new mongoose.Schema({
   capacity: {type: Number,required: true},
   createdBy: {type: mongoose.Schema.Types.ObjectId,ref: "User",required: true},
   status: {type: String,enum: ["pending", "approved", "rejected", "needs revision"],default: "pending"},
-  editRequest: {type: String,default: null}
+  editRequest: {type: String,default: null},
+  certificatesSent: { type: Boolean, default: false },
+
 
 
 }, 
