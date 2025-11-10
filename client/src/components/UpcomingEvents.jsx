@@ -7,6 +7,11 @@ const UpcomingEvents = () => {
   const [error, setError] = useState(null);
   const [searchName, setSearchName] = useState("");
   const [type, setType] = useState("");
+  const [location, setLocation] = useState("");
+  const [date, setDate] = useState(""); // format YYYY-MM-DD
+  const [sortOrder, setSortOrder] = useState("asc");
+
+
 
   // Fetch all upcoming events (default)
   const fetchEvents = async () => {
@@ -28,6 +33,7 @@ const UpcomingEvents = () => {
   // Search by name/type
   const handleSearch = async (e) => {
     e.preventDefault();
+    
     if (!searchName && !type) {
       fetchEvents();
       return;
@@ -53,6 +59,44 @@ const UpcomingEvents = () => {
     }
   };
 
+  const handleAdvancedSearch = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+  
+    try {
+      const token = localStorage.getItem("token");
+  
+      const params = {};
+      if (searchName) params.title = searchName;
+      if (type) params.type = type;
+      if (location) params.location = location;
+      if (date) params.date = date;
+      if (sortOrder) params.sort = sortOrder;
+  
+      const res = await API.get("/events", {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+  
+      const payload = Array.isArray(res.data)
+        ? res.data
+        : res.data.events || [];
+  
+      setEvents(payload);
+    } catch (err) {
+      console.error("Error filtering events:", err);
+      setError("Failed to filter events.");
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
+
+  
+
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -64,7 +108,7 @@ const UpcomingEvents = () => {
       {/* 🔍 Search Bar */}
       <form
         onSubmit={handleSearch}
-        className="flex flex-wrap gap-3 mb-4 items-center"
+        className="flex flex-wrap gap-3 justify-start mb-4 items-center border-t pt-3"
       >
         <input
           type="text"
@@ -109,6 +153,60 @@ const UpcomingEvents = () => {
           </button>
         )}
       </form>
+
+      <form
+  onSubmit={handleAdvancedSearch}
+  className="flex flex-wrap gap-4 justify-start items-center border-t pt-3"
+>
+  <input
+    type="text"
+    placeholder="Filter by location..."
+    value={location}
+    onChange={(e) => setLocation(e.target.value)}
+    className="border rounded-lg px-3 py-2 w-52 focus:ring focus:ring-blue-200"
+  />
+
+  <input
+    type="date"
+    value={date}
+    onChange={(e) => setDate(e.target.value)}
+    className="border rounded-lg px-3 py-2 focus:ring focus:ring-blue-200"
+  />
+
+  <button
+    type="submit"
+    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+  >
+   <select
+  value={sortOrder}
+  onChange={(e) => setSortOrder(e.target.value)}
+  className="border rounded-lg px-3 py-2 w-40 text-black bg-white focus:ring focus:ring-blue-200"
+>
+  <option value="asc">Sort by Date ↑</option>
+  <option value="desc">Sort by Date ↓</option>
+</select>
+
+  
+
+    Filter by Location/Date
+  </button>
+
+  {(location || date) && (
+    <button
+      type="button"
+      onClick={() => {
+        setLocation("");
+        setDate("");
+        fetchEvents();
+      }}
+      className="text-sm text-gray-600 underline"
+    >
+      Clear
+    </button>
+  )}
+</form>
+
+      
 
       {/* ⚙️ Loading & Error States */}
       {loading && <p>Loading events...</p>}

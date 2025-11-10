@@ -11,6 +11,7 @@ import { Student } from "../models/Users/Student.js";
 import { Staff } from "../models/Users/Staff.js";
 import { Professor } from "../models/Users/Professor.js";
 import { TA } from "../models/Users/TA.js";
+import { EventOfficer } from "../models/Users/EventsOfficer.js";
 
 import { Vendor } from "../models/Users/Vendor.js";
 
@@ -24,6 +25,8 @@ const baseEventSchema = Joi.object({
   status: Joi.string().valid('pending', 'approved', 'rejected', 'completed'),
   createdBy: Joi.string().optional(),
   organizerId: Joi.string().optional(),
+  allowedRoles: Joi.array().items(Joi.string().valid("student", "staff", "ta", "professor")),
+
 });
 
 const bazaarSchema = baseEventSchema.keys({
@@ -161,21 +164,41 @@ const getEventModel = (type) => {
 // Get all events (optionally filter by type)
 export const getAllEvents = async (req, res) => {
   try {
-    const { type } = req.query;
+    const { type, title, location, date } = req.query;
+
+    // Pick correct model (based on type or default Event)
     const Model = type ? getEventModel(type) : Event;
 
-    console.log("Query type:", type);
-    console.log("Using model:", Model.modelName);
+    //  Build flexible query
+    const query = {};
+    if (type) query.type = type;
+    if (title) query.title = { $regex: title, $options: "i" }; // case-insensitive
+    if (location) query.location = { $regex: location, $options: "i" };
+    if (date) {
+      const targetDate = new Date(date);
+      query.$or = [
+        { startDate: { $lte: targetDate }, endDate: { $gte: targetDate } },
+        { date: targetDate }, // gym sessions, etc.
+      ];
+    }
+    let sortOrder = 1; // default ascending (oldest → newest)
+    if (req.query.sort === "desc") sortOrder = -1;
 
-    const events = await Model.find({});
-    console.log("Fetched events from DB:", events); // <--- Add this
+    //  Fetch events
+    const events = await Model.find(query).sort({ startDate: sortOrder });
 
-    res.status(200).json(events);
+    // Return response
+    res.status(200).json({
+      message: "Filtered events fetched successfully",
+      count: events.length,
+      events,
+    });
   } catch (err) {
-    console.error("Error in getAllEvents:", err);
+    console.error("Error filtering events:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 export const getEventById = async (req, res) => {
@@ -450,9 +473,12 @@ export const createEvent = async (req, res) => {
       payload.createdBy = authUserId; // 👈 add it here, AFTER validation
     }
 
+    // ✅ Optional roles allowed to register for the event
+    payload.allowedRoles = req.body.allowedRoles || ["student", "staff", "ta", "professor"];
+
     // Auto-approve trips, bazaars, and conferences
-    if (type === 'trip' || type === 'bazaar' || type === 'conference') {
-      payload.status = 'approved';
+    if (type === "trip" || type === "bazaar" || type === "conference") {
+      payload.status = "approved";
     }
 
     const Model = getEventModel(type);
@@ -468,6 +494,7 @@ export const createEvent = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 // Update event
@@ -607,43 +634,58 @@ export const rejectEvent = async (req, res) => {
   }
 };
 
+
 export const registerForWorkshopOrTrip = async (req, res) => {
+  // 1. Start a Mongoose session
+  const session = await mongoose.startSession();
+  
   try {
+    // 2. Start the transaction
+    session.startTransaction();
+
     const { eventId } = req.params;
     const userId = req.user._id || req.user.id;
 
-    // 1️⃣ Find the event and ensure it exists
-    const event = await Event.findById(eventId);
+    // 3. Find event *using the session*
+    const event = await Event.findById(eventId).session(session);
     if (!event) {
-      return res.status(404).json({ error: "Event not found" });
+      throw new Error("Event not found");
+    }
+
+    // ✅  NEW: Role restriction check (this is the important part)
+    const userRole = req.user.role?.toLowerCase();
+    if (event.allowedRoles && !event.allowedRoles.includes(userRole)) {
+      return res.status(403).json({
+        error: `Registration not allowed for ${userRole}s for this event.`,
+      });
     }
 
     // 2️⃣ Allow only workshops and trips
+    // 4. Validate event type
     if (event.type !== "workshop" && event.type !== "trip") {
-      return res.status(400).json({
-        error: "You can only register for workshops or trips",
-      });
+      throw new Error("You can only register for workshops or trips");
     }
 
-    // 3️⃣ Check if the user’s role is allowed
+    // 5. Validate user role
     const allowedRoles = ["student", "staff", "ta", "professor"];
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        error: "This role is not allowed to register for events",
-      });
+      throw new Error("This role is not allowed to register for events");
     }
 
-    // 4️⃣ Prevent duplicate registration
-    event.registeredStudents = event.registeredStudents || [];
-    if (event.registeredStudents.includes(userId)) {
-      return res.status(400).json({ error: "Already registered for this event" });
+    // 6. Get the price
+    let priceToSave;
+    if (event.type === 'trip') {
+      priceToSave = event.price;
+    } else if (event.type === 'workshop') {
+      priceToSave = event.requiredBudget;
     }
 
-    // 5️⃣ Add user to the event’s registered list
-    event.registeredStudents.push(userId);
-    await event.save();
+    // 7. Validate the price
+    if (priceToSave === null || priceToSave === undefined) {
+      throw new Error(`Event ${eventId} is missing its price/budget field.`);
+    }
 
-    // 6️⃣ Add event to user’s registeredEvents list
+    // 8. Find the user *using the session*
     const roleModelMap = {
       student: Student,
       staff: Staff,
@@ -651,25 +693,62 @@ export const registerForWorkshopOrTrip = async (req, res) => {
       professor: Professor,
     };
     const UserModel = roleModelMap[req.user.role];
+    const user = await UserModel.findById(userId).session(session);
 
-    if (UserModel) {
-      const user = await UserModel.findById(userId);
-      if (user) {
-        user.registeredEvents = user.registeredEvents || [];
-        if (!user.registeredEvents.includes(eventId)) {
-          user.registeredEvents.push(eventId);
-          await user.save();
-        }
-      }
+    if (!user) {
+      throw new Error("User not found.");
     }
 
-    // 7️⃣ Send success message only
+    // 9. Check for duplicates and clean up invalid registrations
+
+    event.registeredStudents = event.registeredStudents || [];
+    user.registeredEvents = user.registeredEvents || [];
+    
+    // Clean up any invalid registrations (missing event or price)
+    user.registeredEvents = user.registeredEvents.filter((reg) => {
+      return reg && reg.event && reg.priceAtRegistration != null;
+    });
+    
+    if (event.registeredStudents.includes(userId)) {
+      throw new Error("Already registered (in event list)");
+    }
+    // Safe check: handle both ObjectId and plain ID strings
+    if (user.registeredEvents.some((reg) => {
+      if (!reg || !reg.event) return false;
+      return reg.event.equals ? reg.event.equals(eventId) : reg.event.toString() === eventId.toString();
+    })) {
+      throw new Error("Already registered (in user list)");
+    }
+
+    // 10. Update both documents
+    event.registeredStudents.push(userId);
+    user.registeredEvents.push({ 
+      event: eventId,
+      priceAtRegistration: priceToSave 
+    });
+
+    // 11. Save both documents *using the session*
+    await event.save({ session });
+    await user.save({ session });
+
+    // 12. Commit the transaction if both saves worked
+    await session.commitTransaction();
+
     res.status(200).json({ message: "Successfully registered for the event" });
+
   } catch (err) {
-    console.error("Error registering for event:", err);
-    res.status(500).json({ error: "Server error", details: err.message });
+    // 13. If anything failed, abort the transaction
+    await session.abortTransaction();
+    
+    console.error("Error registering for event (transaction aborted):", err);
+    // Send the error message from the 'throw new Error'
+    res.status(500).json({ error: err.message || "Server error" });
+  } finally {
+    // 14. Always end the session
+    session.endSession();
   }
 };
+
 
 export const getMyRegisteredEventsFromUser = async (req, res) => {
   try {
@@ -693,16 +772,19 @@ export const getMyRegisteredEventsFromUser = async (req, res) => {
 
     // 3️⃣ Find the user and populate their registered events
     const user = await Model.findById(userId).populate(
-      "registeredEvents",
+      "registeredEvents.event",
       "title type startDate endDate location description"
     );
 
     if (!user)
       return res.status(404).json({ message: "User not found" });
 
-    // 4️⃣ Return the populated registeredEvents
-    const events = user.registeredEvents || [];
-    res.status(200).json(user.registeredEvents || []);
+    // 4️⃣ Filter out any registrations where the event was deleted
+    const validRegistrations = (user.registeredEvents || []).filter(
+      (reg) => reg.event != null
+    );
+
+    res.status(200).json(validRegistrations);
 
   } catch (err) {
     console.error("❌ Error in getMyRegisteredEventsFromUser:", err);
@@ -753,6 +835,17 @@ export const createWorkshop = async (req, res) => {
     // ✅ Save the workshop
     const newWorkshop = new Workshop(value);
     await newWorkshop.save();
+
+     //  NEW: Notify all Event Officers about this new pending workshop
+    const eventOfficers = await EventOfficer.find();
+    const notificationMessage = `📢 New workshop request from Professor ${req.user.name || "Unknown"}: "${newWorkshop.title}"`;
+
+    await Promise.all(
+      eventOfficers.map(async (officer) => {
+        officer.notifications.push(notificationMessage);
+        await officer.save();
+      })
+    );
 
     res.status(201).json({
       message: "Workshop created successfully and is pending approval.",
