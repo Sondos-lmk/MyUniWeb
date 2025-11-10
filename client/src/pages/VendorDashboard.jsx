@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import ApplyBoothForm from "../components/ApplyBoothForm";
 import MyApplications from "../components/MyApplications";
 import API from "../services/api";
+import LoyaltyManager from "../components/LoyalityProgrameManger"
 import CreateWorkshop from "./CreateWorkshop";
 import { getMyWorkshops } from "../services/workshop";
 import UpcomingEvents from "../components/UpcomingEvents";
@@ -130,6 +131,9 @@ function Dashboard() {
       {/* Vendor Dashboard */}
       {role === "vendor" && (
         <div className="flex justify-between items-start gap-6 p-6">
+          <div className="max-w-2xl mx-auto my-8">
+            <LoyaltyManager />
+          </div>
           {/* LEFT — Upcoming Bazaars */}
           <div className="w-1/2">
             <h2 className="text-xl font-semibold mb-4">Upcoming Bazaar Events</h2>
