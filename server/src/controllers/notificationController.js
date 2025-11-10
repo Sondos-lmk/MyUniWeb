@@ -1,22 +1,26 @@
 import { EventOfficer } from "../models/Users/EventsOfficer.js";
+import { Admin } from "../models/Users/Admin.js";
 
-// ✅ Get all notifications for logged-in Event Officer
+// ✅ Get all notifications for logged-in Event Officer or Admin
 export const getMyNotifications = async (req, res) => {
   try {
-    // make sure this user is actually an Event Officer
-    if (req.user.role !== "eventOfficer") {
-      return res.status(403).json({ message: "Access denied. Event Officers only." });
+    const { role, _id } = req.user;
+
+    if (role !== "eventOfficer" && role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins or Event Officers only." });
     }
 
-    const officer = await EventOfficer.findById(req.user._id).select("notifications");
-    if (!officer) {
-      return res.status(404).json({ message: "Event Officer not found." });
+    const Model = role === "admin" ? Admin : EventOfficer;
+    const user = await Model.findById(_id).select("notifications");
+
+    if (!user) {
+      return res.status(404).json({ message: `${role} not found.` });
     }
 
     res.status(200).json({
       success: true,
-      count: officer.notifications.length,
-      notifications: officer.notifications.reverse(), // latest first
+      count: user.notifications.length,
+      notifications: user.notifications.reverse(),
     });
   } catch (error) {
     console.error("Error fetching notifications:", error);
@@ -24,14 +28,18 @@ export const getMyNotifications = async (req, res) => {
   }
 };
 
-// ✅ Optional: clear notifications
+// ✅ Clear notifications for logged-in Admin or Event Officer
 export const clearMyNotifications = async (req, res) => {
   try {
-    if (req.user.role !== "eventOfficer") {
-      return res.status(403).json({ message: "Access denied. Event Officers only." });
+    const { role, _id } = req.user;
+
+    if (role !== "eventOfficer" && role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins or Event Officers only." });
     }
 
-    await EventOfficer.findByIdAndUpdate(req.user._id, { notifications: [] });
+    const Model = role === "admin" ? Admin : EventOfficer;
+    await Model.findByIdAndUpdate(_id, { notifications: [] });
+
     res.json({ success: true, message: "Notifications cleared." });
   } catch (error) {
     console.error("Error clearing notifications:", error);

@@ -6,6 +6,7 @@ import AllUsers from "./AllUsers";
 
 import ApprovingEvents from "../components/ApprovingEvents";
 import AttendeesReport from "../components/AttendeesReport";
+import NotificationBell from "../components/NotificationBell";
 
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -241,15 +242,23 @@ const AdminDashboard = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
-      </div>
+    <div className="flex justify-between items-center mb-4">
+  <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+
+  <div className="flex items-center gap-4">
+    {/* 🔔 Show notifications for Admin too */}
+    <NotificationBell />
+
+    <button
+      onClick={handleLogout}
+      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+    >
+      Logout
+    </button>
+  </div>
+</div>
+
+       
       {/* Attendees Report (shared component: shows only total attendees) */}
       <div className="mt-8 mb-8">
         <AttendeesReport />

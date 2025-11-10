@@ -1,5 +1,5 @@
 import express from "express";
-import { requireAuth, requireEventOfficer } from "../middleware/auth.js";
+import { requireAuth } from "../middleware/auth.js";
 import {
   getMyNotifications,
   clearMyNotifications,
@@ -7,10 +7,10 @@ import {
 
 const router = express.Router();
 
-// ✅ Get all notifications for logged-in Event Officer
-router.get("/", requireAuth, requireEventOfficer, getMyNotifications);
+// ✅ Allow both Admins and Event Officers to get notifications
+router.get("/", requireAuth, getMyNotifications);
 
-// ✅ Optional: clear all notifications
-router.delete("/clear", requireAuth, requireEventOfficer, clearMyNotifications);
+// ✅ Allow both Admins and Event Officers to clear notifications
+router.delete("/clear", requireAuth, clearMyNotifications);
 
 export default router;

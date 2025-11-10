@@ -4,6 +4,11 @@ import { sendEmail } from '../utils/email.js';
 import Stripe from 'stripe';
 
 // Initialize Stripe with your secret key
+import dotenv from "dotenv";
+dotenv.config();
+
+
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // --- NEW: PAYMENT RECEIPT HELPER FUNCTION ---
