@@ -4,12 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import ApplyBoothForm from "../components/ApplyBoothForm";
 import MyApplications from "../components/MyApplications";
 import API from "../services/api";
-import CreateWorkshop from "./CreateWorkshop";
-import { getMyWorkshops } from "../services/workshop";
-import UpcomingEvents from "../components/UpcomingEvents";
-//import MyRegisteredEvents from "./MyRegisteredEvents";
-import RegisterForEvent from "./RegisterForEvent";
-import GymSchedule from "./GymSchedule";
+
 
 
 function Dashboard() {
@@ -45,30 +40,30 @@ function Dashboard() {
       return;
     }
 
-    const fetchEvents = async () => {
-      setLoading(true);
-      try {
-        const res = await API.get("/events?type=bazaar", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    // VendorDashboard.jsx / Dashboard.jsx
+const fetchEvents = async () => {
+  setLoading(true);
+  try {
+    const res = await API.get("/events?type=bazaar", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-        if (Array.isArray(res.data)) {
-          const now = new Date();
-          const upcomingBazaars = res.data.filter(
-            (event) => new Date(event.startDate) > now
-          );
-          setEvents(upcomingBazaars);
-        } else {
-          console.warn("Expected array but got:", res.data);
-          setEvents([]);
-        }
-      } catch (err) {
-        console.error("Error fetching vendor events:", err);
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Use the new API structure
+    const eventsArray = Array.isArray(res.data.events) ? res.data.events : [];
+    const now = new Date();
+    const upcomingBazaars = eventsArray.filter(
+      (event) => new Date(event.startDate) > now
+    );
+
+    setEvents(upcomingBazaars);
+  } catch (err) {
+    console.error("Error fetching vendor events:", err);
+    setEvents([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     fetchEvents();
   }, [role, token]);

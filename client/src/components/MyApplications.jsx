@@ -62,8 +62,8 @@ function MyApplications() {
               <p className="text-gray-700">
                 Location: {app.location || app.locationInPlatform || "N/A"}
                 <br />
-               <p className="text-left text-sm "> Booth Size: <span className="text-teal-800">{app.boothSize || "N/A"}</span>
-               &nbsp; Price: <span className="text-teal-800">{app.finalPrice } EGP </span></p>
+               <span className="text-left text-sm "> Booth Size: <span className="text-teal-800">{app.boothSize || "N/A"}</span>
+               &nbsp; Price: <span className="text-teal-800">{app.finalPrice } EGP </span></span>
               </p>
                {app.status === "approved" && app.paymentStatus && (
       <>
