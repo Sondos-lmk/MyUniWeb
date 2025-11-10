@@ -12,7 +12,9 @@ import { Staff } from "../models/Users/Staff.js";
 import { Professor } from "../models/Users/Professor.js";
 import { TA } from "../models/Users/TA.js";
 import { EventOfficer } from "../models/Users/EventsOfficer.js";
-
+import { sendEmail } from "../utils/email.js";
+import { generateCertificate } from "../utils/generateCertificate.js";
+import path from "path";
 import { Vendor } from "../models/Users/Vendor.js";
 
 import mongoose from "mongoose";
@@ -983,6 +985,38 @@ export const getPendingWorkshops = async (req, res) => {
       message: "Failed to fetch pending workshops.",
       error: err.message,
     });
+  }
+};
+
+export const sendCertificate = async (req, res) => {
+  try {
+    const { studentName, studentEmail, workshopTitle, date } = req.body;
+
+    // Generate PDF
+    const filePath = await generateCertificate(studentName, workshopTitle, date);
+
+    // Send email with attachment
+    await sendEmail({
+      to: studentEmail,
+      subject: `Certificate of Attendance - ${workshopTitle}`,
+      html: `
+        <p>Dear ${studentName},</p>
+        <p>Congratulations! 🎓 You have successfully attended <strong>${workshopTitle}</strong>.</p>
+        <p>Your certificate of attendance is attached below.</p>
+        <p>Best regards,<br/>GUC Events Team</p>
+      `,
+      attachments: [
+        {
+          filename: path.basename(filePath),
+          path: filePath,
+        },
+      ],
+    });
+
+    res.status(200).json({ message: "Certificate sent successfully!" });
+  } catch (err) {
+    console.error("Certificate Error:", err);
+    res.status(500).json({ message: "Failed to send certificate." });
   }
 };
 
