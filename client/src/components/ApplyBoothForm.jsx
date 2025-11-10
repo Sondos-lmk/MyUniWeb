@@ -47,6 +47,22 @@ function ApplyBoothForm() {
     }
   };
 
+  // Compute selected booth and estimated price
+const selectedBooth = booths.find(b => b._id === form.boothId);
+
+let estimatedPrice = 0;
+if (selectedBooth && form.startDate) {
+  const start = new Date(form.startDate);
+  const end = new Date(start);
+  end.setDate(end.getDate() + Number(form.durationWeeks) * 7 - 1);
+
+  const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  const sizeMultiplier = form.boothSize === "4x4" ? 1.5 : 1;
+
+  estimatedPrice = selectedBooth.basePricePerDay * days * sizeMultiplier;
+}
+
+
 const isBoothAvailable = (booth) => {
   // If no dates selected yet, booth is available
   if (!form.startDate || !form.durationWeeks) return true;
@@ -195,7 +211,7 @@ const isBoothAvailable = (booth) => {
           </div>
 
           {/* Center Platform */}
-          <div className="w-75 h-50 bg-green-300 flex items-center justify-center text-white font-bold rounded shadow-inner">
+          <div className="w-75 h-50 bg-teal-600 flex items-center justify-center text-white font-bold rounded shadow-inner">
             Platform
           </div>
 
@@ -224,43 +240,79 @@ const isBoothAvailable = (booth) => {
             })}
           </div>
         </div>
+{/* Selected Booth Info */}
+{selectedBooth && (
+  <div className="mt-4 p-3 border rounded bg-gray-50">
+    <p>
+      <span className="font-semibold">Booth Location:</span>{" "}
+      {selectedBooth.locationInPlatform || "N/A"}
+    </p>
+    <p>
+      <span className="font-semibold">Estimated Price:</span> {estimatedPrice.toLocaleString()} EGP
+    </p>
+  </div>
+)}
 
-        {/* Reps */}
-        <h3 className="font-semibold mt-2">Booth Representatives</h3>
-        {form.reps.map((rep, i) => (
-          <div key={i} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Name"
-              value={rep.name}
-              onChange={(e) => handleRepChange(i, "name", e.target.value)}
-              className="border p-2 rounded flex-1"
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={rep.email}
-              onChange={(e) => handleRepChange(i, "email", e.target.value)}
-              className="border p-2 rounded flex-1"
-              required
-            />
-          </div>
-        ))}
+        
+{/* Reps */}
+<h3 className="font-semibold mt-2">Booth Representatives</h3>
+{form.reps.map((rep, i) => (
+  <div key={i} className="mb-3 flex items-center gap-2 w-full">
+    {/* Name input */}
+    <input
+      type="text"
+      placeholder="Name"
+      value={rep.name}
+      onChange={(e) => handleRepChange(i, "name", e.target.value)}
+      className="border p-2 rounded flex-1 min-w-0"
+      required
+    />
 
-        {form.reps.length < 5 && (
-          <button
-            type="button"
-            onClick={addRep}
-            className="text-blue-500 underline self-start"
-          >
-            + Add Another Representative
-          </button>
-        )}
+    {/* Email input */}
+    <input
+      type="email"
+      placeholder="Email"
+      value={rep.email}
+      onChange={(e) => handleRepChange(i, "email", e.target.value)}
+      className="border p-2 rounded flex-1 min-w-0"
+      required
+    />
+
+    {/* Remove button (stays to the right, never overlaps) */}
+    {form.reps.length > 1 && (
+      <button
+        type="button"
+        onClick={() => {
+          const newReps = form.reps.filter((_, idx) => idx !== i);
+          setForm({ ...form, reps: newReps });
+        }}
+        className="flex-shrink-0 text-red-600 font-bold px-3 py-1 rounded hover:bg-red-100"
+      >
+        ✕
+      </button>
+    )}
+  </div>
+))}
+
+
+
+
+
+
+{form.reps.length < 5 && (
+  <button
+    type="button"
+    onClick={addRep}
+    className="text-teal-500 underline self-start mt-1"
+  >
+    + Add Another Representative
+  </button>
+)}
+
 
         <button
           type="submit"
-          className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 mt-3"
+          className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-900 mt-3"
         >
           Submit Application
         </button>

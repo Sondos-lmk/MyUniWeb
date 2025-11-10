@@ -50,63 +50,66 @@ const loginSchema = Joi.object({
 // ---------- REGISTER ----------
 export async function register(req, res) {
   try {
-    // Validate input with Joi
+    // ✅ Validate input (Joi)
     const { value, error } = registerSchema.validate(req.body);
     if (error) return res.status(400).json({ message: error.message });
 
     const { name, email, password, role, uniID, companyName } = value;
     console.log('Register Attempt:', { name, email, role, uniID, companyName });
 
-    // ✅ Role-based email validation
+    // ✅ Handle uploaded files (via multer)
+    const files = req.files || {};
+    const taxFile = files.taxDocument?.[0];
+    const logoFile = files.logo?.[0];
+
+    // ✅ Role-based email rules
     if (role === 'student' && !email.endsWith('@student.guc.edu.eg')) {
-      return res
-        .status(400)
-        .json({ message: 'Student email must end with @student.guc.edu.eg' });
+      return res.status(400).json({ message: 'Student email must end with @student.guc.edu.eg' });
     }
 
-     if (['staff', 'ta', 'professor', 'admin'].includes(role)) {
-      if (!email.endsWith('@guc.edu.eg') ) { 
-        return res.status(400).json({
-          message: `${role} email must end with @guc.edu.eg `,
-        });
+    if (['staff', 'ta', 'professor', 'admin'].includes(role)) {
+      if (!email.endsWith('@guc.edu.eg')) {
+        return res.status(400).json({ message: `${role} email must end with @guc.edu.eg` });
       }
     }
 
-    // Require companyName for vendor(to solve vendor sign up server error)
-    if (role === 'vendor' && (!companyName || companyName === '')) {
-      return res.status(400).json({
-        message: 'Company name is required for vendors',
-      });
+    // ✅ Vendor: require company name + files
+    if (role === 'vendor') {
+      if (!companyName?.trim()) {
+        return res.status(400).json({ message: 'Company name is required for vendors' });
+      }
+      if (!taxFile || !logoFile) {
+        return res.status(400).json({ message: 'taxDocument and logo are required for vendor' });
+      }
     }
 
-    // Choose correct model
-   const Model = getModelByRole(role); // instead of manually checking all models
+    // ✅ Get proper model
+    const Model = getModelByRole(role);
 
-
-    // Check if email or ID already exists
-    if (await Model.findOne({ email }))
-      return res.status(400).json({ message: 'Email already registered' });
-
-    if (uniID && await Model.findOne({ uniID }))
-      return res.status(400).json({ message: 'University ID already registered' });
+    // ✅ Check duplicates
+    if (await Model.findOne({ email })) return res.status(400).json({ message: 'Email already registered' });
+    if (uniID && await Model.findOne({ uniID })) return res.status(400).json({ message: 'University ID already registered' });
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    let user;
+    // ✅ Handle Vendor separately (store file paths)
     if (role === 'vendor') {
-      user = new Vendor({
+      const vendor = new Vendor({
         email,
         passwordHash,
         role: 'vendor',
         companyName: companyName.trim(),
-        isVerified: true,
+        taxDocument: `/uploads/vendors/${taxFile.filename}`,
+        logo: `/uploads/vendors/${logoFile.filename}`,
+        isVerified: true, // vendors auto-verified
       });
-      await user.save();
-      console.log('Vendor registered (auto-verified):', { email });
+      await vendor.save();
+      console.log('Vendor registered successfully:', email);
       return res.status(201).json({ message: 'Vendor registered successfully' });
     }
 
-    user = new Model({
+    // ✅ Handle other roles
+    const user = new Model({
       name,
       email,
       passwordHash,
@@ -115,11 +118,11 @@ export async function register(req, res) {
       isVerified: false,
     });
 
-    // If the registrant is a student, generate verification token and send email immediately
+    // ✅ Add verification token for students
     if (role === 'student') {
       try {
         const verificationToken = crypto.randomBytes(32).toString('hex');
-  const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
         user.verificationToken = verificationToken;
         user.verificationExpires = verificationExpires;
       } catch (err) {
@@ -129,7 +132,7 @@ export async function register(req, res) {
 
     await user.save();
 
-    // Send verification email for students (do not block registration on email failure)
+    // ✅ Send verification email (for students only)
     if (role === 'student') {
       const verifyLink = `${process.env.BACKEND_URL}/api/auth/verify/${user.verificationToken}`;
       try {
@@ -146,15 +149,14 @@ export async function register(req, res) {
         console.log('Verification email sent to:', user.email);
       } catch (err) {
         console.error('Failed to send verification email:', err);
-        // Do not fail registration if email sending fails; return 201 but warn client/logs
       }
     }
 
-    console.log('User registered:', { email, name, role });
+    console.log('User registered:', { email, role });
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Register Error:', err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: err.message || 'Server error' });
   }
 }
 
@@ -200,12 +202,12 @@ export async function login(req, res) {
       token,
       user: {
         id: user._id,
-        name: user.name,
+        name: user.name||user.companyName,
         email: user.email,
-        role: user.role
+        role: user.role,
+        companyName: user.companyName
       }
-      // role: user.role,
-      // user: publicUser(user)
+    
     });
   } catch (err) {
     console.error('Login Error:', err);
