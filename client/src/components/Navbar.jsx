@@ -68,7 +68,7 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           {/* Show bell only when logged in as Event Officer */}
-          {token && role === "eventOfficer" && <NotificationBell />}
+             {token && (role === "eventOfficer" || role === "admin") && <NotificationBell />}
 
           {!token ? (
             <>

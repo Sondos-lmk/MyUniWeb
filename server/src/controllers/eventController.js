@@ -1255,6 +1255,28 @@ export const registerForBazaar = async (req, res) => {
       boothSize: value.boothSize
     });
     await bazaar.save();
+    
+    // ✅ Send notification to all Event Officers and Admins
+try {
+  const eventOfficers = await EventOfficer.find();
+  const admins = await (await import("../models/Users/Admin.js")).Admin.find();
+
+  const vendorName = req.user.name || "Unknown Vendor";
+  const message = `🧾 New vendor request from ${vendorName} for bazaar "${bazaar.title}". Status: pending approval.`;
+
+  // Add the message to each event officer's and admin's notification list
+  for (const officer of eventOfficers) {
+    officer.notifications.push(message);
+    await officer.save();
+  }
+  for (const admin of admins) {
+    admin.notifications.push(message);
+    await admin.save();
+  }
+} catch (notifyErr) {
+  console.error("Error sending notification:", notifyErr);
+}
+
     res.status(200).json({ message: 'Applied successfully, waiting for approval', bazaar });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1392,6 +1414,31 @@ export const registerBooth = async (req, res) => {
     });
 
     await booth.save();
+// ✅ Send notification to all Event Officers and Admins
+try {
+  const { User } = await import("../models/Users/User.js"); // adjust path if needed
+
+  const vendorName = req.user.name || "Unknown Vendor";
+  const message = `🧾 New booth request from ${vendorName} for booth "${booth.title}". Status: pending approval.`;
+
+  // find all event officers and admins
+  const eventOfficers = await User.find({ role: "eventOfficer" });
+  const admins = await User.find({ role: "admin" });
+
+  for (const officer of eventOfficers) {
+    officer.notifications.push(message);
+    await officer.save();
+  }
+
+  for (const admin of admins) {
+    admin.notifications.push(message);
+    await admin.save();
+  }
+
+  console.log("✅ Notifications sent to all Event Officers and Admins");
+} catch (notifyErr) {
+  console.error("❌ Error sending booth notification:", notifyErr);
+}
 
     res.status(201).json({
       message: "Booth registration submitted successfully",
