@@ -6,6 +6,8 @@ const vendorSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: false },
   companyName: { type: String, required: true },
   appliedEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
+   taxDocument: { type: String }, // stored file path or URL
+  logo: { type: String }, // stored file path or URL
 });
 
 export const Vendor = User.discriminator('vendor', vendorSchema); 

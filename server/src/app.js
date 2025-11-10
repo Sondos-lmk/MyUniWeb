@@ -3,6 +3,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import path from 'path';
 
 
 
@@ -45,6 +46,10 @@ app.use(cors({
 
 
 app.use(express.json());
+
+
+// ✅ serve uploaded files
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ✅ Routes
 app.get('/api/health', (req, res) => res.json({ ok: true }));

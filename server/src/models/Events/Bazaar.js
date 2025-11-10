@@ -9,22 +9,63 @@ const bazaarSchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   registrationDeadline: { type: Date, required: true },
+  basePricePerDay: { type: Number, default: 1000, min: 0, required: true },
   registeredVendors: {
     type: [
       {
         vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'vendor' },
         status: { type: String, enum: ['pending','approved','rejected'], default: 'pending' },
         reps: [
-          { _id: false,  // optional: also disable _id for reps if you want
+          { _id: false,  
             name: { type: String, required: true },
             email: { type: String, required: true }
           }
         ],
-        boothSize: { type: String, enum: ['2x2','4x4'], required: true }
+        boothSize: { type: String, enum: ['2x2','4x4'], required: true },
+        finalPrice: { type: Number, required: true },
+        paymentStatus: { type: String, enum: ['unpaid','paid'], default: 'unpaid' },
+        paymentDeadline: { type: Date }, // ✅ new field
       }
     ],
     default: []
   }
+});
+
+bazaarSchema.pre("save", function (next) {
+  // Get the bazaar dates from the document level
+  const bazaarStartDate = this.startDate;
+  const bazaarEndDate = this.endDate;
+  const basePricePerDay = this.basePricePerDay;
+
+  this.registeredVendors.forEach((vendor) => {
+    if (!vendor.finalPrice && bazaarStartDate && bazaarEndDate) {
+      // Calculate total days across year boundaries
+      let totalDays = 0;
+      const currentDate = new Date(bazaarStartDate);
+      const endDate = new Date(bazaarEndDate);
+
+      while (currentDate <= endDate) {
+        const currentYear = currentDate.getFullYear();
+        const lastDayOfYear = new Date(currentYear, 11, 31);
+        
+        const periodEnd = endDate <= lastDayOfYear ? endDate : lastDayOfYear;
+        
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const daysInPeriod = Math.round((periodEnd.getTime() - currentDate.getTime()) / msPerDay) + 1;
+        
+        totalDays += daysInPeriod;
+        
+        currentDate.setFullYear(currentYear + 1, 0, 1);
+      }
+
+      const sizeMultiplier = vendor.boothSize === "4x4" ? 1.5 : 1;
+      vendor.finalPrice = basePricePerDay * totalDays * sizeMultiplier;
+    } else if (!vendor.finalPrice) {
+      // Fallback if dates are missing
+      vendor.finalPrice = basePricePerDay;
+    }
+  });
+  next();
 });
 
 export const Bazaar = Event.discriminator('bazaar', bazaarSchema);

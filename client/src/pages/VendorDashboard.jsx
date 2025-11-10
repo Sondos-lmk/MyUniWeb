@@ -32,7 +32,7 @@ function Dashboard() {
 
   const name = (() => {
     if (!user) return "Loading...";
-    if (user.role === "vendor") return user.companyName || "Vendor";
+    if (user.role === "vendor") return user?.companyName || "Vendor";
     return user.name || "User";
   })();
 
@@ -109,6 +109,33 @@ function Dashboard() {
     }
   };
 
+const calculateEstimatedPrice = (event, boothSize) => {
+  if (!event.startDate || !event.endDate) return { days: 0, price: 0 };
+
+  // Convert to proper Date objects
+  const start = new Date(event.startDate);
+  const end = new Date(event.endDate);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return { days: 0, price: 0 };
+
+  // Calculate difference in UTC to avoid timezone issues
+  const startUTC = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const endUTC = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const days = Math.floor((endUTC - startUTC) / msPerDay) + 1;
+
+  const sizeMultiplier = boothSize === "4x4" ? 1.5 : 1;
+  const basePrice = event.basePricePerDay || 1000;
+
+  const price = days * basePrice * sizeMultiplier;
+
+  return { days, price };
+};
+
+
+
+
   return (
     <div className="p-10 relative">
       {/* Header */}
@@ -132,6 +159,7 @@ function Dashboard() {
         <div className="flex justify-between items-start gap-6 p-6">
           {/* LEFT — Upcoming Bazaars */}
           <div className="w-1/2">
+           <div className="p-6 bg-white shadow-md rounded-2xl">
             <h2 className="text-xl font-semibold mb-4">Upcoming Bazaar Events</h2>
 
             {loading ? (
@@ -162,7 +190,7 @@ function Dashboard() {
                     </div>
                     <button
                       onClick={() => handleSelectEvent(event)}
-                      className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 self-start"
+                      className="bg-teal-600 text-white px-4 py-1 rounded hover:bg-teal-700 self-start"
                     >
                       Apply
                     </button>
@@ -170,12 +198,15 @@ function Dashboard() {
                 ))}
               </div>
             )}
+            </div>
             <MyApplications />
           </div>
 
           {/* RIGHT — Booth Application Form */}
           <div className="w-1/2">
+          <div className="p-6 bg-white shadow-md rounded-2xl">
             <ApplyBoothForm />
+            </div>
           </div>
         </div>
       )}
@@ -199,6 +230,15 @@ function Dashboard() {
             <h2 className="text-xl font-semibold mb-4">
               Apply for: {selectedEvent.title}
             </h2>
+            {/* Estimated Price */}
+      <p className="mb-2 font-semibold">
+        Number of Days: {calculateEstimatedPrice(selectedEvent, boothSize).days}
+         <br />
+        Estimated Price:{" "}
+        <span className="text-teal-600">
+          {calculateEstimatedPrice(selectedEvent, boothSize).price.toFixed(2)} EGP
+        </span>
+      </p>
 
             <form onSubmit={handleSubmit}>
               <label className="block mb-2 font-medium">Booth Size</label>
@@ -213,7 +253,8 @@ function Dashboard() {
               </select>
 
               {reps.map((rep, idx) => (
-                <div key={idx} className="mb-3">
+                <div key={idx} className="mb-3 flex gap-2 items-start">
+                  <div className="flex-1">
                   <input
                     type="text"
                     placeholder="Name"
@@ -239,21 +280,34 @@ function Dashboard() {
                     required
                   />
                 </div>
+                {reps.length > 1 && (  // Only show remove if more than 1 rep
+      <button
+        type="button"
+        onClick={() => {
+          const newReps = reps.filter((_, i) => i !== idx);
+          setReps(newReps);
+        }}
+        className="text-red-600 font-bold px-2 py-1 rounded hover:bg-red-100"
+      >
+        ✕
+      </button>
+    )}
+  </div>
               ))}
 
               {reps.length < 5 && (
                 <button
                   type="button"
                   onClick={() => setReps([...reps, { name: "", email: "" }])}
-                  className="text-blue-600 underline mb-4"
+                  className="text-teal-600 underline mb-4"
                 >
-                  Add another rep
+                  Add Another Representative
                 </button>
               )}
 
               <button
                 type="submit"
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full"
+                className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full"
               >
                 Submit Application
               </button>

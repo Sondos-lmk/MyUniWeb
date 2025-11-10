@@ -201,52 +201,6 @@ export const getAllEvents = async (req, res) => {
 
 
 
-
-// Get upcoming events with details (includes vendor participation for bazaars/booths)
-// export const getUpcomingEvents = async (req, res) => {
-//   try {
-//     const now = new Date();
-
-//     // Only approved and future-dated events are considered upcoming
-//     const baseFilter = { status: 'approved', $or: [ { startDate: { $gte: now } }, { endDate: { $gte: now } } ] };
-
-//     // Build queries per discriminator to leverage field existence
-//     const [bazaars, booths, conferences, trips, workshops] = await Promise.all([
-//       Bazaar.find(baseFilter)
-//         .populate({ path: 'registeredVendors.vendor', select: 'name email role' })
-//         .lean(),
-//       Booth.find(baseFilter)
-//         .populate({ path: 'registeredVendors.vendor', select: 'name email role' })
-//         .lean(),
-//       Conference.find(baseFilter).lean(),
-//       Trip.find(baseFilter).lean(),
-//       Workshop.find(baseFilter)
-//         .populate('professorsParticipating', 'name email')
-//         .lean(),
-//     ]);
-
-//     const combined = [
-//       ...bazaars.map(e => ({ ...e, type: 'bazaar' })),
-//       ...booths.map(e => ({ ...e, type: 'booth' })),
-//       ...conferences.map(e => ({ ...e, type: 'conference' })),
-//       ...trips.map(e => ({ ...e, type: 'trip' })),
-//       ...workshops.map(e => ({ ...e, type: 'workshop' })),
-//     ];
-
-//     // Sort by startDate ascending when available, otherwise by createdAt
-//     combined.sort((a, b) => {
-//       const aDate = a.startDate ? new Date(a.startDate).getTime() : new Date(a.createdAt).getTime();
-//       const bDate = b.startDate ? new Date(b.startDate).getTime() : new Date(b.createdAt).getTime();
-//       return aDate - bDate;
-//     });
-
-//     res.status(200).json(combined);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// Get event by ID
 export const getEventById = async (req, res) => {
   try {
     let event = await Event.findById(req.params.id);
@@ -1252,7 +1206,9 @@ export const registerForBazaar = async (req, res) => {
       vendor: vendorId,
       status: 'pending',
       reps: value.reps,
-      boothSize: value.boothSize
+      boothSize: value.boothSize,
+      finalPrice:0,
+      paymentStatus:"unpaid"
     });
     await bazaar.save();
     
@@ -1411,6 +1367,9 @@ export const registerBooth = async (req, res) => {
       endDate: end,
       status: "pending",
       boothSize,
+      finalPrice:0,
+      paymentStatus:"unpaid"
+
     });
 
     await booth.save();
@@ -1462,12 +1421,12 @@ export const getMyEventApplications = async (req, res) => {
     // 1️⃣ Get all bazaar applications by this vendor
     const myBazaars = await Bazaar.find({
       "registeredVendors.vendor": vendorId
-    }).select("title type location startDate endDate registeredVendors");
+    }).select("title type location startDate endDate registeredVendors finalPrice paymentStatus");
 
     // 2️⃣ Get all booth applications by this vendor
     const myBooths = await Booth.find({
       "registeredVendors.vendor": vendorId
-    }).select(" title type locationInPlatform duration startDate endDate registeredVendors");
+    }).select(" title type locationInPlatform duration startDate endDate registeredVendors finalPrice paymentStatus");
 
     // Combine and format results
     const formattedBazaars = myBazaars.map(bazaar => {
@@ -1478,7 +1437,10 @@ export const getMyEventApplications = async (req, res) => {
         location: bazaar.location,
         startDate: bazaar.startDate,
         endDate: bazaar.endDate,
-        status: reg?.status || "unknown"
+        status: reg?.status || "unknown",
+        boothSize: reg?.boothSize || "N/A",
+        finalPrice: reg?.finalPrice || 0,
+        paymentStatus: reg?.paymentStatus || "unpaid"
       };
     });
 
@@ -1490,7 +1452,10 @@ export const getMyEventApplications = async (req, res) => {
         location: booth.locationInPlatform,
         startDate: reg?.startDate,
         endDate: reg?.endDate,
-        status: reg?.status || "unknown"
+        status: reg?.status || "unknown",
+        boothSize: reg?.boothSize || "N/A",
+        finalPrice: reg?.finalPrice || 0,
+        paymentStatus: reg?.paymentStatus || "unpaid"
       };
     });
 

@@ -61,7 +61,23 @@ function MyApplications() {
               )}
               <p className="text-gray-700">
                 Location: {app.location || app.locationInPlatform || "N/A"}
+                <br />
+               <p className="text-left text-sm "> Booth Size: <span className="text-teal-800">{app.boothSize || "N/A"}</span>
+               &nbsp; Price: <span className="text-teal-800">{app.finalPrice } EGP </span></p>
               </p>
+               {app.status === "approved" && app.paymentStatus && (
+      <>
+        <br />
+        Payment Status:{" "}
+        <span
+          className={`font-semibold ${
+            app.paymentStatus === "paid" ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {app.paymentStatus.toUpperCase()}
+        </span>
+      </>
+    )}
             </div>
 
             <span
