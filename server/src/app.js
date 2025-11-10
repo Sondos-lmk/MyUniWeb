@@ -17,6 +17,7 @@ import userRoutes from './routes/userRoutes.js';
 import gymRoutes from "./routes/gymRoutes.js";
 import courtRoutes from "./routes/court.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import loyaltyRoutes from './routes/loyalityRoutes.js';
 
 
 
@@ -60,7 +61,7 @@ app.use('/api/admin', adminRoutes);
 app.use("/api/gym", gymRoutes);
 app.use("/api/courts", courtRoutes);
 app.use("/api/notifications", notificationRoutes);
-
+app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/payment', paymentRoutes);
 
 // ✅ Not found
