@@ -4,6 +4,7 @@ import { Event } from './Event.js';
 const boothSchema = new mongoose.Schema({
   title: { type: String, required: true },
   locationInPlatform: { type: String, required: true },
+  basePricePerDay: { type: Number,default:2000,min:0, required: true },
   registeredVendors: {
     type: [
       {
@@ -23,10 +24,26 @@ const boothSchema = new mongoose.Schema({
           default: 'pending',
         },
         boothSize: { type: String, enum: ['2x2', '4x4'], required: true },
+        finalPrice: { type: Number, required: true },
+        paymentStatus: { type: String, enum: ['unpaid', 'paid'], default: 'unpaid' },
+        paymentDeadline: { type: Date }, 
       },
     ],
     default: [],
   },
 }, { timestamps: true });
+
+boothSchema.pre("save", function (next) {
+  this.registeredVendors.forEach((vendor) => {
+    if (!vendor.finalPrice) {
+      const days = vendor.durationWeeks * 7;
+      const sizeMultiplier = vendor.boothSize === "4x4" ? 1.5 : 1;
+
+      vendor.finalPrice = this.basePricePerDay * days * sizeMultiplier;
+    }
+  });
+  next();
+});
+
 
 export const Booth = Event.discriminator('booth', boothSchema);
