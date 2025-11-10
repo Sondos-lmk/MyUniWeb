@@ -25,6 +25,7 @@ import {
   getMyEventApplications,
   registerForWorkshopOrTrip,
   getMyRegisteredEventsFromUser,
+  sendCertificate,
  
 } from '../controllers/eventController.js';
 
@@ -43,6 +44,7 @@ router.get("/upcoming", requireAuth, getUpcomingEvents);
 //student/staff/events officer/TA/prof/admin can search event by name of proffessor/event or type
 router.get("/search", requireAuth, searchEvents);
 
+router.post("/send-certificate", requireAuth, sendCertificate);
 
 
 
