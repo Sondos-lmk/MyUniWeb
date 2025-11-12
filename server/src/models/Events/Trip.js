@@ -16,6 +16,12 @@ const tripSchema = new mongoose.Schema(
       ref: 'User',
        // always linked to the Event Officer
     },
+    registeredUsers: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+],
   },
   { timestamps: true }
 );
