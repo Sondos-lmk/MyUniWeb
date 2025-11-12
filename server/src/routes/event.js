@@ -26,6 +26,7 @@ import {
   registerForWorkshopOrTrip,
   getMyRegisteredEventsFromUser,
   sendCertificate,
+  exportEventRegistrations
  
 } from '../controllers/eventController.js';
 
@@ -55,6 +56,8 @@ router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
 router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
 router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
+router.get('/:id/export-registrations', requireAuth, requireEventOfficer, exportEventRegistrations);
+
 
 
 // ✅ Specific routes first
