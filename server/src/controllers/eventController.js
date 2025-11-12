@@ -7,6 +7,7 @@ import { GymSession } from '../models/Events/GymSession.js';
 import { Trip } from '../models/Events/Trip.js';
 import { Workshop } from '../models/Events/Workshop.js';
 
+import { User } from "../models/Users/User.js";
 import { Student } from "../models/Users/Student.js";
 import { Staff } from "../models/Users/Staff.js";
 import { Professor } from "../models/Users/Professor.js";
@@ -16,6 +17,8 @@ import { sendEmail } from "../utils/email.js";
 import { generateCertificate } from "../utils/generateCertificate.js";
 import path from "path";
 import { Vendor } from "../models/Users/Vendor.js";
+
+import XLSX from "xlsx";
 
 import mongoose from "mongoose";
 
@@ -703,7 +706,7 @@ export const registerForWorkshopOrTrip = async (req, res) => {
 
     // 9. Check for duplicates and clean up invalid registrations
 
-    event.registeredStudents = event.registeredStudents || [];
+    event.registeredUsers = event.registeredUsers || [];
     user.registeredEvents = user.registeredEvents || [];
     
     // Clean up any invalid registrations (missing event or price)
@@ -711,7 +714,7 @@ export const registerForWorkshopOrTrip = async (req, res) => {
       return reg && reg.event && reg.priceAtRegistration != null;
     });
     
-    if (event.registeredStudents.includes(userId)) {
+    if (event.registeredUsers.includes(userId)) {
       throw new Error("Already registered (in event list)");
     }
     // Safe check: handle both ObjectId and plain ID strings
@@ -723,7 +726,7 @@ export const registerForWorkshopOrTrip = async (req, res) => {
     }
 
     // 10. Update both documents
-    event.registeredStudents.push(userId);
+    event.registeredUsers.push(userId);
     user.registeredEvents.push({ 
       event: eventId,
       priceAtRegistration: priceToSave 
@@ -794,6 +797,55 @@ export const getMyRegisteredEventsFromUser = async (req, res) => {
       message: "Server error",
       error: err.message,
     });
+  }
+};
+
+export const exportEventRegistrations = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // ✅ Ensure only Event Officers can access
+    if (req.user.role !== "eventOfficer") {
+      return res.status(403).json({ message: "Access denied. Event Officers only." });
+    }
+
+    // ✅ Fetch event
+    const event = await Event.findById(id).populate("registeredUsers", "name email idNumber role");
+    if (!event) return res.status(404).json({ message: "Event not found." });
+
+    // ✅ Skip conferences
+    if (event.type === "conference") {
+      return res.status(400).json({ message: "Cannot export conference participants." });
+    }
+
+    // ✅ Check if anyone is registered
+    if (!event.registeredUsers || event.registeredUsers.length === 0) {
+      return res.status(400).json({ message: "No registered users for this event." });
+    }
+
+    // ✅ Prepare data for Excel
+    const data = event.registeredUsers.map((user) => ({
+      Name: user.name || "N/A",
+      Email: user.email || "N/A",
+      ID: user.idNumber || "N/A",
+      Role: user.role || "N/A",
+    }));
+
+    // ✅ Convert to worksheet and buffer
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Registrations");
+
+    const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+    // ✅ Set headers for download
+    res.setHeader("Content-Disposition", `attachment; filename="${event.title}_registrations.xlsx"`);
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    res.send(buffer);
+  } catch (error) {
+    console.error("Error exporting registrations:", error);
+    res.status(500).json({ message: "Server error while exporting registrations." });
   }
 };
 
