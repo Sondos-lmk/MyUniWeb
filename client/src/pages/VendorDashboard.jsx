@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import ApplyBoothForm from "../components/ApplyBoothForm";
 import MyApplications from "../components/MyApplications";
 import API from "../services/api";
+import LoyaltyManager from "../components/LoyalityProgrameManger"
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -212,6 +213,9 @@ function Dashboard() {
       {/* Vendor Dashboard */}
       {role === "vendor" && (
         <div className="flex justify-between items-start gap-6 p-6">
+          <div className="max-w-2xl mx-auto my-8">
+            <LoyaltyManager />
+          </div>
           {/* LEFT — Upcoming Bazaars */}
           <div className="w-1/2">
             <div className="p-6 bg-white shadow-md rounded-2xl">

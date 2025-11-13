@@ -1,7 +1,10 @@
 // client/src/components/EventCard.jsx
 import React, { useState } from "react";
+import { saveAs } from "file-saver";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
+
+
 
 const badgeColor = (type) => {
   switch (type) {
@@ -211,6 +214,34 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
 
   const fmt = (d) => (d ? new Date(d).toLocaleString() : "—");
 
+const handleExportRegistrations = async () => {
+  try {
+    const res = await API.get(`/events/${event._id}/export-registrations`, {
+      responseType: "blob",
+    });
+
+    const blob = new Blob([res.data], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(blob, `${event.title.replace(/\s+/g, "_")}_registrations.xlsx`);
+  } catch (err) {
+    console.error("Export error:", err);
+
+    // ✅ Improved user-facing message
+    if (err.response?.status === 400) {
+      alert(err.response.data.message || "No users registered for this event.");
+    } else if (err.response?.status === 403) {
+      alert("Access denied. Only Event Officers can export registrations.");
+    } else if (err.response?.status === 404) {
+      alert("Event not found.");
+    } else {
+      alert("Something went wrong while exporting. Please try again.");
+    }
+  }
+};
+
+
   console.log({
   title,
   userRole,
@@ -291,15 +322,6 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
         </div>
         {/* ✅ Event Officer Actions */}
         <div className="mt-5 flex items-center gap-3">
-          {/* Request to Edit — only for Workshops and only if not approved */}
-          {userRole === "eventOfficer" && event.type === "workshop" && event.status !== "approved" && (
-            <button
-              onClick={() => navigate(`/workshops/${event._id}/request-edit`)}
-              className="rounded-xl px-4 py-2 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
-            >
-              Request to Edit
-            </button>
-          )}
         {/* Edit Event — only for Trips, Bazaars, Conferences */}
         {userRole === "eventOfficer" &&
           ["trip", "bazaar", "conference"].includes(event.type) && (
@@ -311,6 +333,14 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
             </button>
                 )}
             </div>
+            {userRole === "eventOfficer" && event.type !== "conference" && (
+            <button
+              onClick={handleExportRegistrations}
+              className="rounded-xl px-4 py-2 bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
+            >
+              Export Registrations
+            </button>
+          )}
       </div>
     </div>
   );

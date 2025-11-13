@@ -25,6 +25,8 @@ import {
   getMyEventApplications,
   registerForWorkshopOrTrip,
   getMyRegisteredEventsFromUser,
+  sendCertificate,
+  exportEventRegistrations
  
 } from '../controllers/eventController.js';
 
@@ -43,6 +45,7 @@ router.get("/upcoming", requireAuth, getUpcomingEvents);
 //student/staff/events officer/TA/prof/admin can search event by name of proffessor/event or type
 router.get("/search", requireAuth, searchEvents);
 
+router.post("/send-certificate", requireAuth, sendCertificate);
 
 
 
@@ -53,6 +56,8 @@ router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
 router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
 router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
+router.get('/:id/export-registrations', requireAuth, requireEventOfficer, exportEventRegistrations);
+
 
 
 // ✅ Specific routes first

@@ -19,8 +19,10 @@
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
     "negotiator": "^1.0.0",
+    "node-cron": "^4.2.1",
     "node-domexception": "^2.0.2",
     "nodemailer": "^7.0.9",
+    "pdfkit": "^0.17.2",
     "qrcode": "^1.5.4",
     "readable-stream": "^4.7.0",
     "readdirp": "^4.1.2",
@@ -29,7 +31,8 @@
     "stripe": "^19.3.0",
     "to-regex-range": "^5.0.1",
     "toidentifier": "^1.0.1",
-    "url-template": "^3.1.1"
+    "url-template": "^3.1.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
