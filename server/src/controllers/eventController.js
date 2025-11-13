@@ -6,7 +6,6 @@ import { Conference } from '../models/Events/Conference.js';
 import { GymSession } from '../models/Events/GymSession.js';
 import { Trip } from '../models/Events/Trip.js';
 import { Workshop } from '../models/Events/Workshop.js';
-
 import { User } from "../models/Users/User.js";
 import { Student } from "../models/Users/Student.js";
 import { Staff } from "../models/Users/Staff.js";
@@ -15,9 +14,7 @@ import { TA } from "../models/Users/TA.js";
 import { EventOfficer } from "../models/Users/EventsOfficer.js";
 import { sendEmail } from "../utils/email.js";
 import { generateCertificate } from "../utils/generateCertificate.js";
-import path from "path";import { sendEmail } from "../utils/email.js"; 
-import { User } from "../models/Users/User.js";
-
+import path from "path";
 import XLSX from "xlsx";
 import mongoose from "mongoose";
 
