@@ -26,7 +26,8 @@ import {
   registerForWorkshopOrTrip,
   getMyRegisteredEventsFromUser,
   sendCertificate,
-  exportEventRegistrations
+  exportEventRegistrations,
+  generateVisitorQR
  
 } from '../controllers/eventController.js';
 
@@ -128,7 +129,7 @@ router.get('/trips', requireAuth, async (req, res) => {
 router.post('/createConference', requireAuth, requireEventOfficer,createConference);
 router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConference);
 
-
+router.post("/:id/generate-visitor-qr",requireAuth,requireEventOfficer,generateVisitorQR);
 
 
 

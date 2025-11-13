@@ -20,7 +20,7 @@ const badgeColor = (type) => {
 
 export default function EventCard({ event, onPrimary, primaryLabel, secondary, disabled , userRole }) {
   const navigate = useNavigate();
-  
+
   // Handle gym sessions differently
   if (event?.type === "gym") {
     // Local editable state for inline edits
@@ -321,26 +321,43 @@ const handleExportRegistrations = async () => {
           {secondary}
         </div>
         {/* ✅ Event Officer Actions */}
-        <div className="mt-5 flex items-center gap-3">
-        {/* Edit Event — only for Trips, Bazaars, Conferences */}
-        {userRole === "eventOfficer" &&
-          ["trip", "bazaar", "conference"].includes(event.type) && (
-            <button
-              onClick={() => navigate(`/events/${event._id}/edit`)}
-              className="rounded-xl px-4 py-2 bg-red-500 text-white text-sm font-semibold hover:bg-red-600"
-            >
-              Edit Event
-            </button>
-                )}
-            </div>
-            {userRole === "eventOfficer" && event.type !== "conference" && (
-            <button
-              onClick={handleExportRegistrations}
-              className="rounded-xl px-4 py-2 bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
-            >
-              Export Registrations
-            </button>
-          )}
+{/* ACTION BUTTONS SECTION (clean + consistent) */}
+<div className="mt-6 space-y-3">
+
+  {/* Edit Event (Trips, Bazaars, Conferences) */}
+  {userRole === "eventOfficer" &&
+    ["trip", "bazaar", "conference"].includes(event.type) && (
+      <button
+        onClick={() => navigate(`/events/${event._id}/edit`)}
+        className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-xl text-sm font-semibold transition"
+      >
+        Edit Event
+      </button>
+    )}
+
+  {/* Export Registrations */}
+  {userRole === "eventOfficer" && event.type !== "conference" && (
+    <button
+      onClick={handleExportRegistrations}
+      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-sm font-semibold transition"
+    >
+      Export Registrations
+    </button>
+  )}
+
+  {/* Generate Visitor QR (Bazaar + Booth) */}
+  {userRole === "eventOfficer" &&
+    ["bazaar", "booth"].includes(event.type) && (
+      <button
+        onClick={() => navigate(`/events/${event._id}/generate-visitor-qr`)}
+        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl text-sm font-semibold transition"
+      >
+        Generate Visitor QR
+      </button>
+    )}
+
+</div>
+
       </div>
     </div>
   );
