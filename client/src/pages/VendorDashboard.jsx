@@ -213,9 +213,6 @@ function Dashboard() {
       {/* Vendor Dashboard */}
       {role === "vendor" && (
         <div className="flex justify-between items-start gap-6 p-6">
-          <div className="max-w-2xl mx-auto my-8">
-            <LoyaltyManager />
-          </div>
           {/* LEFT — Upcoming Bazaars */}
           <div className="w-1/2">
             <div className="p-6 bg-white shadow-md rounded-2xl">
@@ -259,12 +256,17 @@ function Dashboard() {
               )}
             </div>
             <MyApplications />
+             <div className="mt-6">
+        <LoyaltyManager />
+      </div>
+    
           </div>
 
           {/* RIGHT — Booth Application Form */}
           <div className="w-1/2">
             <div className="p-6 bg-white shadow-md rounded-2xl">
               <ApplyBoothForm />
+              
             </div>
           </div>
         </div>
