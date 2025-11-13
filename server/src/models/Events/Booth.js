@@ -4,7 +4,7 @@ import { Event } from './Event.js';
 const boothSchema = new mongoose.Schema({
   title: { type: String, required: true },
   locationInPlatform: { type: String, required: true },
-  basePricePerDay: { type: Number,default:2000,min:0, required: true },
+  basePricePerDay: { type: Number, default: 2000, min: 0, required: true },
   registeredVendors: {
     type: [
       {
@@ -13,6 +13,13 @@ const boothSchema = new mongoose.Schema({
           {
             name: { type: String, required: true },
             email: { type: String, required: true },
+          },
+        ],
+        workers: [
+          {
+            name: { type: String, required: true },
+            idPicture: { type: String, required: true }, // URL or path to uploaded ID image
+            addedAt: { type: Date, default: Date.now }
           },
         ],
         durationWeeks: { type: Number, min: 1, max: 4, required: true },
@@ -26,7 +33,8 @@ const boothSchema = new mongoose.Schema({
         boothSize: { type: String, enum: ['2x2', '4x4'], required: true },
         finalPrice: { type: Number, required: true },
         paymentStatus: { type: String, enum: ['unpaid', 'paid'], default: 'unpaid' },
-        paymentDeadline: { type: Date }, 
+        paymentDeadline: { type: Date },
+        workersSubmitted: { type: Boolean, default: false }, // Track if workers info is submitted
       },
     ],
     default: [],
@@ -44,6 +52,5 @@ boothSchema.pre("save", function (next) {
   });
   next();
 });
-
 
 export const Booth = Event.discriminator('booth', boothSchema);

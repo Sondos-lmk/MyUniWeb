@@ -19,6 +19,7 @@
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
     "negotiator": "^1.0.0",
+    "node-domexception": "^2.0.2",
     "nodemailer": "^7.0.9",
     "qrcode": "^1.5.4",
     "readable-stream": "^4.7.0",

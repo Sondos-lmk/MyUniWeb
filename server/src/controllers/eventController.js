@@ -6,15 +6,13 @@ import { Conference } from '../models/Events/Conference.js';
 import { GymSession } from '../models/Events/GymSession.js';
 import { Trip } from '../models/Events/Trip.js';
 import { Workshop } from '../models/Events/Workshop.js';
-
 import { Student } from "../models/Users/Student.js";
 import { Staff } from "../models/Users/Staff.js";
 import { Professor } from "../models/Users/Professor.js";
 import { TA } from "../models/Users/TA.js";
 import { EventOfficer } from "../models/Users/EventsOfficer.js";
-
-import { Vendor } from "../models/Users/Vendor.js";
-
+import { sendEmail } from "../utils/email.js"; 
+import { User } from "../models/Users/User.js";
 import mongoose from "mongoose";
 
 // --------------------------------------
@@ -1199,7 +1197,7 @@ export const registerForBazaar = async (req, res) => {
       v => v.vendor.toString() === vendorId
     );
     if (alreadyRegistered)
-      return res.status(400).json({ error: 'Vendor already applied' });
+      return res.status(400).json({ error: 'Vendor already applied for the event before' });
 
     
     bazaar.registeredVendors.push({
@@ -1217,7 +1215,7 @@ try {
   const eventOfficers = await EventOfficer.find();
   const admins = await (await import("../models/Users/Admin.js")).Admin.find();
 
-  const vendorName = req.user.name || "Unknown Vendor";
+  const vendorName = req.user.companyName || "Unknown Vendor";
   const message = `🧾 New vendor request from ${vendorName} for bazaar "${bazaar.title}". Status: pending approval.`;
 
   // Add the message to each event officer's and admin's notification list
@@ -1375,10 +1373,10 @@ export const registerBooth = async (req, res) => {
     await booth.save();
 // ✅ Send notification to all Event Officers and Admins
 try {
-  const { User } = await import("../models/Users/User.js"); // adjust path if needed
 
-  const vendorName = req.user.name || "Unknown Vendor";
-  const message = `🧾 New booth request from ${vendorName} for booth "${booth.title}". Status: pending approval.`;
+
+  const vendorName = req.user.companyName || "Unknown Vendor";
+  const message = `🧾 New booth request from ${vendorName} for booth "${booth.title}".`;
 
   // find all event officers and admins
   const eventOfficers = await User.find({ role: "eventOfficer" });
@@ -1421,17 +1419,18 @@ export const getMyEventApplications = async (req, res) => {
     // 1️⃣ Get all bazaar applications by this vendor
     const myBazaars = await Bazaar.find({
       "registeredVendors.vendor": vendorId
-    }).select("title type location startDate endDate registeredVendors finalPrice paymentStatus");
+    }).select("title type location startDate endDate registeredVendors finalPrice paymentStatus workersSubmitted");
 
     // 2️⃣ Get all booth applications by this vendor
     const myBooths = await Booth.find({
       "registeredVendors.vendor": vendorId
-    }).select(" title type locationInPlatform duration startDate endDate registeredVendors finalPrice paymentStatus");
+    }).select(" title type locationInPlatform duration startDate endDate registeredVendors finalPrice paymentStatus workersSubmitted");
 
     // Combine and format results
     const formattedBazaars = myBazaars.map(bazaar => {
       const reg = bazaar.registeredVendors.find(v => v.vendor.toString() === vendorId);
       return {
+        id: bazaar._id,
         type: "bazaar",
         title: bazaar.title,
         location: bazaar.location,
@@ -1440,13 +1439,15 @@ export const getMyEventApplications = async (req, res) => {
         status: reg?.status || "unknown",
         boothSize: reg?.boothSize || "N/A",
         finalPrice: reg?.finalPrice || 0,
-        paymentStatus: reg?.paymentStatus || "unpaid"
+        paymentStatus: reg?.paymentStatus || "unpaid",
+        workersSubmitted: reg?.workersSubmitted || false
       };
     });
 
     const formattedBooths = myBooths.map(booth => {
       const reg = booth.registeredVendors.find(v => v.vendor.toString() === vendorId);
       return {
+        id: booth._id,
         type: "booth",
         title: booth.title,
         location: booth.locationInPlatform,
@@ -1455,7 +1456,8 @@ export const getMyEventApplications = async (req, res) => {
         status: reg?.status || "unknown",
         boothSize: reg?.boothSize || "N/A",
         finalPrice: reg?.finalPrice || 0,
-        paymentStatus: reg?.paymentStatus || "unpaid"
+        paymentStatus: reg?.paymentStatus || "unpaid",
+        workersSubmitted: reg?.workersSubmitted || false
       };
     });
 
@@ -1504,8 +1506,9 @@ export const registerForGymSession = async (req, res) => {
 
 ///////////////////////////////////////////
 
-//vendor approving booth application by event officer
-// PATCH /events/:eventId/vendors/:vendorId
+
+
+
 export const updateVendorStatus = async (req, res) => {
   try {
     const { eventId, vendorId } = req.params;
@@ -1521,17 +1524,17 @@ export const updateVendorStatus = async (req, res) => {
 
     // Only check for overlapping if approving
     if (status === "approved") {
-      const overlap = event.registeredVendors.some((v) => 
-        v.vendor.toString() !== vendorId && // ignore the current vendor
+      const overlap = event.registeredVendors.some((v) =>
+        v.vendor.toString() !== vendorId &&
         v.status === "approved" &&
-        ((vendor.startDate <= v.endDate && vendor.startDate >= v.startDate) || 
-         (vendor.endDate >= v.startDate && vendor.endDate <= v.endDate) ||
-         (vendor.startDate <= v.startDate && vendor.endDate >= v.endDate)) // full overlap
+        ((vendor.startDate <= v.endDate && vendor.startDate >= v.startDate) ||
+          (vendor.endDate >= v.startDate && vendor.endDate <= v.endDate) ||
+          (vendor.startDate <= v.startDate && vendor.endDate >= v.endDate))
       );
 
       if (overlap) {
-        return res.status(400).json({ 
-          error: "This booth is already booked during the selected period" 
+        return res.status(400).json({
+          error: "This booth is already booked during the selected period",
         });
       }
     }
@@ -1539,6 +1542,30 @@ export const updateVendorStatus = async (req, res) => {
     // Approve/reject
     vendor.status = status;
     await event.save();
+
+    // ✅ Send email to vendor
+    try {
+      const vendorUser = await User.findById(vendorId);
+      if (vendorUser && vendorUser.email) {
+        const subject =
+          status === "approved"
+            ? `This is Innovex GUC System, Your application for ${event.title} is approved`
+            : `This is Innovex GUC System, Your application for ${event.title} is rejected`;
+
+        const text =
+          status === "approved"
+            ? `Congratulations! Your application for "${event.title}" has been approved. You have 3 days to complete the payment. Please reply to this email if you have any questions.`
+            : `We are sorry. Your application for "${event.title}" has been rejected. Please reply to this email if you have any questions.`;
+
+        await sendEmail({
+          to: vendorUser.email,
+          subject,
+          text,
+        });
+      }
+    } catch (emailErr) {
+      console.error("Failed to send email to vendor:", emailErr);
+    }
 
     res.json({ message: `Vendor ${status} successfully` });
   } catch (err) {
@@ -1549,36 +1576,6 @@ export const updateVendorStatus = async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // Edit bazaar
-// export const editBazaar = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const updates = req.body;
-//     const updatedBazaar = await Bazaar.findByIdAndUpdate(id, updates, { new: true });
-//     if (!updatedBazaar) return res.status(404).json({ message: 'Bazaar not found' });
-//     res.status(200).json({ message: 'Bazaar updated successfully', updatedBazaar });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Failed to update bazaar', error: error.message });
-//   }
-// };
 export const createBazaar = async (req, res) => {
   try {
 
@@ -1686,27 +1683,6 @@ export const updateConference = async (req, res) => {
 };
 
 
-
-// export const createConference = async (req, res) => {
-//   try {
-//     const { error, value } = conferenceSchema.validate(req.body);
-//     if (error) return res.status(400).json({ error: error.details[0].message });
-
-//     // Set organizerId from authenticated user
-//     value.organizerId = req.user.id || req.user._id;
-//     value.status = 'pending'; // Conferences need approval
-
-//     const newConference = new Conference(value);
-//     await newConference.save();
-
-//     res.status(201).json({ 
-//       message: 'Conference created successfully and pending approval', 
-//       conference: newConference 
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 
 
 

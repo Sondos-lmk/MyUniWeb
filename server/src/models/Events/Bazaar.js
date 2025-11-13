@@ -21,10 +21,18 @@ const bazaarSchema = new mongoose.Schema({
             email: { type: String, required: true }
           }
         ],
+         workers: [
+          {
+            name: { type: String, required: true },
+            idPicture: { type: String, required: true }, // URL or path to uploaded ID image
+            addedAt: { type: Date, default: Date.now }
+          },
+        ],
         boothSize: { type: String, enum: ['2x2','4x4'], required: true },
         finalPrice: { type: Number, required: true },
         paymentStatus: { type: String, enum: ['unpaid','paid'], default: 'unpaid' },
         paymentDeadline: { type: Date }, // ✅ new field
+        workersSubmitted: { type: Boolean, default: false } // ✅ NEW FIELD
       }
     ],
     default: []
