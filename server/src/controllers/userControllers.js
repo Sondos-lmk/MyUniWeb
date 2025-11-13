@@ -195,59 +195,109 @@ export async function getVendorProfile(req, res) {
     res.status(500).json({ message: 'Server error' });
   }
 }
-
+// Edit vendor profile (logo and other fields)
 // Edit vendor profile (logo and other fields)
 export async function editVendorProfile(req, res) {
   try {
     const vendorId = req.user.id;
     const { companyName } = req.body;
-    const files = req.files || {};
+
+    console.log('🔍 editVendorProfile called with:', {
+      vendorId,
+      companyName,
+      hasFile: !!req.file,
+      file: req.file ? {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        filename: req.file.filename,
+        path: req.file.path,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      } : 'No file received'
+    });
 
     // Find current vendor
     const vendor = await Vendor.findById(vendorId);
     if (!vendor) {
+      console.log('❌ Vendor not found:', vendorId);
       return res.status(404).json({ message: 'Vendor not found' });
     }
+
+    console.log('✅ Found vendor:', {
+      id: vendor._id,
+      companyName: vendor.companyName,
+      currentLogo: vendor.logo
+    });
 
     // Update company name if provided
     if (companyName) {
       vendor.companyName = companyName;
+      console.log('📝 Updated company name to:', companyName);
     }
 
     // Handle new logo upload
-    if (files.logo) {
-      const logoFile = files.logo[0];
+    if (req.file) {
+      console.log('🖼️ Processing logo upload...');
       
       // Delete old logo if exists
       if (vendor.logo) {
         const oldPath = path.join(process.cwd(), vendor.logo);
+        console.log('🗑️ Checking old logo at:', oldPath);
         if (fs.existsSync(oldPath)) {
           fs.unlinkSync(oldPath);
+          console.log('✅ Deleted old logo');
+        } else {
+          console.log('ℹ️ Old logo file not found at:', oldPath);
         }
       }
 
       // Save new logo path
-      vendor.logo = `/uploads/vendors/${logoFile.filename}`;
+      const newLogoPath = `/uploads/vendors/${req.file.filename}`;
+      vendor.logo = newLogoPath;
+      console.log('💾 Set new logo path to:', newLogoPath);
+    } else {
+      console.log('⚠️ No logo file in request - req.file is:', req.file);
     }
 
-   
+    // Log before save
+    console.log('💾 About to save vendor with data:', {
+      companyName: vendor.companyName,
+      logo: vendor.logo
+    });
 
     // Save changes
-    await vendor.save();
+    const savedVendor = await vendor.save();
+    console.log('✅ Vendor saved successfully:', {
+      id: savedVendor._id,
+      companyName: savedVendor.companyName,
+      logo: savedVendor.logo
+    });
+
+    // Verify the save worked by fetching fresh data
+    const freshVendor = await Vendor.findById(vendorId);
+    console.log('🔍 Fresh vendor data from DB:', {
+      companyName: freshVendor.companyName,
+      logo: freshVendor.logo
+    });
 
     res.status(200).json({
       message: 'Vendor profile updated successfully',
       vendor: {
-        id: vendor._id,
-        companyName: vendor.companyName,
-        logo: vendor.logo,
-        taxDocument: vendor.taxDocument,
-        isVerified: vendor.isVerified,
+        id: freshVendor._id,
+        companyName: freshVendor.companyName,
+        logo: freshVendor.logo,
+        taxDocument: freshVendor.taxDocument,
+        isVerified: freshVendor.isVerified,
       },
     });
+
   } catch (err) {
-    console.error('Error updating vendor profile:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error updating vendor profile:', err);
+    console.error('❌ Error stack:', err.stack);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: err.message 
+    });
   }
 }
 

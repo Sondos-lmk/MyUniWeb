@@ -42,7 +42,7 @@ router.get('/vendor/profile', requireAuth, getVendorProfile);
 
 
 // Edit vendor profile (logo)
-router.put('/vendor/profile', requireAuth, upload.fields({ name: 'logo', maxCount: 1 }), editVendorProfile);
+router.put('/vendor/profile', requireAuth, upload.single('logo'), editVendorProfile);
 
 const uploadDir1 = 'uploads/workers';
 if (!fs.existsSync(uploadDir1)) {
