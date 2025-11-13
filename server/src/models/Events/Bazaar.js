@@ -36,7 +36,18 @@ const bazaarSchema = new mongoose.Schema({
       }
     ],
     default: []
+  },
+  externalVisitors: [
+  {
+ name: { type: String, required: true },
+    email: { type: String },
+    nationalId: { type: String, required: true },
+    code: { type: String, required: true },
+    qrCode: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
   }
+]
+
 });
 
 bazaarSchema.pre("save", function (next) {

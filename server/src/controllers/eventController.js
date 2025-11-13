@@ -1,4 +1,6 @@
 import Joi from 'joi';
+import QRCode from "qrcode";
+import { v4 as uuidv4 } from "uuid";
 import { Event } from '../models/Events/Event.js';
 import { Bazaar } from '../models/Events/Bazaar.js';
 import { Booth } from '../models/Events/Booth.js';
@@ -1765,6 +1767,89 @@ export const updateConference = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
+export const generateVisitorQR = async (req, res) => {
+  try {
+    const { id } = req.params; // bazaar or booth ID
+    const { name, email, nationalId } = req.body;
+
+    // -----------------------------------
+    // 1️⃣ Validate required fields
+    // -----------------------------------
+    if (!name || !nationalId) {
+      return res.status(400).json({
+        message: "Name and national ID are required.",
+      });
+    }
+
+    // -----------------------------------
+    // 2️⃣ Find the event (Bazaar or Booth)
+    // -----------------------------------
+    let event = await Bazaar.findById(id);
+
+    if (!event) {
+      event = await Booth.findById(id);
+    }
+
+    if (!event) {
+      return res.status(404).json({
+        message: "Bazaar or Booth not found.",
+      });
+    }
+
+    // -----------------------------------
+    // 3️⃣ Generate a unique visitor code
+    // -----------------------------------
+    const visitorCode =
+      crypto.randomUUID?.() || crypto.randomBytes(16).toString("hex");
+
+    const qrURL = `${process.env.CLIENT_URL}/qr/verify/${visitorCode}`;
+
+    // -----------------------------------
+    // 4️⃣ Generate QR (Base64)
+    // -----------------------------------
+    const qrBase64 = await QRCode.toDataURL(qrURL);
+
+    // -----------------------------------
+    // 5️⃣ Add visitor entry to the event
+    // -----------------------------------
+    event.externalVisitors.push({
+      name,
+      email: email || null,
+      nationalId,
+      code: visitorCode,
+      qrCode: qrBase64,
+      createdAt: new Date(),
+    });
+
+    event.markModified("externalVisitors");
+    await event.save({ validateBeforeSave: false });
+
+
+    // -----------------------------------
+    // 6️⃣ Prepare PNG buffer for download
+    // -----------------------------------
+    const buffer = Buffer.from(qrBase64.split(",")[1], "base64");
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=QR_${name.replace(/\s+/g, "_")}.png`
+    );
+    res.setHeader("Content-Type", "image/png");
+
+    return res.send(buffer);
+  } catch (error) {
+    console.error("QR generation error:", error);
+    return res.status(500).json({
+      message: "Server error generating QR code.",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
 
 
 
