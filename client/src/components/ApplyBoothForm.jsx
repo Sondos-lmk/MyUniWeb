@@ -9,7 +9,7 @@ function ApplyBoothForm() {
     durationWeeks: 1,
     reps: [{ name: "", email: "" }],
   });
-
+  const [messageType, setMessageType] = useState(""); // 👈 add this
   const [booths, setBooths] = useState([]);
   const [message, setMessage] = useState("");
 
@@ -93,9 +93,11 @@ const isBoothAvailable = (booth) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage(""); // Clear previous messages
+    setMessageType("");
     const booth = booths.find((b) => b._id === form.boothId);
     if (!booth) {
       setMessage("Selected booth not found.");
+      setMessageType("error");
       return;
     }
 
@@ -103,6 +105,7 @@ const isBoothAvailable = (booth) => {
     const available = isBoothAvailable(booth);
     if (!available) {
       setMessage("This booth is already booked for the selected dates.");
+      setMessageType("error");
       return;
     }
 
@@ -115,9 +118,11 @@ const isBoothAvailable = (booth) => {
         reps: form.reps,
       });
       setMessage(res.data?.message || "Application submitted successfully!");
+      setMessageType("success"); // ✅ success type
     } catch (err) {
       console.error("Error submitting booth application:", err);
       setMessage(err.response?.data?.error || "Something went wrong.");
+      setMessageType("error");
     }
   };
 
@@ -130,7 +135,9 @@ const isBoothAvailable = (booth) => {
       <h2 className="text-xl font-bold mb-4">Apply for a Booth</h2>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3" onKeyDown={(e) => {
+    if (e.key === "Enter") e.preventDefault(); // Prevent Enter from submitting
+  }}>
 
         {/* 👇 Added section titles for clarity */}
         <label className="font-semibold text-lg">Select Booth Size:</label>
@@ -191,6 +198,7 @@ const isBoothAvailable = (booth) => {
               const available = isBoothAvailable(booth);
               return (
                 <button
+                type="button"
                   key={booth._id}
                   onClick={() =>
                     available && setForm({ ...form, boothId: booth._id })
@@ -221,6 +229,7 @@ const isBoothAvailable = (booth) => {
               const available = isBoothAvailable(booth);
               return (
                 <button
+                type="button"
                   key={booth._id}
                   onClick={() =>
                     available && setForm({ ...form, boothId: booth._id })
@@ -319,7 +328,8 @@ const isBoothAvailable = (booth) => {
       </form>
 
       {message && (
-        <p className="mt-3 text-center text-sm text-gray-700">{message}</p>
+        <p className={`mt-3 text-center text-sm font-medium ${messageType === "success" ? "text-green-600" : "text-red-600"}`}>
+        {message}</p>
       )}
     </div>
   );

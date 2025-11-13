@@ -26,6 +26,8 @@ import UpcomingEvents from './components/UpcomingEvents';
 import RegisterForEvent from "./pages/RegisterForEvent";
 import MyRegisteredEvents from "./pages/MyRegisteredEvents";
 import PaymentSuccess from './pages/PaymentSuccess';
+import GenerateVisitorQR from "./pages/GenerateVisitorQR.jsx";
+
 
 function App() {
   return (
@@ -59,6 +61,7 @@ function App() {
           <Route path="/workshops/:id/request-edit" element={<RequestEditForm />}/>
           <Route path="/events/upcoming" element={<UpcomingEvents />}/>
           <Route path="/eventOfficer/approveWorkshops" element={<ApproveWorkshops />} />
+          <Route path="/events/:id/generate-visitor-qr"element={<GenerateVisitorQR />}/>
         </Route>
       
         {/* Professor-only routes (your feature) */}
