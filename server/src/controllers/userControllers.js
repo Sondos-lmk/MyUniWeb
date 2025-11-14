@@ -307,12 +307,13 @@ export async function editVendorProfile(req, res) {
 // Submit workers information for a booth/bazaar application
 export const submitWorkers = async (req, res) => {
   try {
-    const { id } = req.params; // Event ID
+    const { id, registrationId } = req.params; // Event ID and Registration ID
     const vendorId = req.user.id;
     const files = req.files || {};
 
     console.log('🔍 Worker submission request received:');
     console.log('Event ID:', id);
+    console.log('Registration ID:', registrationId);
     console.log('Vendor ID:', vendorId);
     console.log('Request body:', req.body);
     console.log('Uploaded files count:', files.workers ? files.workers.length : 0);
@@ -368,9 +369,9 @@ export const submitWorkers = async (req, res) => {
       return res.status(404).json({ message: 'Event not found' });
     }
 
-    // Find the vendor's application in registeredVendors
+    // Find the vendor's application by REGISTRATION ID
     const vendorApplication = event.registeredVendors.find(
-      rv => rv.vendor.toString() === vendorId
+      rv => rv._id.toString() === registrationId && rv.vendor.toString() === vendorId
     );
 
     if (!vendorApplication) {
@@ -430,13 +431,15 @@ export const submitWorkers = async (req, res) => {
     // Update vendor application with workers
     vendorApplication.workers = workers;
     vendorApplication.workersSubmitted = true;
-
+    
+    // Mark the array as modified for Mongoose
+    event.markModified('registeredVendors');
     await event.save();
 
     console.log('✅ Workers submitted successfully:', workers);
     res.status(200).json({
       message: 'Workers information submitted successfully',
-      workers: workers.map(w => ({ name: w.name, addedAt: w.addAt }))
+      workers: workers.map(w => ({ name: w.name, addedAt: w.addedAt }))
     });
 
   } catch (err) {
@@ -459,7 +462,7 @@ export const submitWorkers = async (req, res) => {
 // Get workers information for a vendor's application
 export const getWorkers = async (req, res) => {
   try {
-    const { id } = req.params; // Event ID
+    const { id, registrationId } = req.params; // Event ID and Registration ID
     const vendorId = req.user.id;
 
     // Try to find the event in Booth or Bazaar
@@ -472,9 +475,9 @@ export const getWorkers = async (req, res) => {
       return res.status(404).json({ message: 'Event not found' });
     }
 
-    // Find the vendor's application
+    // Find the vendor's application by REGISTRATION ID
     const vendorApplication = event.registeredVendors.find(
-      rv => rv.vendor.toString() === vendorId
+      rv => rv._id.toString() === registrationId && rv.vendor.toString() === vendorId
     );
 
     if (!vendorApplication) {

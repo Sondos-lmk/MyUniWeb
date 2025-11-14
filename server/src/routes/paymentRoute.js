@@ -3,6 +3,7 @@ import {
   payWithWallet, 
   requestRefund, 
   createStripeCheckout, 
+  createBazaarBoothStripeCheckout,
   stripeWebhook 
 } from '../controllers/paymentController.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -31,6 +32,9 @@ router.post('/request-refund', requireAuth, requestRefund);
 // --- STRIPE CHECKOUT ROUTE ---
 // This route is for authenticated users to start a card payment
 router.post('/create-stripe-checkout', requireAuth, createStripeCheckout);
+
+// Bazaar/Booth payments
+router.post('/create-bazaar-booth-checkout', requireAuth, createBazaarBoothStripeCheckout);
 
 
 export default router;

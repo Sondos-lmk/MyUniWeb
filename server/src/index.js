@@ -6,6 +6,8 @@ dotenv.config();
 
 import app from './app.js';
 import { connectDB } from './config/db.js';
+import cron from 'node-cron';
+import { rejectOverduePayments } from './cronJobs.js';
 
 console.log('Environment variables:', {
   CLIENT_ID: process.env.CLIENT_ID ? '✅' : '❌',
@@ -15,6 +17,15 @@ console.log('Environment variables:', {
   EMAIL_USER: process.env.EMAIL_USER ? '✅' : '❌',
   MONGO_URI: process.env.MONGO_URI ? '✅' : '❌'
 });
+
+
+// Run every hour
+cron.schedule('0 * * * *', async () => {
+  console.log('Checking for overdue payments...');
+  await rejectOverduePayments();
+});
+
+
 
 const PORT = process.env.PORT || 4000;
 
