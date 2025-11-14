@@ -13,6 +13,7 @@ import {
   createWorkshop,
   updateWorkshop,
   getPendingWorkshops,
+  getWorkshopParticipants,
   getProfessorWorkshops,
   getMyRegisteredEvents,
   createConference,
@@ -69,6 +70,7 @@ router.get('/:id/export-registrations', requireAuth, requireEventOfficer, export
 router.post('/professor/workshop', requireAuth, requireProfessor, createWorkshop);
 router.put('/professor/workshop/:id', requireAuth, requireProfessor, updateWorkshop);
 router.get('/professor/my-workshops', requireAuth, requireProfessor, getProfessorWorkshops);
+router.get('/professor/workshop/:id/participants',requireAuth,requireProfessor,getWorkshopParticipants);// View participants for a workshop I created
 
 // Pending workshops (Event Officer only)
 router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWorkshops);

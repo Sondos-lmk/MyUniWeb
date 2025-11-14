@@ -1037,6 +1037,56 @@ export const getPendingWorkshops = async (req, res) => {
     });
   }
 };
+// ----------------------
+// PROFESSOR: VIEW WORKSHOP PARTICIPANTS
+// ----------------------
+export const getWorkshopParticipants = async (req, res) => {
+  try {
+    const { id } = req.params; // workshop id from URL
+    const professorId = req.user._id || req.user.id;
+
+    // ✅ Find workshop created by this professor
+    const workshop = await Workshop.findOne({
+      _id: id,
+      createdBy: professorId,
+    }).populate("registeredUsers", "name email idNumber role");
+
+    if (!workshop) {
+      return res.status(404).json({
+        message: "Workshop not found or you are not the creator of this workshop.",
+      });
+    }
+
+    // ✅ Calculate counts
+    const capacity = workshop.capacity || 0;
+    const registeredCount = (workshop.registeredUsers || []).length;
+    const remainingSpots = Math.max(0, capacity - registeredCount);
+
+    // ✅ Shape response
+    const participants = (workshop.registeredUsers || []).map((u) => ({
+      id: u._id,
+      name: u.name,
+      email: u.email,
+      idNumber: u.idNumber,
+      role: u.role,
+    }));
+
+    return res.status(200).json({
+      workshopId: workshop._id,
+      title: workshop.title,
+      capacity,
+      registeredCount,
+      remainingSpots,
+      participants,
+    });
+  } catch (error) {
+    console.error("Error fetching workshop participants:", error);
+    return res.status(500).json({
+      message: "Server error while fetching workshop participants.",
+      error: error.message,
+    });
+  }
+};
 
 export const sendCertificate = async (req, res) => {
   try {
