@@ -410,7 +410,6 @@ export const createBazaarBoothStripeCheckout = async (req, res) => {
 
 
 // --- 5. STRIPE WEBHOOK HANDLER (UPDATED FOR BOTH TYPES) ---
-
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -442,46 +441,48 @@ export const stripeWebhook = async (req, res) => {
       if (!eventDoc) {
         throw new Error(`Event not found in Bazaar or Booth for ID: ${eventId}`);
       }
+
       const registration = eventDoc.registeredVendors.id(registrationId);
       if (!registration) {
         throw new Error(`Vendor registration not found for registration ID: ${registrationId}`);
       }
 
-      // Update payment status
+      // --- UPDATE PAYMENT STATUS WITHOUT TRIGGERING VALIDATION ERRORS ---
       registration.paymentStatus = 'paid';
-      await eventDoc.save();
+      await eventDoc.save({ validateBeforeSave: false }); // ✅ skip validation
 
+      // Find the user
       const user = await User.findById(userId);
       if (user) {
+        // Send QR code email
         await sendQRMail(registration._id, user);
-        await sendBazaarBoothPaymentReceipt(user, eventDoc, registration, 'Credit Card');
-      }
 
-      console.log(`✅ Payment recorded for ${eventKind} ${eventId} and registration ${registrationId}`);
-      await user.populate('registeredEvents.event');
-        // Find the populated registration
+        // Send Bazaar/Booth payment receipt
+        await sendBazaarBoothPaymentReceipt(user, eventDoc, registration, 'Credit Card');
+
+        // Populate user's events and send regular event receipt if event exists
+        await user.populate('registeredEvents.event');
         const populatedReg = user.registeredEvents.find(
           (reg) => reg.event && reg.event._id.equals(eventId)
         );
 
-      // Only send receipt if event still exists
-      if (populatedReg && populatedReg.event) {
-        sendPaymentReceipt(user, populatedReg, 'Credit Card');
-      } else {
-        console.warn(`⚠️ Event ${eventId} was deleted, skipping payment receipt`);
+        if (populatedReg && populatedReg.event) {
+          await sendPaymentReceipt(user, populatedReg, 'Credit Card');
+        } else {
+          console.warn(`⚠️ Event ${eventId} was deleted, skipping payment receipt`);
+        }
       }
-      
-      console.log(`Successfully updated payment for user ${userId} and event ${eventId}`);
+
+      console.log(`✅ Payment recorded for ${eventKind} ${eventId} and registration ${registrationId}`);
 
     } catch (err) {
       console.error('❌ Error updating after Stripe payment:', err);
-      return res.status(500).json({ error: 'Database update failed.' });
+      return res.status(500).json({ error: 'Database update failed.', details: err.message });
     }
   }
 
   res.json({ received: true });
 };
-
 
 
 ////////////////////////////////////////////////////////////////

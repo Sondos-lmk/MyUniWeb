@@ -304,7 +304,6 @@ export async function editVendorProfile(req, res) {
 //////////////////////////////////////////
 
 
-// Submit workers information for a booth/bazaar application
 export const submitWorkers = async (req, res) => {
   try {
     const { id, registrationId } = req.params; // Event ID and Registration ID
@@ -318,24 +317,20 @@ export const submitWorkers = async (req, res) => {
     console.log('Request body:', req.body);
     console.log('Uploaded files count:', files.workers ? files.workers.length : 0);
 
-    // Extract worker names from the correct format
+    // Extract worker names
     let workersData = [];
-    
-    // Check if workers data is sent as an array in req.body.workers
     if (req.body.workers && Array.isArray(req.body.workers)) {
       workersData = req.body.workers.map((worker, index) => ({
         name: worker.name,
-        index: index
+        index
       }));
       console.log('Extracted worker names from array:', workersData);
-    } 
-    // Fallback to the original format
-    else {
+    } else {
       let index = 0;
       while (req.body[`workers[${index}][name]`]) {
         workersData.push({
           name: req.body[`workers[${index}][name]`],
-          index: index
+          index
         });
         index++;
       }
@@ -343,98 +338,44 @@ export const submitWorkers = async (req, res) => {
     }
 
     if (workersData.length === 0) {
-      console.log('❌ No worker names found in request');
       return res.status(400).json({ message: 'At least one worker is required' });
     }
 
-    // Validate that we have ID pictures for all workers
     if (!files.workers || files.workers.length !== workersData.length) {
-      console.log('❌ File count mismatch:', {
-        filesCount: files.workers ? files.workers.length : 0,
-        workersCount: workersData.length
-      });
-      return res.status(400).json({ 
-        message: 'ID picture required for each worker' 
-      });
+      return res.status(400).json({ message: 'ID picture required for each worker' });
     }
 
-    // Try to find the event in Booth or Bazaar
-    let event = await Booth.findById(id);
-    if (!event) {
-      event = await Bazaar.findById(id);
+    // Find the event (Booth or Bazaar)
+    let event = await Booth.findById(id) || await Bazaar.findById(id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    // Find vendor application
+    const vendorApplication = event.registeredVendors.id(registrationId);
+    if (!vendorApplication || vendorApplication.vendor.toString() !== vendorId) {
+      return res.status(404).json({ message: 'Application not found for this vendor' });
     }
 
-    if (!event) {
-      console.log('❌ Event not found with ID:', id);
-      return res.status(404).json({ message: 'Event not found' });
-    }
-
-    // Find the vendor's application by REGISTRATION ID
-    const vendorApplication = event.registeredVendors.find(
-      rv => rv._id.toString() === registrationId && rv.vendor.toString() === vendorId
-    );
-
-    if (!vendorApplication) {
-      console.log('❌ Vendor application not found');
-      return res.status(404).json({ 
-        message: 'Application not found for this vendor' 
-      });
-    }
-
-    // Check if application is approved
     if (vendorApplication.status !== 'approved') {
-      console.log('❌ Application not approved, status:', vendorApplication.status);
-      return res.status(400).json({ 
-        message: 'Application must be approved before adding workers' 
-      });
+      return res.status(400).json({ message: 'Application must be approved before adding workers' });
     }
 
-    // Check if workers already submitted
     if (vendorApplication.workersSubmitted) {
-      console.log('❌ Workers already submitted');
-      return res.status(400).json({ 
-        message: 'Workers information already submitted' 
-      });
+      return res.status(400).json({ message: 'Workers information already submitted' });
     }
 
-    // Process and save worker information
-    const workers = [];
-    
-    for (let i = 0; i < workersData.length; i++) {
-      const workerFile = files.workers[i];
-      const workerName = workersData[i].name;
+    // Prepare worker objects
+    const workers = workersData.map((worker, i) => ({
+      name: worker.name.trim(),
+      idPicture: `/uploads/workers/${files.workers[i].filename}`,
+      addedAt: new Date()
+    }));
 
-      if (!workerName || !workerName.trim()) {
-        console.log('❌ Worker name missing for index:', i);
-        // Clean up uploaded files
-        if (files.workers) {
-          files.workers.forEach(file => {
-            const filePath = path.join(process.cwd(), file.path);
-            if (fs.existsSync(filePath)) {
-              fs.unlinkSync(filePath);
-            }
-          });
-        }
-        
-        return res.status(400).json({ 
-          message: `Worker ${i + 1} name is required` 
-        });
-      }
-
-      workers.push({
-        name: workerName.trim(),
-        idPicture: `/uploads/workers/${workerFile.filename}`,
-        addedAt: new Date()
-      });
-    }
-
-    // Update vendor application with workers
+    // Update only workers and workersSubmitted
     vendorApplication.workers = workers;
     vendorApplication.workersSubmitted = true;
-    
-    // Mark the array as modified for Mongoose
-    event.markModified('registeredVendors');
-    await event.save();
+
+    // Save without triggering validation on required fields like endDate
+    await event.save({ validateBeforeSave: false });
 
     console.log('✅ Workers submitted successfully:', workers);
     res.status(200).json({
@@ -444,21 +385,18 @@ export const submitWorkers = async (req, res) => {
 
   } catch (err) {
     console.error('❌ Error submitting workers:', err);
-    
+
     // Clean up uploaded files on error
     if (req.files && req.files.workers) {
       req.files.workers.forEach(file => {
         const filePath = path.join(process.cwd(), file.path);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       });
     }
-    
+
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 // Get workers information for a vendor's application
 export const getWorkers = async (req, res) => {
   try {

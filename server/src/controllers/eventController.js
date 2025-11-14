@@ -1727,6 +1727,7 @@ export const updateVendorStatus = async (req, res) => {
           to: vendorUser.email,
           subject,
           text,
+          html: `<p>${text}</p>`
         });
       }
     } catch (emailErr) {
