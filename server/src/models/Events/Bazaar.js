@@ -21,14 +21,33 @@ const bazaarSchema = new mongoose.Schema({
             email: { type: String, required: true }
           }
         ],
+         workers: [
+          {
+            name: { type: String, required: true },
+            idPicture: { type: String, required: true }, // URL or path to uploaded ID image
+            addedAt: { type: Date, default: Date.now }
+          },
+        ],
         boothSize: { type: String, enum: ['2x2','4x4'], required: true },
         finalPrice: { type: Number, required: true },
         paymentStatus: { type: String, enum: ['unpaid','paid'], default: 'unpaid' },
         paymentDeadline: { type: Date }, // ✅ new field
+        workersSubmitted: { type: Boolean, default: false } // ✅ NEW FIELD
       }
     ],
     default: []
+  },
+  externalVisitors: [
+  {
+ name: { type: String, required: true },
+    email: { type: String },
+    nationalId: { type: String, required: true },
+    code: { type: String, required: true },
+    qrCode: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
   }
+]
+
 });
 
 bazaarSchema.pre("save", function (next) {

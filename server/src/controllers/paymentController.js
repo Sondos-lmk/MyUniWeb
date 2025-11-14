@@ -240,7 +240,7 @@ export const createStripeCheckout = async (req, res) => {
       line_items: [
         {
           price_data: {
-            currency: 'usd', // Change to your currency
+            currency: 'egp', // Change to your currency
             product_data: {
               name: eventTitle,
             },

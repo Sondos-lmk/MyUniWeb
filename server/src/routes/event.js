@@ -26,6 +26,8 @@ import {
   registerForWorkshopOrTrip,
   getMyRegisteredEventsFromUser,
   sendCertificate,
+  exportEventRegistrations,
+  generateVisitorQR
  
 } from '../controllers/eventController.js';
 import { sendCertificatesForCompletedWorkshops } from '../utils/certificateScheduler.js';
@@ -56,6 +58,8 @@ router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
 router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
 router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
 router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
+router.get('/:id/export-registrations', requireAuth, requireEventOfficer, exportEventRegistrations);
+
 
 
 // ✅ Specific routes first
@@ -135,5 +139,7 @@ router.post('/trigger-certificates', requireAuth, async (req, res) => {
     res.status(500).json({ message: 'Error triggering certificates', error: error.message });
   }
 });
+
+router.post("/:id/generate-visitor-qr",requireAuth,requireEventOfficer,generateVisitorQR);
 
 export default router;

@@ -36,7 +36,12 @@ const workshopSchema = new mongoose.Schema({
   createdBy: {type: mongoose.Schema.Types.ObjectId,ref: "User",required: true},
   editRequest: {type: String,default: null},
   certificatesSent: { type: Boolean, default: false },
-
+  registeredUsers: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+],
 
 
 }, 

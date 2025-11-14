@@ -37,7 +37,7 @@ const LoyaltyApplyForm = ({ onApplySuccess }) => {
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-      <h3 className="text-xl font-semibold mb-4 text-blue-700">Apply to GUC Loyalty Program</h3>
+      <h3 className="text-xl font-semibold mb-4 text-black-700">Apply to GUC Loyalty Program</h3>
       <p className="text-gray-600 mb-4">Offer a discount to GUC students and staff to be listed as a loyalty partner.</p>
       
       <div className="mb-4">
@@ -104,7 +104,7 @@ const LoyaltyApplyForm = ({ onApplySuccess }) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition disabled:opacity-50"
+        className="w-full bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 transition disabled:opacity-50"
       >
         {loading ? 'Submitting...' : 'Apply to Program'}
       </button>
