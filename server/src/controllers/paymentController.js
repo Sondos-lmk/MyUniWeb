@@ -194,16 +194,18 @@ export const requestRefund = async (req, res) => {
       return res.status(404).json({ error: "Event details not found." });
     }
 
+    // 2. The 2-Week Business Rule
     const eventStartDate = new Date(event.startDate);
     const today = new Date();
     const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000;
 
     if (eventStartDate.getTime() - today.getTime() < twoWeeksInMs) {
-      return res.status(400).json({ 
-        error: "Cancellation failed: The event is less than 2 weeks away." 
+      return res.status(400).json({
+        error: "Cancellation failed: The event is less than 2 weeks away."
       });
     }
 
+    // 3. Find the registration
     const regIndex = user.registeredEvents.findIndex(
       (reg) => reg.event.equals(eventId)
     );
@@ -211,6 +213,10 @@ export const requestRefund = async (req, res) => {
     if (regIndex === -1) {
       return res.status(404).json({ error: "Registration not found in user profile." });
     }
+
+    const registration = user.registeredEvents[regIndex];
+
+    // 4. Process refund
     
     const registration = user.registeredEvents[regIndex];
 
@@ -218,14 +224,28 @@ export const requestRefund = async (req, res) => {
       if (typeof user.wallet !== 'number' || isNaN(user.wallet)) {
         user.wallet = 0;
       }
-      user.wallet += registration.priceAtRegistration;
+      
+      const refundAmount = registration.priceAtRegistration;
+      user.wallet += refundAmount;
+
+      // ⭐ NEW: store refund transaction
+      user.walletTransactions.push({
+        amount: refundAmount,
+        type: "refund",
+        description: `Refund for canceling ${event.title}`,
+        date: new Date()
+      });
     }
 
+    // 5. Remove registration
+    user.registeredEvents.splice(regIndex, 1);
+
+    // 6. Save
     user.registeredEvents.splice(regIndex, 1);
 
     await user.save();
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: "Cancellation and refund successful!",
       newBalance: user.wallet
     });
@@ -236,6 +256,21 @@ export const requestRefund = async (req, res) => {
   }
 };
 
+export const getWallet = async (req, res) => {
+  try {
+    const user = req.user;
+
+    res.status(200).json({
+      balance: user.wallet || 0,
+      transactions: user.walletTransactions || []
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+// --- 3. CREATE STRIPE CHECKOUT SESSION ---
 // --- 3. CREATE STRIPE CHECKOUT SESSION FOR REGULAR EVENTS ---
 
 export const createStripeCheckout = async (req, res) => {

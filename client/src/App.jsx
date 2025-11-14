@@ -35,6 +35,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import GenerateVisitorQR from "./pages/GenerateVisitorQR.jsx";
 import ArchivedEvents from "./pages/ArchivedEvents";
 
+
 import "./App.css";
 
 function App() {

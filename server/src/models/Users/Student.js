@@ -22,6 +22,15 @@ const studentSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   isVerified: { type: Boolean, default: false },
   wallet: { type: Number, default: 0 },
+  walletTransactions: [
+  {
+    amount: Number,
+    type: { type: String, enum: ["refund", "payment"] },
+    description: String,
+    date: { type: Date, default: Date.now }
+  }
+],
+
   notifications: [{ type: String }],
   uniID: { type: String, required: true },
 });
