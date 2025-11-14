@@ -216,10 +216,6 @@ export const requestRefund = async (req, res) => {
 
     const registration = user.registeredEvents[regIndex];
 
-    // 4. Process refund
-    
-    const registration = user.registeredEvents[regIndex];
-
     if (registration.paymentStatus === 'paid') {
       if (typeof user.wallet !== 'number' || isNaN(user.wallet)) {
         user.wallet = 0;

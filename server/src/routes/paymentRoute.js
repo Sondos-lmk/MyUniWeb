@@ -3,10 +3,8 @@ import {
   payWithWallet, 
   requestRefund, 
   createStripeCheckout, 
-  stripeWebhook ,
-  getWallet
+  getWallet,
   createBazaarBoothStripeCheckout,
-  stripeWebhook 
 } from '../controllers/paymentController.js';
 import { requireAuth } from '../middleware/auth.js';
 
