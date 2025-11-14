@@ -33,7 +33,7 @@ if (emailConfigured) {
   oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 }
 
-export const sendEmail = async ({ to, subject, html }) => {
+export const sendEmail = async ({ to, subject, html, attachments }) => {
   // Graceful handling if email not configured
   if (!oauth2Client) {
     console.warn(`⚠️ Email not sent (service disabled): to=${to}, subject="${subject}"`);
@@ -66,6 +66,11 @@ export const sendEmail = async ({ to, subject, html }) => {
       html,
       text: html.replace(/<[^>]+>/g, ''), // plain text fallback
     };
+
+    // Add attachments if provided
+    if (attachments && attachments.length > 0) {
+      mailOptions.attachments = attachments;
+    }
 
     const result = await transporter.sendMail(mailOptions);
     console.log(`✅ Email sent to ${to}`);

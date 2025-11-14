@@ -124,10 +124,15 @@ export const payWithWallet = async (req, res) => {
     await user.populate('registeredEvents.event');
     // Find the registration object again (now populated)
     const populatedReg = user.registeredEvents.find(
-      (reg) => reg.event._id.equals(eventId)
+      (reg) => reg.event && reg.event._id.equals(eventId)
     );
 
-    sendPaymentReceipt(user, populatedReg, 'Wallet');
+    // Only send receipt if event still exists
+    if (populatedReg && populatedReg.event) {
+      sendPaymentReceipt(user, populatedReg, 'Wallet');
+    } else {
+      console.warn(`⚠️ Event ${eventId} was deleted, skipping payment receipt`);
+    }
 
     res.status(200).json({ 
       message: "Payment successful!",
@@ -309,10 +314,15 @@ export const stripeWebhook = async (req, res) => {
       await user.populate('registeredEvents.event');
         // Find the populated registration
         const populatedReg = user.registeredEvents.find(
-          (reg) => reg.event._id.equals(eventId)
+          (reg) => reg.event && reg.event._id.equals(eventId)
         );
 
-      sendPaymentReceipt(user, populatedReg, 'Credit Card');
+      // Only send receipt if event still exists
+      if (populatedReg && populatedReg.event) {
+        sendPaymentReceipt(user, populatedReg, 'Credit Card');
+      } else {
+        console.warn(`⚠️ Event ${eventId} was deleted, skipping payment receipt`);
+      }
       
       console.log(`Successfully updated payment for user ${userId} and event ${eventId}`);
 
