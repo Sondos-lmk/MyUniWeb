@@ -1,5 +1,9 @@
 import { LoyaltyProgram } from '../models/Events/LoyaltyProgram.js';
 import { Vendor } from '../models/Users/Vendor.js'; // Import Vendor to check role
+import {Student} from "../models/Users/Student.js";
+import {Staff} from "../models/Users/Staff.js";
+import {TA} from "../models/Users/TA.js";
+import {Professor} from "../models/Users/Professor.js";
 
 // Helper function to check for vendor role
 const isVendor = (user) => {
@@ -47,6 +51,24 @@ export const applyToLoyaltyProgram = async (req, res) => {
     });
 
     await newEntry.save();
+    const msg = `New Loyalty Partner Added: Vendor ${req.user.companyName || req.user.name} is now in GUC Loyalty Program with promo code ${promoCode}.`;
+
+    await Student.updateMany({}, {
+      $push: { notifications: { message: msg } }
+    });
+
+    await Staff.updateMany({}, {
+      $push: { notifications: { message: msg } }
+    });
+
+    await TA.updateMany({}, {
+      $push: { notifications: { message: msg } }
+    });
+
+    await Professor.updateMany({}, {
+      $push: { notifications: { message: msg } }
+    });
+
 
     res.status(201).json({ message: 'Successfully applied to the loyalty program!', entry: newEntry });
 
