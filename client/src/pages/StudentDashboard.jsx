@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import {Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import UpcomingEvents from "../components/UpcomingEvents";
 //import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
+import WalletButton from "../components/WalletButton";  // <-- ADD THIS IMPORT
+import NotificationBell from "../components/NotificationBell";
+
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -96,12 +99,19 @@ const StudentDashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-blue-700">Student Dashboard</h1>
+        <div className="flex items-center gap-4">
+    <WalletButton />  {/* <-- NEW WALLET BUTTON */}
+    <div className="flex items-center gap-4">
+          {/* ⭐ Notification Bell */}
+          <NotificationBell />
         <button
           onClick={handleLogout}
           className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
         >
           Logout
         </button>
+      </div>
+      </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -240,8 +250,35 @@ const StudentDashboard = () => {
           <GymSchedule />
         </div>
       )}
+
+      {activeTab === "vendors" && (
+      <div className="mt-6">
+      <Link
+      to="/loyalty-vendors"
+      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+      >
+      View Loyalty Vendors
+     </Link>
+  </div>
+)}  
+
+
+
+     <button
+     onClick={() => setActiveTab("vendors")}
+     className={`px-4 py-2 rounded ${
+     activeTab === "vendors"
+      ? "bg-purple-600 text-white"
+      : "bg-gray-200 hover:bg-gray-300"
+      }`}
+      >
+      Loyalty Vendors
+    </button>
+
     </div>
   );
+  
 };
+
 
 export default StudentDashboard;

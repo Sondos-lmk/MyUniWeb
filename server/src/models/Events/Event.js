@@ -5,7 +5,6 @@ const baseOptions = {
   collection: 'events',
   timestamps: true,
 };
-
 const eventSchema = new mongoose.Schema(
   {
     status: {
@@ -13,19 +12,27 @@ const eventSchema = new mongoose.Schema(
       enum: ['pending', 'approved', 'rejected', 'completed', 'needs revision'],
       default: 'pending',
     },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Who created the event in the system
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
-    // ✅ Add this new field here:
- 
-     allowedRoles: {
-  type: [String],
-  enum: ["student", "staff", "ta", "professor"],
-  default: ["student", "staff", "ta", "professor"], // optional
-},
- // default: open to all academic users
+    allowedRoles: {
+      type: [String],
+      enum: ['student', 'staff', 'ta', 'professor'],
+      default: ['student', 'staff', 'ta', 'professor'],
     },
+
+    // 🆕 Add these here
+    endDate: {
+      type: Date,
+      required: true,
+    },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
+  },
 
   baseOptions
 );
+
 
 export const Event = mongoose.model('Event', eventSchema);

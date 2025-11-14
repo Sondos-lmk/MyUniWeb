@@ -7,6 +7,8 @@ import { getMyWorkshops } from "../services/workshop";
 import RegisterForEvent from "./RegisterForEvent";
 import UpcomingEvents from "../components/UpcomingEvents";
 import GymSchedule from "./GymSchedule";
+import WalletButton from "../components/WalletButton";  // <-- ADD THIS IMPORT
+import NotificationBell from "../components/NotificationBell";
 
 function ProfessorDashboard() {
   const { user } = useAuth();
@@ -38,6 +40,11 @@ function ProfessorDashboard() {
         <h1 className="text-2xl font-bold">
           Professor Dashboard
         </h1>
+        <div className="flex items-center gap-4">
+                    <WalletButton />  {/* <-- NEW WALLET BUTTON */}
+        <div className="flex items-center gap-4">
+          {/* ⭐ Notification Bell */}
+          <NotificationBell />
         <button
           onClick={() => {
             localStorage.removeItem("token");
@@ -47,6 +54,8 @@ function ProfessorDashboard() {
         >
           Logout
         </button>
+      </div>
+      </div>
       </div>
 
       <h2 className="text-xl font-semibold mb-6">
@@ -113,7 +122,16 @@ function ProfessorDashboard() {
       {/* Events Section */}
       <div style={{ marginTop: 40 }}>
         
-        
+        {/* Loyalty Vendors Section */}
+        <h2 className="text-2xl font-bold mb-4 text-purple-700">Loyalty Vendors</h2>
+        <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
+        <a
+        href="/loyalty-vendors"
+        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+        >
+        View Loyalty Vendors
+       </a>
+       </div>
 
         <h2 className="text-2xl font-bold mb-4 text-blue-700">
           Register for Event

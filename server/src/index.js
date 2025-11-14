@@ -18,6 +18,15 @@ console.log('Environment variables:', {
   MONGO_URI: process.env.MONGO_URI ? '✅' : '❌'
 });
 
+
+// Run every hour
+cron.schedule('0 * * * *', async () => {
+  console.log('Checking for overdue payments...');
+  await rejectOverduePayments();
+});
+
+
+
 const PORT = process.env.PORT || 4000;
 
 async function bootstrap() {
