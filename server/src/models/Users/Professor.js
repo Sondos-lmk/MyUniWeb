@@ -22,6 +22,15 @@ const professorSchema = new mongoose.Schema({
     }],
   favoritesLists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
   wallet: { type: Number, default: 0 },
+  walletTransactions: [
+  {
+    amount: Number,
+    type: { type: String, enum: ["refund", "payment"] },
+    description: String,
+    date: { type: Date, default: Date.now }
+  }
+],
+
   notifications: [{ type: String }],
   workshops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],
 });

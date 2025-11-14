@@ -1037,6 +1037,56 @@ export const getPendingWorkshops = async (req, res) => {
     });
   }
 };
+// ----------------------
+// PROFESSOR: VIEW WORKSHOP PARTICIPANTS
+// ----------------------
+export const getWorkshopParticipants = async (req, res) => {
+  try {
+    const { id } = req.params; // workshop id from URL
+    const professorId = req.user._id || req.user.id;
+
+    // ✅ Find workshop created by this professor
+    const workshop = await Workshop.findOne({
+      _id: id,
+      createdBy: professorId,
+    }).populate("registeredUsers", "name email idNumber role");
+
+    if (!workshop) {
+      return res.status(404).json({
+        message: "Workshop not found or you are not the creator of this workshop.",
+      });
+    }
+
+    // ✅ Calculate counts
+    const capacity = workshop.capacity || 0;
+    const registeredCount = (workshop.registeredUsers || []).length;
+    const remainingSpots = Math.max(0, capacity - registeredCount);
+
+    // ✅ Shape response
+    const participants = (workshop.registeredUsers || []).map((u) => ({
+      id: u._id,
+      name: u.name,
+      email: u.email,
+      idNumber: u.idNumber,
+      role: u.role,
+    }));
+
+    return res.status(200).json({
+      workshopId: workshop._id,
+      title: workshop.title,
+      capacity,
+      registeredCount,
+      remainingSpots,
+      participants,
+    });
+  } catch (error) {
+    console.error("Error fetching workshop participants:", error);
+    return res.status(500).json({
+      message: "Server error while fetching workshop participants.",
+      error: error.message,
+    });
+  }
+};
 
 export const sendCertificate = async (req, res) => {
   try {
@@ -1496,55 +1546,65 @@ try {
 
 /////////////////////
 
-// Fetch all bazaars and booths I registered for
-
 export const getMyEventApplications = async (req, res) => {
   try {
     const vendorId = req.user.id || req.user._id;
 
-    // 1️⃣ Get all bazaar applications by this vendor
+    // 1️⃣ Get all bazaars where this vendor registered
     const myBazaars = await Bazaar.find({
       "registeredVendors.vendor": vendorId
-    }).select("title type location startDate endDate registeredVendors finalPrice paymentStatus workersSubmitted");
+    }).select("title type location startDate endDate registeredVendors");
 
-    // 2️⃣ Get all booth applications by this vendor
+    // 2️⃣ Get all booths where this vendor registered
     const myBooths = await Booth.find({
       "registeredVendors.vendor": vendorId
-    }).select(" title type locationInPlatform duration startDate endDate registeredVendors finalPrice paymentStatus workersSubmitted");
+    }).select("title type locationInPlatform duration startDate endDate registeredVendors");
 
-    // Combine and format results
-    const formattedBazaars = myBazaars.map(bazaar => {
-      const reg = bazaar.registeredVendors.find(v => v.vendor.toString() === vendorId);
-      return {
-        id: bazaar._id,
-        type: "bazaar",
-        title: bazaar.title,
-        location: bazaar.location,
-        startDate: bazaar.startDate,
-        endDate: bazaar.endDate,
-        status: reg?.status || "unknown",
-        boothSize: reg?.boothSize || "N/A",
-        finalPrice: reg?.finalPrice || 0,
-        paymentStatus: reg?.paymentStatus || "unpaid",
-        workersSubmitted: reg?.workersSubmitted || false
-      };
+    const formattedBazaars = [];
+    myBazaars.forEach(bazaar => {
+      bazaar.registeredVendors
+        .filter(v => v.vendor.toString() === vendorId)
+        .forEach(reg => {
+          formattedBazaars.push({
+            id: bazaar._id,
+            type: "bazaar",
+            title: bazaar.title,
+            location: bazaar.location,
+            startDate: reg.startDate || bazaar.startDate,
+            endDate: reg.endDate || bazaar.endDate,
+            status: reg.status || "unknown",
+            boothSize: reg.boothSize || "N/A",
+            finalPrice: reg.finalPrice || 0,
+            paymentStatus: reg.paymentStatus || "unpaid",
+             paymentDeadline: reg.paymentDeadline || null, // ✅ added
+            workersSubmitted: reg.workersSubmitted || false,
+            registrationId: reg._id || null,
+            
+          });
+        });
     });
 
-    const formattedBooths = myBooths.map(booth => {
-      const reg = booth.registeredVendors.find(v => v.vendor.toString() === vendorId);
-      return {
-        id: booth._id,
-        type: "booth",
-        title: booth.title,
-        location: booth.locationInPlatform,
-        startDate: reg?.startDate,
-        endDate: reg?.endDate,
-        status: reg?.status || "unknown",
-        boothSize: reg?.boothSize || "N/A",
-        finalPrice: reg?.finalPrice || 0,
-        paymentStatus: reg?.paymentStatus || "unpaid",
-        workersSubmitted: reg?.workersSubmitted || false
-      };
+    const formattedBooths = [];
+    myBooths.forEach(booth => {
+      booth.registeredVendors
+        .filter(v => v.vendor.toString() === vendorId)
+        .forEach(reg => {
+          formattedBooths.push({
+            id: booth._id,
+            type: "booth",
+            title: booth.title,
+            location: booth.locationInPlatform,
+            startDate: reg.startDate || booth.startDate,
+            endDate: reg.endDate || booth.endDate,
+            status: reg.status || "unknown",
+            boothSize: reg.boothSize || "N/A",
+            finalPrice: reg.finalPrice || 0,
+            paymentStatus: reg.paymentStatus || "unpaid",
+            paymentDeadline: reg.paymentDeadline || null, // ✅ added
+            workersSubmitted: reg.workersSubmitted || false,
+            registrationId: reg._id || null,
+          });
+        });
     });
 
     res.status(200).json({
@@ -1552,9 +1612,11 @@ export const getMyEventApplications = async (req, res) => {
       applications: [...formattedBazaars, ...formattedBooths],
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 export const registerForGymSession = async (req, res) => {
   try {
@@ -1603,40 +1665,58 @@ export const updateVendorStatus = async (req, res) => {
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ error: "Event not found" });
 
-    const vendor = event.registeredVendors.find(
-      (v) => v.vendor.toString() === vendorId
+    // Find the vendor REGISTRATION by its _id (not by vendor user ID)
+    const vendorIndex = event.registeredVendors.findIndex(
+      (v) => v._id.toString() === vendorId.toString()
     );
-    if (!vendor) return res.status(404).json({ error: "Vendor not found" });
+    
+    if (vendorIndex === -1) {
+      return res.status(404).json({ error: "Vendor registration not found" });
+    }
 
-    // Only check for overlapping if approving
+    const vendorReg = event.registeredVendors[vendorIndex];
+
+    // Use registration-specific dates if available, otherwise fallback to event dates
+    const vendorStart = vendorReg.startDate || event.startDate;
+    const vendorEnd = vendorReg.endDate || event.endDate;
+
     if (status === "approved") {
-      const overlap = event.registeredVendors.some((v) =>
-        v.vendor.toString() !== vendorId &&
-        v.status === "approved" &&
-        ((vendor.startDate <= v.endDate && vendor.startDate >= v.startDate) ||
-          (vendor.endDate >= v.startDate && vendor.endDate <= v.endDate) ||
-          (vendor.startDate <= v.startDate && vendor.endDate >= v.endDate))
-      );
+      // Check for overlapping approved registrations (ANY vendor including the same one)
+      const overlapping = event.registeredVendors.some((v, idx) => {
+        if (idx === vendorIndex) return false; // skip current registration
+        if (v.status !== "approved") return false; // only check approved registrations
 
-      if (overlap) {
+        const vStart = v.startDate || event.startDate;
+        const vEnd = v.endDate || event.endDate;
+
+        // Check for any date overlap
+        return (
+          (vendorStart <= vEnd && vendorStart >= vStart) ||
+          (vendorEnd >= vStart && vendorEnd <= vEnd) ||
+          (vendorStart <= vStart && vendorEnd >= vEnd)
+        );
+      });
+
+      if (overlapping) {
         return res.status(400).json({
           error: "This booth is already booked during the selected period",
         });
       }
     }
 
-    // Approve/reject
-    vendor.status = status;
+    // Update status
+    event.registeredVendors[vendorIndex].status = status;
+    event.markModified('registeredVendors');
     await event.save();
 
-    // ✅ Send email to vendor
+    // Send email notification to the VENDOR USER (not registration)
     try {
-      const vendorUser = await User.findById(vendorId);
+      const vendorUser = await User.findById(vendorReg.vendor);
       if (vendorUser && vendorUser.email) {
         const subject =
           status === "approved"
-            ? `This is Innovex GUC System, Your application for ${event.title} is approved`
-            : `This is Innovex GUC System, Your application for ${event.title} is rejected`;
+            ? `Innovex GUC: Your application for "${event.title}" is approved`
+            : `Innovex GUC: Your application for "${event.title}" is rejected`;
 
         const text =
           status === "approved"
@@ -1647,6 +1727,7 @@ export const updateVendorStatus = async (req, res) => {
           to: vendorUser.email,
           subject,
           text,
+          html: `<p>${text}</p>`
         });
       }
     } catch (emailErr) {
@@ -1658,8 +1739,6 @@ export const updateVendorStatus = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-
 
 
 export const createBazaar = async (req, res) => {

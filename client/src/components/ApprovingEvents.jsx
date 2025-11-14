@@ -65,31 +65,38 @@ export default function ApprovedEvents() {
     fetchEvents();
   }, []);
 
-  const handleVendorStatus = async (eventId, vendorId, newStatus) => {
-    try {
-      const response = await API.patch(`/events/${eventId}/vendors/${vendorId}`, {
-        status: newStatus,
-      });
+  const handleVendorStatus = async (eventId, registrationId, newStatus) => {
+  try {
+    const response = await API.patch(
+      `/events/${eventId}/vendors/${registrationId}`,
+      { status: newStatus }
+    );
 
-      setEvents((prev) =>
-        prev.map((ev) =>
-          ev._id === eventId
-            ? {
-                ...ev,
-                registeredVendors: ev.registeredVendors.map((v) =>
-                  v.vendor === vendorId ? { ...v, status: newStatus } : v
-                ),
-              }
-            : ev
-        )
-      );
+    setEvents((prev) =>
+      prev.map((ev) => {
+        if (ev._id !== eventId) return ev;
 
-      alert(`Vendor ${newStatus} successfully!`);
-    } catch (err) {
-      console.error("Error updating vendor status:", err);
-      alert(err.response?.data?.error || "Failed to update vendor status.");
-    }
-  };
+        return {
+          ...ev,
+          registeredVendors: ev.registeredVendors.map((v) => {
+            // Compare registration _id (not vendor user ID)
+            return v._id === registrationId 
+              ? { ...v, status: newStatus } 
+              : v;
+          }),
+        };
+      })
+    );
+
+    alert(`Vendor ${newStatus} successfully!`);
+  } catch (err) {
+    console.error("Error updating vendor status:", err);
+    alert(
+      err.response?.data?.error || "Failed to update vendor status."
+    );
+  }
+};
+
 
   const capitalize = (str) => {
     if (!str) return "";
@@ -201,7 +208,7 @@ export default function ApprovedEvents() {
                                 onClick={() =>
                                   handleVendorStatus(
                                     event._id,
-                                    vendor.vendor,
+                                    vendor._id,
                                     "approved"
                                   )
                                 }
@@ -213,7 +220,7 @@ export default function ApprovedEvents() {
                                 onClick={() =>
                                   handleVendorStatus(
                                     event._id,
-                                    vendor.vendor,
+                                    vendor._id,
                                     "rejected"
                                   )
                                 }
