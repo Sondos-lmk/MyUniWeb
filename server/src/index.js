@@ -7,7 +7,7 @@ dotenv.config();
 import app from './app.js';
 import { connectDB } from './config/db.js';
 import cron from 'node-cron';
-import { rejectOverduePayments } from './cronJobs.js';
+import { sendCertificatesForCompletedWorkshops } from './utils/certificateScheduler.js';
 
 console.log('Environment variables:', {
   CLIENT_ID: process.env.CLIENT_ID ? '✅' : '❌',
@@ -34,5 +34,13 @@ async function bootstrap() {
   app.listen(PORT, () => {
     console.log(`API listening on http://localhost:${PORT}`);
   });
+
+  // 📅 Schedule certificate sending for completed workshops
+  // Runs every minute for testing (change to '0 0 * * *' for daily at midnight in production)
+  cron.schedule('* * * * *', async () => {
+    await sendCertificatesForCompletedWorkshops();
+  });
+
+  console.log('✅ Certificate scheduler initialized (runs every minute for testing)');
 }
 bootstrap();

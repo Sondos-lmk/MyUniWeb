@@ -10,7 +10,9 @@ import path from 'path';
 dotenv.config();
 import { stripeWebhook } from './controllers/paymentController.js';
 import paymentRoutes from "./routes/paymentRoute.js"
-import authRoutes from './routes/auth.js';
+import authRoutes from "./routes/auth.js";
+
+
 import adminRoutes from './routes/admin.js';
 import eventRoutes from './routes/event.js';
 import userRoutes from './routes/userRoutes.js';
@@ -56,13 +58,14 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
-app.use('/api/auth', authRoutes);
+//app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use("/api/gym", gymRoutes);
 app.use("/api/courts", courtRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use("/api/auth", authRoutes);
 
 // ✅ Not found
 app.use((req, res, next) => {

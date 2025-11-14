@@ -37,7 +37,7 @@ const initializeEmailService = () => {
 // Initialize the service
 initializeEmailService();
 
-export const sendEmail = async ({ to, subject, html }) => {
+export const sendEmail = async ({ to, subject, html, attachments }) => {
   // Check if email is configured
   if (!emailConfigured) {
     console.warn(`⚠️ Email not sent (service disabled): to=${to}, subject="${subject}"`);
@@ -71,6 +71,11 @@ export const sendEmail = async ({ to, subject, html }) => {
       html,
       text: html ? html.replace(/<[^>]+>/g, '') : subject || 'No content available',
     };
+
+    // Add attachments if provided
+    if (attachments && attachments.length > 0) {
+      mailOptions.attachments = attachments;
+    }
 
     console.log(`📧 Attempting to send email to ${to}...`);
     const result = await transporter.sendMail(mailOptions);

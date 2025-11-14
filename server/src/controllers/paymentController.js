@@ -161,10 +161,15 @@ export const payWithWallet = async (req, res) => {
 
     await user.populate('registeredEvents.event');
     const populatedReg = user.registeredEvents.find(
-      (reg) => reg.event._id.equals(eventId)
+      (reg) => reg.event && reg.event._id.equals(eventId)
     );
 
-    sendPaymentReceipt(user, populatedReg, 'Wallet');
+    // Only send receipt if event still exists
+    if (populatedReg && populatedReg.event) {
+      sendPaymentReceipt(user, populatedReg, 'Wallet');
+    } else {
+      console.warn(`⚠️ Event ${eventId} was deleted, skipping payment receipt`);
+    }
 
     res.status(200).json({ 
       message: "Payment successful!",
@@ -422,6 +427,21 @@ export const stripeWebhook = async (req, res) => {
       }
 
       console.log(`✅ Payment recorded for ${eventKind} ${eventId} and registration ${registrationId}`);
+      await user.populate('registeredEvents.event');
+        // Find the populated registration
+        const populatedReg = user.registeredEvents.find(
+          (reg) => reg.event && reg.event._id.equals(eventId)
+        );
+
+      // Only send receipt if event still exists
+      if (populatedReg && populatedReg.event) {
+        sendPaymentReceipt(user, populatedReg, 'Credit Card');
+      } else {
+        console.warn(`⚠️ Event ${eventId} was deleted, skipping payment receipt`);
+      }
+      
+      console.log(`Successfully updated payment for user ${userId} and event ${eventId}`);
+
     } catch (err) {
       console.error('❌ Error updating after Stripe payment:', err);
       return res.status(500).json({ error: 'Database update failed.' });
