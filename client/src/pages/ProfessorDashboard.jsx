@@ -3,10 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import CreateWorkshop from "./CreateWorkshop";
 import { getMyWorkshops } from "../services/workshop";
-//import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import UpcomingEvents from "../components/UpcomingEvents";
 import GymSchedule from "./GymSchedule";
+import NotificationBell from "../components/NotificationBell";
 
 function ProfessorDashboard() {
   const { user } = useAuth();
@@ -35,18 +35,19 @@ function ProfessorDashboard() {
     <div className="p-10">
       {/* Header + Logout */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          Professor Dashboard
-        </h1>
-        <button
-          onClick={() => {
-            localStorage.removeItem("token");
-            navigate("/");
-          }}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
+        <h1 className="text-2xl font-bold">Professor Dashboard</h1>
+        <div className="flex items-center gap-4">
+          <NotificationBell />
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              navigate("/");
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       <h2 className="text-xl font-semibold mb-6">
@@ -93,16 +94,38 @@ function ProfessorDashboard() {
               >
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600 }}>{w.title}</div>
+
                   <div style={{ fontSize: 12, color: "#555" }}>
                     Status: {w.status} • Reg. deadline:{" "}
                     {new Date(w.registrationDeadline).toLocaleString()}
                   </div>
+
+                  {/* Show requested edits if any */}
+                  {w.status !== "approved" && w.editRequest && (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "#b45309",
+                        marginTop: 4,
+                      }}
+                    >
+                      <strong>Requested edits:</strong> {w.editRequest}
+                    </div>
+                  )}
                 </div>
+
                 <Link
                   className="btn bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
                   to={`/professor/workshops/${w._id || w.id}/edit`}
                 >
                   Edit
+                </Link>
+
+                <Link
+                  className="btn bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                  to={`/professor/workshops/${w._id || w.id}/participants`}
+                >
+                  View Participants
                 </Link>
               </div>
             ))}
@@ -112,9 +135,6 @@ function ProfessorDashboard() {
 
       {/* Events Section */}
       <div style={{ marginTop: 40 }}>
-        
-        
-
         <h2 className="text-2xl font-bold mb-4 text-blue-700">
           Register for Event
         </h2>
@@ -122,7 +142,9 @@ function ProfessorDashboard() {
           <RegisterForEvent />
         </div>
 
-        <h2 className="text-2xl font-bold mb-4 text-blue-700">Upcoming Events</h2>
+        <h2 className="text-2xl font-bold mb-4 text-blue-700">
+          Upcoming Events
+        </h2>
         <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
           <UpcomingEvents />
         </div>

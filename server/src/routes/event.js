@@ -15,6 +15,7 @@ import {
   getPendingWorkshops,
   getWorkshopParticipants,
   getProfessorWorkshops,
+  getProfessorNotifications,
   getMyRegisteredEvents,
   createConference,
   updateConference,
@@ -71,6 +72,8 @@ router.post('/professor/workshop', requireAuth, requireProfessor, createWorkshop
 router.put('/professor/workshop/:id', requireAuth, requireProfessor, updateWorkshop);
 router.get('/professor/my-workshops', requireAuth, requireProfessor, getProfessorWorkshops);
 router.get('/professor/workshop/:id/participants',requireAuth,requireProfessor,getWorkshopParticipants);// View participants for a workshop I created
+router.get('/professor/notifications',requireAuth,requireProfessor,getProfessorNotifications);
+
 
 // Pending workshops (Event Officer only)
 router.get('/pending/workshops', requireAuth, requireEventOfficer, getPendingWorkshops);

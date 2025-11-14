@@ -6,6 +6,7 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
+import NotificationBell from "../components/NotificationBell";
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -96,13 +97,17 @@ const StudentDashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-blue-700">Student Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-4">
+          <NotificationBell />
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
       </div>
+
 
       {/* Navigation Tabs */}
       <div className="flex justify-center gap-4 mt-4 mb-8">

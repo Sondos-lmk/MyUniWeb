@@ -1,25 +1,35 @@
 import { GymSession } from "../models/Events/GymSession.js";
 import { User } from "../models/Users/User.js";
 import { sendEmail } from "../utils/email.js";
+import { notifyUsersOfNewEvent } from "../utils/inAppNotification.js";
 
 // Create new gym session (Events Office only)
 export const createGymSession = async (req, res) => {
   try {
     const { sessionType, date, time, duration, maxParticipants } = req.body;
 
-    // Create the session using discriminator (Event-based)
     const newSession = new GymSession({
       sessionType,
       date,
       time,
       duration,
       maxParticipants,
-      createdBy: req.user._id, // same pattern as events
-      status: "approved", 
+      createdBy: req.user._id,
+      status: "approved",
       type: "gym",
+      // optional: if you want to use allowedRoles, uncomment:
+      // allowedRoles: ["student", "staff", "ta", "professor"],
     });
 
     await newSession.save();
+
+    // ✅ New: notify all relevant users about the new gym session
+    try {
+      await notifyUsersOfNewEvent(newSession);
+    } catch (notifyErr) {
+      console.error("Error sending new-event notifications for gym session:", notifyErr);
+    }
+
     res.status(201).json({
       message: "Gym session created successfully",
       session: newSession,
@@ -28,6 +38,7 @@ export const createGymSession = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // View all gym sessions (everyone)
 export const getGymSchedule = async (req, res) => {

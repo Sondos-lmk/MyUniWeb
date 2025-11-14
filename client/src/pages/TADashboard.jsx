@@ -5,6 +5,7 @@ import UpcomingEvents from "../components/UpcomingEvents";
 //import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
+import NotificationBell from "../components/NotificationBell";
 
 const TADashboard = () => {
   const [activeTab, setActiveTab] = useState("events");
@@ -45,8 +46,10 @@ const TADashboard = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-blue-700">Teaching Assistant Dashboard</h1>
+     <div className="flex justify-between items-center mb-6">
+      <h1 className="text-2xl font-bold text-blue-700">Teaching Assistant Dashboard</h1>
+      <div className="flex items-center gap-4">
+        <NotificationBell />
         <button
           onClick={handleLogout}
           className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
@@ -54,6 +57,8 @@ const TADashboard = () => {
           Logout
         </button>
       </div>
+    </div>
+
 
       {/* Navigation Tabs */}
       <div className="flex justify-center gap-4 mb-8">

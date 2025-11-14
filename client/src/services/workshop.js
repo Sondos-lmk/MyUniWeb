@@ -16,3 +16,9 @@ export async function updateWorkshop(id, payload) {
   const { data } = await API.put(`events/professor/workshop/${id}`, payload);
   return data; // { message, workshop }
 }
+
+// 🔹 NEW: get participants + remaining spots for one workshop
+export async function getWorkshopParticipants(id) {
+  const { data } = await API.get(`/events/professor/workshop/${id}/participants`);
+  return data; // { workshopId, title, capacity, registeredCount, remainingSpots, participants: [...] }
+}
