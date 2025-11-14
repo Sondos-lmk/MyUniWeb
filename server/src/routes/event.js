@@ -147,7 +147,7 @@ router.patch(
 router.get("/my-events", requireAuth, getMyRegisteredEvents);
 router.get("/my-applications", requireAuth, getMyEventApplications);
 router.get("/my-registered", requireAuth, getMyRegisteredEventsFromUser);
-
+router.get('/', requireAuth, getAllEvents);
 router.post("/register/:eventId", requireAuth, registerForWorkshopOrTrip);
 
 // -----------------------------------------------------
