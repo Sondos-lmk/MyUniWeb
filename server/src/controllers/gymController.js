@@ -70,4 +70,22 @@ export const registerForGymSession = async (req, res) => {
       res.status(500).json({ message: "Server error", error: err.message });
     }
   };
+  // Get gym sessions the logged-in user is registered in
+export const getMyRegisteredSessions = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const sessions = await GymSession.find({
+      participants: userId, // userId exists inside participants array
+    }).sort({ date: 1 });
+
+    res.status(200).json(sessions);
+  } catch (err) {
+    console.error("Get My Registered Gym Sessions Error:", err);
+    res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+};
+
   

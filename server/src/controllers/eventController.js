@@ -1101,6 +1101,20 @@ export const registerForTrip = async (req, res) => {
   }
 };
 
+export const getMyRegisteredSessions = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const sessions = await GymSession.find({
+      participants: userId,     // user is inside "participants" array
+    });
+
+    res.status(200).json(sessions);
+  } catch (err) {
+    console.error("Error fetching registered sessions:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 
 export const getPendingWorkshops = async (req, res) => {
