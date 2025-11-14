@@ -110,3 +110,21 @@ export const getMyLoyaltyStatus = async (req, res) => {
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+
+export const getLoyaltyVendors = async (req, res) => {
+  try {
+    const vendors = await Vendor.find({ isLoyaltyPartner: true })
+      .select("name loyaltyDiscountPercent loyaltyPromoCode loyaltyTerms");
+
+    res.status(200).json({
+      message: "Loyalty vendors fetched successfully",
+      count: vendors.length,
+      vendors
+    });
+    
+  } catch (err) {
+    console.error("Error fetching loyalty vendors:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+

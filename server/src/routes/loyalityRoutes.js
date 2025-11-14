@@ -2,7 +2,8 @@ import express from 'express';
 import { 
   applyToLoyaltyProgram, 
   cancelLoyaltyProgram,
-  getMyLoyaltyStatus
+  getMyLoyaltyStatus,
+  getLoyaltyVendors
 } from '../controllers/loyalityProgrameController.js';
 import { requireAuth } from '../middleware/auth.js'; // Your auth middleware
 
@@ -22,5 +23,8 @@ router.delete('/cancel', cancelLoyaltyProgram);
 // GET /api/loyalty/status
 // Get the vendor's current status
 router.get('/status', getMyLoyaltyStatus);
+// All logged-in users can view loyalty program vendors
+router.get("/vendors", requireAuth, getLoyaltyVendors);
+
 
 export default router;

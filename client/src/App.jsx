@@ -27,6 +27,7 @@ import RegisterForEvent from "./pages/RegisterForEvent";
 import MyRegisteredEvents from "./pages/MyRegisteredEvents";
 import PaymentSuccess from './pages/PaymentSuccess';
 import GenerateVisitorQR from "./pages/GenerateVisitorQR.jsx";
+import LoyaltyVendors from "./pages/LoyaltyVendors";
 
 
 function App() {
@@ -92,6 +93,12 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
           <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
         </Route>
+        
+        {/* Loyalty Vendors Page — accessible to all roles except vendor */}
+        <Route element={<ProtectedRoute allowedRoles={[ "student", "staff","ta","professor","eventOfficer","admin" ]} />}>
+        <Route path="/loyalty-vendors" element={<LoyaltyVendors />} />
+        </Route>
+
 
         {/* 404 fallback */}
         <Route path="*" element={<NotFound />} />

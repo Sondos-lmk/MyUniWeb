@@ -39,6 +39,16 @@ function EventOfficerDashboard() {
       >
         View Gym Schedule
       </Link>
+      {/* vendor BUTTON HERE */}
+      <Link
+        to="/loyalty-vendors"
+        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+      >
+      Loyalty Vendors
+      </Link>
+
+
+
     </div>
 
         {/* Uncomment when ready to show events */}
