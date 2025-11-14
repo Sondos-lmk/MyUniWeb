@@ -24,6 +24,9 @@ import loyaltyRoutes from './routes/loyalityRoutes.js';
 
 
 
+
+
+
 dotenv.config(); // Load environment variables from .env
 console.log('✅ Running Innovex app.js');
 const app = express();
@@ -63,6 +66,7 @@ app.use("/api/courts", courtRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/payment', paymentRoutes);
+
 
 // ✅ Not found
 app.use((req, res, next) => {

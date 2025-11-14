@@ -3,7 +3,8 @@ import {
   payWithWallet, 
   requestRefund, 
   createStripeCheckout, 
-  stripeWebhook 
+  stripeWebhook ,
+  getWallet
 } from '../controllers/paymentController.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -27,6 +28,8 @@ router.post('/pay-with-wallet', requireAuth, payWithWallet);
 
 // Request a refund for an event back to the internal wallet
 router.post('/request-refund', requireAuth, requestRefund);
+router.get("/wallet", requireAuth, getWallet);
+
 
 // --- STRIPE CHECKOUT ROUTE ---
 // This route is for authenticated users to start a card payment

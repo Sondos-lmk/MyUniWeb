@@ -22,6 +22,15 @@ const staffSchema = new mongoose.Schema({
       }
     }],
   wallet: { type: Number, default: 0 },
+  walletTransactions: [
+  {
+    amount: Number,
+    type: { type: String, enum: ["refund", "payment"] },
+    description: String,
+    date: { type: Date, default: Date.now }
+  }
+],
+
   notifications: [{ type: String }],
 });
 

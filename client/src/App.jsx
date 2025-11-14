@@ -29,6 +29,7 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import GenerateVisitorQR from "./pages/GenerateVisitorQR.jsx";
 
 
+
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,6 +98,8 @@ function App() {
         <Route path="*" element={<NotFound />} />
         {/* --- ADD THIS NEW ROUTE --- */}
         <Route path="/payment-success" element={<PaymentSuccess />} />
+      
+ 
       </Routes> 
 
     </div>
