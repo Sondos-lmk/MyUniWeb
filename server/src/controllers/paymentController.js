@@ -214,7 +214,7 @@ export const requestRefund = async (req, res) => {
       return res.status(404).json({ error: "Registration not found in user profile." });
     }
 
-    const registration = user.registeredEvents[regIndex];
+    
 
     // 4. Process refund
     

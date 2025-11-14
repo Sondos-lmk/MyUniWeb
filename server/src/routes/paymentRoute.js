@@ -4,9 +4,9 @@ import {
   requestRefund, 
   createStripeCheckout, 
   stripeWebhook ,
-  getWallet
-  createBazaarBoothStripeCheckout,
-  stripeWebhook 
+  getWallet,
+  createBazaarBoothStripeCheckout
+  
 } from '../controllers/paymentController.js';
 import { requireAuth } from '../middleware/auth.js';
 

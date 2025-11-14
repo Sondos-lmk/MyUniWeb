@@ -7,6 +7,7 @@ import { getMyWorkshops } from "../services/workshop";
 import RegisterForEvent from "./RegisterForEvent";
 import UpcomingEvents from "../components/UpcomingEvents";
 import GymSchedule from "./GymSchedule";
+import WalletButton from "../components/WalletButton";  // <-- ADD THIS IMPORT
 
 function ProfessorDashboard() {
   const { user } = useAuth();
@@ -38,6 +39,8 @@ function ProfessorDashboard() {
         <h1 className="text-2xl font-bold">
           Professor Dashboard
         </h1>
+        <div className="flex items-center gap-4">
+                    <WalletButton />  {/* <-- NEW WALLET BUTTON */}
         <button
           onClick={() => {
             localStorage.removeItem("token");
@@ -47,6 +50,7 @@ function ProfessorDashboard() {
         >
           Logout
         </button>
+      </div>
       </div>
 
       <h2 className="text-xl font-semibold mb-6">
