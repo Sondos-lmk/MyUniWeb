@@ -41,7 +41,7 @@ export const generateCertificate = async (studentName, workshopTitle, date) => {
     .fontSize(16)
     .text(`Date: ${date}`, { align: "center" })
     .moveDown(2)
-    .text("GUC Events Management System", { align: "center" });
+    .text("GUC Innovex Team", { align: "center" });
 
   doc.end();
 
