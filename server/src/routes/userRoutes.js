@@ -84,7 +84,7 @@ export const uploadWorkerIDs = multer({
 ]);
 
 
-router.post('/vendor/:id/submit-workers',requireAuth, uploadWorkerIDs,submitWorkers);
+router.post('/:id/registrations/:registrationId/submit-workers',requireAuth, uploadWorkerIDs,submitWorkers);
 
 router.get('/vendor/:id/workers', requireAuth, getWorkers);
 
