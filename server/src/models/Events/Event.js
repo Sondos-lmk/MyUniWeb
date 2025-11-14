@@ -10,7 +10,7 @@ const eventSchema = new mongoose.Schema(
   {
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'completed'],
+      enum: ['pending', 'approved', 'rejected', 'completed', 'needs revision'],
       default: 'pending',
     },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Who created the event in the system

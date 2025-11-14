@@ -30,6 +30,7 @@ import {
   generateVisitorQR
  
 } from '../controllers/eventController.js';
+import { sendCertificatesForCompletedWorkshops } from '../utils/certificateScheduler.js';
 
 import {
   requireAuth,
@@ -129,8 +130,16 @@ router.get('/trips', requireAuth, async (req, res) => {
 router.post('/createConference', requireAuth, requireEventOfficer,createConference);
 router.patch('/:id/updateConf', requireAuth, requireEventOfficer, updateConference);
 
+// Manual trigger for testing certificate sending
+router.post('/trigger-certificates', requireAuth, async (req, res) => {
+  try {
+    await sendCertificatesForCompletedWorkshops();
+    res.json({ message: 'Certificate scheduler triggered successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error triggering certificates', error: error.message });
+  }
+});
+
 router.post("/:id/generate-visitor-qr",requireAuth,requireEventOfficer,generateVisitorQR);
-
-
 
 export default router;
