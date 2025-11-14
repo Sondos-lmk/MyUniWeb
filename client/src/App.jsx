@@ -33,7 +33,10 @@ import MyRegisteredEvents from "./pages/MyRegisteredEvents";
 import PaymentSuccess from "./pages/PaymentSuccess";
 
 import GenerateVisitorQR from "./pages/GenerateVisitorQR.jsx";
+
+import LoyaltyVendors from "./pages/LoyaltyVendors";
 import ArchivedEvents from "./pages/ArchivedEvents";
+
 
 
 import "./App.css";
@@ -103,6 +106,15 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["vendor"]} />}>
           <Route path="/vendor/dashboard" element={<VendorDashboard />} />
         </Route>
+        <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
+          <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
+        </Route>
+        
+        {/* Loyalty Vendors Page — accessible to all roles except vendor */}
+        <Route element={<ProtectedRoute allowedRoles={[ "student", "staff","ta","professor","eventOfficer","admin" ]} />}>
+        <Route path="/loyalty-vendors" element={<LoyaltyVendors />} />
+        </Route>
+
 
         {/* Payment Success */}
         <Route path="/payment-success" element={<PaymentSuccess />} />

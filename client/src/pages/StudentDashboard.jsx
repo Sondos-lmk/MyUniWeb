@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import {Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import UpcomingEvents from "../components/UpcomingEvents";
 //import MyRegisteredEvents from "./MyRegisteredEvents";
@@ -250,8 +250,35 @@ const StudentDashboard = () => {
           <GymSchedule />
         </div>
       )}
+
+      {activeTab === "vendors" && (
+      <div className="mt-6">
+      <Link
+      to="/loyalty-vendors"
+      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+      >
+      View Loyalty Vendors
+     </Link>
+  </div>
+)}  
+
+
+
+     <button
+     onClick={() => setActiveTab("vendors")}
+     className={`px-4 py-2 rounded ${
+     activeTab === "vendors"
+      ? "bg-purple-600 text-white"
+      : "bg-gray-200 hover:bg-gray-300"
+      }`}
+      >
+      Loyalty Vendors
+    </button>
+
     </div>
   );
+  
 };
+
 
 export default StudentDashboard;
