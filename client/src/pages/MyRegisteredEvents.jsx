@@ -243,50 +243,80 @@ export default function MyRegisteredEvents() {
                 {/* --- CONDITIONAL PAYMENT/REFUND SECTION --- */}
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   
-                  {/* Case 1: "not paid" */}
-                  {reg.paymentStatus === "not paid" && (
-                    <>
-                      <p className="text-sm font-semibold text-red-600 mb-2">
-                        Payment Status: Not Paid
-                      </p>
-                      <button
-                        onClick={() => handlePayment(reg)}
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition"
-                      >
-                        Pay Now
-                      </button>
-                    </>
-                  )}
+                  {/* Check if event has passed */}
+                  {(() => {
+                    const eventEndDate = new Date(reg.event.endDate);
+                    const now = new Date();
+                    const hasEventPassed = eventEndDate < now;
 
-                  {/* Case 2: "paid" */}
-                  {reg.paymentStatus === "paid" && (
-                    <>
-                      <p className="text-sm font-semibold text-green-600 mb-2">
-                        You can cancel you registartion and refund your money
-                      </p>
-                      <button
-                        onClick={() => handleRefund(reg)}
-                        className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 transition"
-                      >
-                        cancel & refund
-                      </button>
-                    </>
-                  )}
+                    // If event has passed, show disabled button
+                    if (hasEventPassed) {
+                      return (
+                        <>
+                          <p className="text-sm font-semibold text-gray-500 mb-2">
+                            This event has ended
+                          </p>
+                          <button
+                            disabled
+                            className="w-full bg-gray-400 text-white py-2 px-4 rounded-md cursor-not-allowed"
+                          >
+                            Event Passed
+                          </button>
+                        </>
+                      );
+                    }
 
-                  {/* Case 3: "refunded" */}
-                  {reg.paymentStatus === "refunded" && (
-                    <>
-                      <p className="text-sm font-semibold text-gray-600 mb-2">
-                        You have refunded your money
-                      </p>
-                      <button
-                        onClick={() => handlePayment(reg)}
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition"
-                      >
-                        Pay Again
-                      </button>
-                    </>
-                  )}
+                    // Case 1: "not paid"
+                    if (reg.paymentStatus === "not paid") {
+                      return (
+                        <>
+                          <p className="text-sm font-semibold text-red-600 mb-2">
+                            Payment Status: Not Paid
+                          </p>
+                          <button
+                            onClick={() => handlePayment(reg)}
+                            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition"
+                          >
+                            Pay Now
+                          </button>
+                        </>
+                      );
+                    }
+
+                    // Case 2: "paid"
+                    if (reg.paymentStatus === "paid") {
+                      return (
+                        <>
+                          <p className="text-sm font-semibold text-green-600 mb-2">
+                            You can cancel you registartion and refund your money
+                          </p>
+                          <button
+                            onClick={() => handleRefund(reg)}
+                            className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 transition"
+                          >
+                            cancel & refund
+                          </button>
+                        </>
+                      );
+                    }
+
+                    // Case 3: "refunded"
+                    if (reg.paymentStatus === "refunded") {
+                      return (
+                        <>
+                          <p className="text-sm font-semibold text-gray-600 mb-2">
+                            You have refunded your money
+                          </p>
+                          <button
+                            onClick={() => handlePayment(reg)}
+                            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition"
+                          >
+                            Pay Again
+                          </button>
+                        </>
+                      );
+                    }
+                  })()}
                 </div>
               </div>
             ))}
