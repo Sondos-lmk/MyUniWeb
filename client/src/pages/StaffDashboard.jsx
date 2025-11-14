@@ -5,6 +5,8 @@ import UpcomingEvents from "../components/UpcomingEvents";
 //import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
+import WalletButton from "../components/WalletButton";  // <-- ADD THIS IMPORT
+
 
 const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "gym"
@@ -47,12 +49,15 @@ const StaffDashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-blue-700">Staff Dashboard</h1>
+         <div className="flex items-center gap-4">
+            <WalletButton />  {/* <-- NEW WALLET BUTTON */}
         <button
           onClick={handleLogout}
           className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
         >
           Logout
         </button>
+      </div>
       </div>
 
       {/* Navigation Tabs */}
