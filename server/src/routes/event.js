@@ -27,16 +27,6 @@ import {
   getMyEventApplications,
   registerForWorkshopOrTrip,
   getMyRegisteredEventsFromUser,
-  rateEvent,
-  getAttendedEvents,
-  addComment,
-  addEventToFavorites,
-  removeEventFromFavorites,
-  getMyFavoriteEvents,
-
- 
-} from '../controllers/eventController.js';
-import Joi from 'joi';
   sendCertificate,
   generateVisitorQR,
   exportEventRegistrations,
@@ -53,8 +43,7 @@ import {
   requireEventOfficer,
   requireEventOfficerOrAdmin,
   requireProfessor,
-} from '../middleware/auth.js';
-import { Event } from '../models/Events/Event.js';
+} from "../middleware/auth.js";
 
 const router = Router();
 
@@ -69,16 +58,6 @@ router.get("/ping", (req, res) => {
 // 🔹 ARCHIVE ROUTES (must be BEFORE any :id routes)
 // -----------------------------------------------------
 
-// My applications / My events
-router.get('/my-events', requireAuth, getMyRegisteredEvents);  // for students
-router.get('/my-applications', requireAuth, getMyEventApplications);
-router.post("/register/:eventId", requireAuth, registerForWorkshopOrTrip);
-router.get("/my-registered", requireAuth, getMyRegisteredEventsFromUser);
-router.get('/attended', requireAuth, getAttendedEvents);
-// Favorites
-router.post("/:id/favorite", requireAuth, addEventToFavorites);
-router.delete("/:id/favorite", requireAuth, removeEventFromFavorites);
-router.get("/my/favorites", requireAuth, getMyFavoriteEvents);
 // Archive past events
 router.patch(
   "/archive-past",
@@ -106,9 +85,6 @@ router.get("/archived", requireAuth, requireEventOfficer, async (req, res) => {
   }
 });
 
-router.get('/:id', getEventById);
-router.post('/:id/rate', requireAuth, rateEvent);
-router.post('/:id/comment', requireAuth, addComment);
 // -----------------------------------------------------
 // 🔹 GENERAL EVENT ROUTES
 // -----------------------------------------------------

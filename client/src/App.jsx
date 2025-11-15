@@ -18,9 +18,6 @@ import ProfessorWorkshopParticipants from "./pages/ProfessorWorkshopParticipants
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateGymSession from "./pages/CreateGymSession";
 import GymSchedule from "./pages/GymSchedule";
-import Favorites from "./pages/Favorites.jsx";
-
-import "./App.css";
 import ApprovedEvents from "./components/ApprovingEvents";
 import Events from "./components/Events";
 import EventFormPage from "./components/EventFormPage";
@@ -93,28 +90,12 @@ function App() {
         {/* Staff */}
         <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
           <Route path="/staff/dashboard" element={<StaffDashboard />} />
-          
         </Route>
 
         {/* TA */}
         <Route element={<ProtectedRoute allowedRoles={["ta"]} />}>
           <Route path="/ta/dashboard" element={<TADashboard />} />
-          
         </Route>
-        <Route
-  path="/favorites"
-  element={
-    <ProtectedRoute roles={['student','staff','ta','professor']}>
-      <Favorites />
-    </ProtectedRoute>
-  }
-/>
-
-
-        <Route element={<ProtectedRoute allowedRoles={["student", "staff", "ta", "professor"]} />}>
-  <Route path="/attended-events" element={<AttendedEvents />} />
-</Route>
-
 
         {/* Vendor */}
         <Route element={<ProtectedRoute allowedRoles={["vendor"]} />}>

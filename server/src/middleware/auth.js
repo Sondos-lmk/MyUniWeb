@@ -45,32 +45,6 @@ export function requireEventOfficer(req, res, next) {
   return next();
 }
 
-// Allow only Student, Staff, TA, Professor to register for gym sessions
-// Allow only Student, Staff, TA, Professor to register for gym sessions
-export const requireGymAttendee = (req, res, next) => {
-  // Debug: see what the user object actually looks like
-  console.log("GYM REGISTER ATTEMPT user =", req.user);
-
-  // Try different possible fields (role, userType, type, etc.)
-  const rawRole = req.user?.role || req.user?.userType || req.user?.type;
-
-  if (!rawRole) {
-    return res.status(403).json({ message: "Access denied" });
-  }
-
-  const role = String(rawRole).toLowerCase(); // normalize
-
-  const allowedRoles = ["student", "staff", "ta", "professor"];
-
-  if (!allowedRoles.includes(role)) {
-    return res.status(403).json({ message: "Access denied" });
-  }
-
-  next();
-};
-
-
-
 export const requireEventOfficerOrAdmin = (req, res, next) => {
   if (req.user && (req.user.role === 'eventOfficer' || req.user.role === 'admin')) {
     next();
