@@ -5,6 +5,8 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
+import AttendedEvents from "./AttendedEvents.jsx";
+import Favorites from "./Favorites";
 import NotificationBell from "../components/NotificationBell";
 import WalletButton from "../components/WalletButton";
 
@@ -84,6 +86,14 @@ const StaffDashboard = () => {
         >
           My Registered Events
         </button>
+<button
+  className={`px-4 py-2 rounded-md font-medium ${
+    activeTab === "favorites" ? "bg-blue-600 text-white" : "bg-gray-100"
+  }`}
+  onClick={() => setActiveTab("favorites")}
+>
+  Favorites
+</button>
 
         <button
           onClick={() => setActiveTab("register")}
@@ -95,6 +105,15 @@ const StaffDashboard = () => {
         >
           Register for Event
         </button>
+        <button
+  type="button"
+  onClick={() => setActiveTab("attended")}
+  className={activeTab === "attended"
+    ? "px-4 py-2 rounded bg-blue-600 text-white"
+    : "px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"}
+>
+  Attended Events
+</button>
 
         <button
           onClick={() => setActiveTab("gym")}
@@ -139,6 +158,14 @@ const StaffDashboard = () => {
           <RegisterForEvent />
         </div>
       )}
+      {/* ATTENDED EVENTS */}
+{activeTab === "attended" && (
+  <div className="mt-6">
+    <AttendedEvents />
+  </div>
+)}
+
+{activeTab === "favorites" && <Favorites />}
 
       {/* Gym Schedule */}
       {activeTab === "gym" && (

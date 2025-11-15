@@ -2,6 +2,8 @@
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import NotFound from "../pages/NotFound";
+import { getMyFavorites } from "../services/api";
+
 
 export default function ProtectedRoute({ allowedRoles, children}) {
   const { user, loading } = useAuth();
