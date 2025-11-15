@@ -7,7 +7,7 @@ import fs from 'fs';
 
 
 const router = express.Router();
-console.log("✅ AUTH ROUTER FILE LOADED");
+
 
 // ===== Multer setup (for vendor register uploads) =====
 const uploadDir = path.join(process.cwd(), 'uploads', 'vendors');

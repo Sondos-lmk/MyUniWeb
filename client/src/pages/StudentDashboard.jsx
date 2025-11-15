@@ -19,6 +19,8 @@ const StudentDashboard = () => {
   const [availability, setAvailability] = useState([]);
   const [loadingCourts, setLoadingCourts] = useState(false);
   const [error, setError] = useState("");
+  const [lastBooking, setLastBooking] = useState(null);
+
   const navigate = useNavigate();
 
   // Fetch upcoming events and registered ones
@@ -93,6 +95,34 @@ const StudentDashboard = () => {
       setLoadingCourts(false);
     }
   };
+const bookCourt = async (courtId, date, startTime, endTime) => {
+  try {
+    const res = await api.post(`/courts/${courtId}/book`, {
+      date,
+      startTime,
+      endTime
+    });
+
+    const b = res.data.booking;
+
+    // Save booking info to show inside the slot rectangle
+    setLastBooking({
+      date: date,
+      startTime,
+      endTime,
+      studentName: b.studentName,
+      studentGucId: b.studentGucId
+    });
+
+    // Refresh availability
+    fetchAvailability(courtId);
+
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.message || "Booking failed");
+  }
+};
+
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -227,11 +257,32 @@ const StudentDashboard = () => {
                     <p className="font-semibold">{day.date}</p>
                     {day.slots.length > 0 ? (
                       <ul className="ml-4 list-disc">
-                        {day.slots.map((slot, i) => (
-                          <li key={i}>
-                            {slot.startTime} - {slot.endTime}
-                          </li>
-                        ))}
+                     {day.slots.map((slot, i) => (
+ <div
+  key={i}
+  onClick={() =>
+    bookCourt(
+      selectedCourt,
+      day.date,
+      slot.startTime,
+      slot.endTime
+    )
+  }
+  className="mt-2 mx-auto w-fit px-6 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 cursor-pointer shadow"
+>
+  <div className="font-semibold text-center">
+    {slot.startTime} - {slot.endTime}
+  </div>
+
+  {slot.booked && (
+    <div className="text-sm text-center mt-1">
+      {slot.studentName} – {slot.studentGucId}
+    </div>
+  )}
+</div>
+
+))}
+
                       </ul>
                     ) : (
                       <p className="text-gray-500">No available slots</p>
