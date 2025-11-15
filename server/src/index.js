@@ -8,6 +8,7 @@ import app from './app.js';
 import { connectDB } from './config/db.js';
 import cron from 'node-cron';
 import { sendCertificatesForCompletedWorkshops } from './utils/certificateScheduler.js';
+import { sendRemindersForUpcomingEvents } from "./utils/reminderScheduler.js";
 
 console.log('Environment variables:', {
   CLIENT_ID: process.env.CLIENT_ID ? '✅' : '❌',
@@ -42,5 +43,24 @@ async function bootstrap() {
   });
 
   console.log('✅ Certificate scheduler initialized (runs every minute for testing)');
+
+  // 📅 Schedule automatic reminders for upcoming events
+  // For testing: run every minute. Later you can change to '*/15 * * * *' (every 15 minutes)
+  cron.schedule("* * * * *", async () => {
+    try {
+      const result = await sendRemindersForUpcomingEvents();
+      console.log(
+        `⏰ Reminder scheduler ran: day=${result.totalDayReminders}, hour=${result.totalHourReminders}`
+      );
+    } catch (err) {
+      console.error(
+        "❌ Error in reminder scheduler:",
+        err?.message || err
+      );
+    }
+  });
+  console.log(
+    "✅ Reminder scheduler initialized (runs every minute for testing)"
+  );
 }
 bootstrap();

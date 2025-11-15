@@ -11,29 +11,23 @@ import ApproveWorkshops from "./components/ApproveWorkshops";
 import CreateWorkshop from "./pages/CreateWorkshop";
 import EditWorkshop from "./pages/EditWorkshop";
 import EventOfficerDashboard from "./pages/EventOfficerDashboard";
-import StudentDashboard from "./pages/StudentDashboard";
-import StaffDashboard from "./pages/StaffDashboard";
-import ProfessorDashboard from "./pages/ProfessorDashboard";
-
+import StudentDashboard from './pages/StudentDashboard';
+import StaffDashboard from './pages/StaffDashboard';
+import ProfessorDashboard from './pages/ProfessorDashboard';
+import ProfessorWorkshopParticipants from "./pages/ProfessorWorkshopParticipants";
 import ProtectedRoute from "./components/ProtectedRoute";
-
 import CreateGymSession from "./pages/CreateGymSession";
 import GymSchedule from "./pages/GymSchedule";
-
 import ApprovedEvents from "./components/ApprovingEvents";
 import Events from "./components/Events";
 import EventFormPage from "./components/EventFormPage";
 import RequestEditForm from "./components/WorkshopEditRequestForm";
-
 import TADashboard from "./pages/TADashboard";
 import UpcomingEvents from "./components/UpcomingEvents";
-
 import RegisterForEvent from "./pages/RegisterForEvent";
 import MyRegisteredEvents from "./pages/MyRegisteredEvents";
 import PaymentSuccess from "./pages/PaymentSuccess";
-
 import GenerateVisitorQR from "./pages/GenerateVisitorQR.jsx";
-
 import LoyaltyVendors from "./pages/LoyaltyVendors";
 import ArchivedEvents from "./pages/ArchivedEvents";
 
@@ -84,6 +78,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
           <Route path="/professor/workshops/new" element={<CreateWorkshop />} />
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
+          <Route path="/professor/workshops/:id/participants" element={<ProfessorWorkshopParticipants />} />
           <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
         </Route>
 

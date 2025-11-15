@@ -2,15 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import UpcomingEvents from "../components/UpcomingEvents";
-//import MyRegisteredEvents from "./MyRegisteredEvents";
+import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
-import WalletButton from "../components/WalletButton";  // <-- ADD THIS IMPORT
 import NotificationBell from "../components/NotificationBell";
-
+import WalletButton from "../components/WalletButton";
 
 const StaffDashboard = () => {
-  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "gym"
+  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "gym" | "vendors"
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const navigate = useNavigate();
 
@@ -50,19 +49,16 @@ const StaffDashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-blue-700">Staff Dashboard</h1>
-         <div className="flex items-center gap-4">
-            <WalletButton />  {/* <-- NEW WALLET BUTTON */}
-            <div className="flex items-center gap-4">
-                      {/* ⭐ Notification Bell */}
-                      <NotificationBell />
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
-      </div>
-      </div>
+        <div className="flex items-center gap-4">
+          <WalletButton />
+          <NotificationBell />
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -76,6 +72,17 @@ const StaffDashboard = () => {
           }`}
         >
           Upcoming Events
+        </button>
+
+        <button
+          onClick={() => setActiveTab("registered")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "registered"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          My Registered Events
         </button>
 
         <button
@@ -99,23 +106,23 @@ const StaffDashboard = () => {
         >
           Gym Schedule
         </button>
-        <button
-         onClick={() => setActiveTab("vendors")}
-         className={`px-4 py-2 rounded ${
-         activeTab === "vendors"
-         ? "bg-purple-600 text-white"
-         : "bg-gray-200 hover:bg-gray-300"
-         }`}
-        >
-         Loyalty Vendors
-        </button>
 
+        <button
+          onClick={() => setActiveTab("vendors")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "vendors"
+              ? "bg-purple-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Loyalty Vendors
+        </button>
       </div>
 
       {/* EVENTS VIEW */}
       {activeTab === "events" && (
         <div className="mt-6">
-          <UpcomingEvents /> 
+          <UpcomingEvents />
         </div>
       )}
 
@@ -139,18 +146,18 @@ const StaffDashboard = () => {
           <GymSchedule />
         </div>
       )}
-      {/* Loyalty Vendors Page */}
-       {activeTab === "vendors" && (
-       <div className="mt-6">
-       <a
-       href="/loyalty-vendors"
-       className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-       >
-       View Loyalty Vendors
-       </a>
-       </div>
-       )}
 
+      {/* Loyalty Vendors Page */}
+      {activeTab === "vendors" && (
+        <div className="mt-6">
+          <a
+            href="/loyalty-vendors"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+          >
+            View Loyalty Vendors
+          </a>
+        </div>
+      )}
     </div>
   );
 };
