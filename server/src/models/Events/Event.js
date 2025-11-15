@@ -23,6 +23,19 @@ const eventSchema = new mongoose.Schema(
   default: ["student", "staff", "ta", "professor"], // optional
 },
  // default: open to all academic users
+ // ✅ Track which users already got reminders (prevent duplicates)
+    reminderDaySentTo: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    reminderHourSentTo: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     },
 
   baseOptions

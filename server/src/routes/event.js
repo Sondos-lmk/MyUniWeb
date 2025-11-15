@@ -33,6 +33,7 @@ import {
  
 } from '../controllers/eventController.js';
 import { sendCertificatesForCompletedWorkshops } from '../utils/certificateScheduler.js';
+import { sendRemindersForUpcomingEvents } from "../utils/reminderScheduler.js";
 
 import {
   requireAuth,
@@ -142,6 +143,38 @@ router.post('/trigger-certificates', requireAuth, async (req, res) => {
     res.json({ message: 'Certificate scheduler triggered successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error triggering certificates', error: error.message });
+  }
+});
+// Manual trigger for testing certificate sending
+router.post('/trigger-certificates', requireAuth, async (req, res) => {
+  try {
+    await sendCertificatesForCompletedWorkshops();
+    res.json({ message: 'Certificate scheduler triggered successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error triggering certificates', error: error.message });
+  }
+});
+
+// ✅ NEW: manual trigger for sending event reminders
+router.post("/trigger-reminders", requireAuth, async (req, res) => {
+  try {
+    // Optional: restrict who can trigger this
+    if (req.user.role !== "eventOfficer" && req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only Event Officers or Admins can trigger reminders." });
+    }
+
+    const result = await sendRemindersForUpcomingEvents();
+    res.json({
+      message: "Reminder scheduler ran successfully.",
+      ...result,
+    });
+  } catch (error) {
+    console.error("Error triggering reminders:", error);
+    res
+      .status(500)
+      .json({ message: "Error triggering reminders", error: error.message });
   }
 });
 
