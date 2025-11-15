@@ -6,9 +6,6 @@ import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
-import { Link } from "react-router-dom";
-import AttendedEvents from "./AttendedEvents.jsx"; 
-import Favorites from "./Favorites";
 import NotificationBell from "../components/NotificationBell";
 import WalletButton from "../components/WalletButton";
 
@@ -173,14 +170,6 @@ const StudentDashboard = () => {
         >
           My Registered Events
         </button>
-<button
-  className={`px-4 py-2 rounded-md font-medium ${
-    activeTab === "favorites" ? "bg-blue-600 text-white" : "bg-gray-100"
-  }`}
-  onClick={() => setActiveTab("favorites")}
->
-  Favorites
-</button>
 
         <button
           onClick={() => setActiveTab("register")}
@@ -192,17 +181,6 @@ const StudentDashboard = () => {
         >
           Register for Event
         </button>
-
-        <button
-  type="button"
-  onClick={() => setActiveTab("attended")}
-  className={activeTab === "attended"
-    ? "px-4 py-2 rounded bg-blue-600 text-white"
-    : "px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"}
->
-  Attended Events
-</button>
-
 
         <button
           onClick={() => {
@@ -261,14 +239,6 @@ const StudentDashboard = () => {
           <RegisterForEvent />
         </div>
       )}
-
-      {/* ATTENDED EVENTS */}
-{activeTab === "attended" && (
-  <div className="mt-6">
-    <AttendedEvents />
-  </div>
-)}
-
 
       {/* COURTS VIEW */}
       {activeTab === "courts" && (
@@ -346,9 +316,6 @@ const StudentDashboard = () => {
           )}
         </div>
       )}
-
-{activeTab === "favorites" && <Favorites />}
-
 
       {/* GYM SCHEDULE */}
       {activeTab === "gym" && (
