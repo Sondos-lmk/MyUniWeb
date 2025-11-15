@@ -6,6 +6,9 @@ import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import AttendedEvents from "./AttendedEvents.jsx";             
+import WalletButton from "../components/WalletButton";
+import NotificationBell from "../components/NotificationBell";
+
 const TADashboard = () => {
   const [activeTab, setActiveTab] = useState("events");
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -46,13 +49,19 @@ const TADashboard = () => {
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-blue-700">Teaching Assistant Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
+        <h1 className="text-2xl font-bold text-blue-700">
+          Teaching Assistant Dashboard
+        </h1>
+        <div className="flex items-center gap-4">
+          <WalletButton />
+          <NotificationBell />
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -118,13 +127,23 @@ const TADashboard = () => {
         >
           Gym Schedule
         </button>
+
+        <button
+          onClick={() => setActiveTab("vendors")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "vendors"
+              ? "bg-purple-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Loyalty Vendors
+        </button>
       </div>
 
       {/* Upcoming Events */}
-      {/* EVENTS VIEW */}
       {activeTab === "events" && (
         <div className="mt-6">
-          <UpcomingEvents /> 
+          <UpcomingEvents />
         </div>
       )}
 
@@ -154,6 +173,18 @@ const TADashboard = () => {
       {activeTab === "gym" && (
         <div className="mt-6">
           <GymSchedule />
+        </div>
+      )}
+
+      {/* Loyalty Vendors Page */}
+      {activeTab === "vendors" && (
+        <div className="mt-6">
+          <a
+            href="/loyalty-vendors"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+          >
+            View Loyalty Vendors
+          </a>
         </div>
       )}
     </div>

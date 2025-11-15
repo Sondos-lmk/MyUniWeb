@@ -10,7 +10,10 @@ import { Admin } from '../models/Users/Admin.js';
 import { TA } from '../models/Users/TA.js';
 import { EventOfficer } from '../models/Users/EventsOfficer.js';
 import { sendEmail } from '../utils/email.js';
-
+import { Booth } from '../models/Events/Booth.js';
+import { Bazaar } from '../models/Events/Bazaar.js';
+import fs from 'fs';
+import path from 'path';
 
 // Base schema including confirmPassword
 
@@ -165,5 +168,269 @@ export const getUserById = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+}
+
+// Get vendor profile (logo, tax document, company info)
+export async function getVendorProfile(req, res) {
+  try {
+    const vendorId = req.user.id;
+    const vendor = await Vendor.findById(vendorId).select('companyName logo taxDocument isVerified').lean();
+    
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    res.status(200).json({
+      vendor: {
+        id: vendor._id,
+        companyName: vendor.companyName,
+        logo: vendor.logo,
+        taxDocument: vendor.taxDocument,
+        isVerified: vendor.isVerified,
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching vendor profile:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+// Edit vendor profile (logo and other fields)
+// Edit vendor profile (logo and other fields)
+export async function editVendorProfile(req, res) {
+  try {
+    const vendorId = req.user.id;
+    const { companyName } = req.body;
+
+    console.log('🔍 editVendorProfile called with:', {
+      vendorId,
+      companyName,
+      hasFile: !!req.file,
+      file: req.file ? {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        filename: req.file.filename,
+        path: req.file.path,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      } : 'No file received'
+    });
+
+    // Find current vendor
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      console.log('❌ Vendor not found:', vendorId);
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    console.log('✅ Found vendor:', {
+      id: vendor._id,
+      companyName: vendor.companyName,
+      currentLogo: vendor.logo
+    });
+
+    // Update company name if provided
+    if (companyName) {
+      vendor.companyName = companyName;
+      console.log('📝 Updated company name to:', companyName);
+    }
+
+    // Handle new logo upload
+    if (req.file) {
+      console.log('🖼️ Processing logo upload...');
+      
+      // Delete old logo if exists
+      if (vendor.logo) {
+        const oldPath = path.join(process.cwd(), vendor.logo);
+        console.log('🗑️ Checking old logo at:', oldPath);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+          console.log('✅ Deleted old logo');
+        } else {
+          console.log('ℹ️ Old logo file not found at:', oldPath);
+        }
+      }
+
+      // Save new logo path
+      const newLogoPath = `/uploads/vendors/${req.file.filename}`;
+      vendor.logo = newLogoPath;
+      console.log('💾 Set new logo path to:', newLogoPath);
+    } else {
+      console.log('⚠️ No logo file in request - req.file is:', req.file);
+    }
+
+    // Log before save
+    console.log('💾 About to save vendor with data:', {
+      companyName: vendor.companyName,
+      logo: vendor.logo
+    });
+
+    // Save changes
+    const savedVendor = await vendor.save();
+    console.log('✅ Vendor saved successfully:', {
+      id: savedVendor._id,
+      companyName: savedVendor.companyName,
+      logo: savedVendor.logo
+    });
+
+    // Verify the save worked by fetching fresh data
+    const freshVendor = await Vendor.findById(vendorId);
+    console.log('🔍 Fresh vendor data from DB:', {
+      companyName: freshVendor.companyName,
+      logo: freshVendor.logo
+    });
+
+    res.status(200).json({
+      message: 'Vendor profile updated successfully',
+      vendor: {
+        id: freshVendor._id,
+        companyName: freshVendor.companyName,
+        logo: freshVendor.logo,
+        taxDocument: freshVendor.taxDocument,
+        isVerified: freshVendor.isVerified,
+      },
+    });
+
+  } catch (err) {
+    console.error('❌ Error updating vendor profile:', err);
+    console.error('❌ Error stack:', err.stack);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: err.message 
+    });
+  }
+}
+
+//////////////////////////////////////////
+
+
+export const submitWorkers = async (req, res) => {
+  try {
+    const { id, registrationId } = req.params; // Event ID and Registration ID
+    const vendorId = req.user.id;
+    const files = req.files || {};
+
+    console.log('🔍 Worker submission request received:');
+    console.log('Event ID:', id);
+    console.log('Registration ID:', registrationId);
+    console.log('Vendor ID:', vendorId);
+    console.log('Request body:', req.body);
+    console.log('Uploaded files count:', files.workers ? files.workers.length : 0);
+
+    // Extract worker names
+    let workersData = [];
+    if (req.body.workers && Array.isArray(req.body.workers)) {
+      workersData = req.body.workers.map((worker, index) => ({
+        name: worker.name,
+        index
+      }));
+      console.log('Extracted worker names from array:', workersData);
+    } else {
+      let index = 0;
+      while (req.body[`workers[${index}][name]`]) {
+        workersData.push({
+          name: req.body[`workers[${index}][name]`],
+          index
+        });
+        index++;
+      }
+      console.log('Extracted worker names from indexed format:', workersData);
+    }
+
+    if (workersData.length === 0) {
+      return res.status(400).json({ message: 'At least one worker is required' });
+    }
+
+    if (!files.workers || files.workers.length !== workersData.length) {
+      return res.status(400).json({ message: 'ID picture required for each worker' });
+    }
+
+    // Find the event (Booth or Bazaar)
+    let event = await Booth.findById(id) || await Bazaar.findById(id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    // Find vendor application
+    const vendorApplication = event.registeredVendors.id(registrationId);
+    if (!vendorApplication || vendorApplication.vendor.toString() !== vendorId) {
+      return res.status(404).json({ message: 'Application not found for this vendor' });
+    }
+
+    if (vendorApplication.status !== 'approved') {
+      return res.status(400).json({ message: 'Application must be approved before adding workers' });
+    }
+
+    if (vendorApplication.workersSubmitted) {
+      return res.status(400).json({ message: 'Workers information already submitted' });
+    }
+
+    // Prepare worker objects
+    const workers = workersData.map((worker, i) => ({
+      name: worker.name.trim(),
+      idPicture: `/uploads/workers/${files.workers[i].filename}`,
+      addedAt: new Date()
+    }));
+
+    // Update only workers and workersSubmitted
+    vendorApplication.workers = workers;
+    vendorApplication.workersSubmitted = true;
+
+    // Save without triggering validation on required fields like endDate
+    await event.save({ validateBeforeSave: false });
+
+    console.log('✅ Workers submitted successfully:', workers);
+    res.status(200).json({
+      message: 'Workers information submitted successfully',
+      workers: workers.map(w => ({ name: w.name, addedAt: w.addedAt }))
+    });
+
+  } catch (err) {
+    console.error('❌ Error submitting workers:', err);
+
+    // Clean up uploaded files on error
+    if (req.files && req.files.workers) {
+      req.files.workers.forEach(file => {
+        const filePath = path.join(process.cwd(), file.path);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      });
+    }
+
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+// Get workers information for a vendor's application
+export const getWorkers = async (req, res) => {
+  try {
+    const { id, registrationId } = req.params; // Event ID and Registration ID
+    const vendorId = req.user.id;
+
+    // Try to find the event in Booth or Bazaar
+    let event = await Booth.findById(id);
+    if (!event) {
+      event = await Bazaar.findById(id);
+    }
+
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    // Find the vendor's application by REGISTRATION ID
+    const vendorApplication = event.registeredVendors.find(
+      rv => rv._id.toString() === registrationId && rv.vendor.toString() === vendorId
+    );
+
+    if (!vendorApplication) {
+      return res.status(404).json({ 
+        message: 'Application not found for this vendor' 
+      });
+    }
+
+    res.status(200).json({
+      workers: vendorApplication.workers || [],
+      workersSubmitted: vendorApplication.workersSubmitted || false
+    });
+
+  } catch (err) {
+    console.error('Error fetching workers:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };

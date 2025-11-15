@@ -3,7 +3,7 @@ import { sendEmail } from './src/utils/email.js';
      async function test() {
        try {
          await sendEmail({
-           to: 'marwanabuelseoud@gmail.com',
+           to: 'amlsem7.0@gmail.com',
            subject: 'Test Email from Innovex',
            html: '<p>Test email for OAuth setup.</p>',
          });

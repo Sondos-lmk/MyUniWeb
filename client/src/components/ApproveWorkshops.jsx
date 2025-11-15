@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function ApproveWorkshops() {
+  const navigate = useNavigate();
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -56,6 +58,10 @@ export default function ApproveWorkshops() {
     }
   };
 
+  const handleRequestEdit = (id) => {
+    navigate(`/workshops/${id}/request-edit`);
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6 text-center">
@@ -75,7 +81,6 @@ export default function ApproveWorkshops() {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-2 border">Title</th>
-                <th className="p-2 border">Professor</th>
                 <th className="p-2 border">Location</th>
                 <th className="p-2 border">Start</th>
                 <th className="p-2 border">End</th>
@@ -87,7 +92,6 @@ export default function ApproveWorkshops() {
               {workshops.map((w) => (
                 <tr key={w._id} className="text-center hover:bg-gray-50">
                   <td className="p-2 border font-semibold">{w.title}</td>
-                  <td className="p-2 border">{w.createdBy?.name || "Unknown"}</td>
                   <td className="p-2 border">{w.location || "-"}</td>
                   <td className="p-2 border">
                     {w.startDate
@@ -107,7 +111,13 @@ export default function ApproveWorkshops() {
                       onClick={() => handleApprove(w._id)}
                       className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700"
                     >
-                      Approve
+                      Accept&Publish
+                    </button>
+                    <button
+                      onClick={() => handleRequestEdit(w._id)}
+                      className="bg-blue-600 text-white px-3 py-1 rounded mr-2 hover:bg-blue-700"
+                    >
+                      Request to Edit
                     </button>
                     <button
                       onClick={() => handleReject(w._id)}

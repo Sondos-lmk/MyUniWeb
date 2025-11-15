@@ -1,24 +1,15 @@
 import { useAuth } from "../context/AuthContext";
-import { useNavigate , Link } from "react-router-dom";
-import ApprovingEvents from "../components/ApprovingEvents.jsx";
+import { Link } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents.jsx";
-
+import AttendeesReport from "../components/AttendeesReport";
 import Navbar from "../components/Navbar.jsx";
 
-
 function EventOfficerDashboard() {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const token = localStorage.getItem("token");
-
-   const handleLogout = () => {
-    localStorage.removeItem("token");
-   navigate("/");
-   };
 
   return (
     <div>
-      {/* ✅ Navbar appears at the top */}
+      {/* Navbar */}
       <Navbar />
 
       <div className="p-10">
@@ -28,12 +19,6 @@ function EventOfficerDashboard() {
             ? user.name.charAt(0).toUpperCase() + user.name.slice(1)
             : "Event Officer"}
         </h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-        >
-          Logout
-        </button>
       </div>
       <div className="flex gap-4 mb-8">
       <Link
@@ -49,18 +34,53 @@ function EventOfficerDashboard() {
       >
         View Gym Schedule
       </Link>
+      {/* vendor BUTTON HERE */}
+      <Link
+        to="/loyalty-vendors"
+        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+      >
+      Loyalty Vendors
+      </Link>
+
+
+
     </div>
 
-        {/* Uncomment when ready to show events */}
-        {/* <ApprovingEvents /> */}
-        {/* Upcoming Events Section */}
-        <div className="mt-10">
-          <UpcomingEvents />
-        </div>
+      {/* TOP BUTTONS */}
+      <div className="flex gap-4 mb-8 px-10">
+        <Link
+          to="/create-gym-session"
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+        >
+          Create Gym Session
+        </Link>
+
+        <Link
+          to="/gym-schedule"
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+        >
+          View Gym Schedule
+        </Link>
+
+        <Link
+          to="/eventOfficer/archived-events"
+          className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg"
+        >
+          View Archived Events
+        </Link>
+      </div>
+
+      {/* Upcoming Events */}
+      <div className="mt-10 px-10">
+        <UpcomingEvents />
+      </div>
+
+      {/* Attendees report */}
+      <div className="mt-10 px-10 mb-10">
+        <AttendeesReport />
+      </div>
     </div>
-    
-          
-    
   );
 }
+
 export default EventOfficerDashboard;

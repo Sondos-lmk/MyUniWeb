@@ -5,7 +5,7 @@ import NotFound from "../pages/NotFound";
 import { getMyFavorites } from "../services/api";
 
 
-export default function ProtectedRoute({ allowedRoles }) {
+export default function ProtectedRoute({ allowedRoles, children}) {
   const { user, loading } = useAuth();
   const token = localStorage.getItem("token");
   const role = user?.role || localStorage.getItem("role");
@@ -27,5 +27,5 @@ export default function ProtectedRoute({ allowedRoles }) {
   }
 
   // 4️⃣ Everything OK → show the child route
-  return <Outlet />;
+  return  children ? children : <Outlet />;
 }

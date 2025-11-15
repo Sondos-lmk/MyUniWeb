@@ -52,11 +52,47 @@ const eventSchema = new mongoose.Schema(
     // from your original schema
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'completed'],
+      enum: ['pending', 'approved', 'rejected', 'completed', 'needs revision'],
       default: 'pending',
     },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Users' }, // Who created the event in the system
+
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+    // Allowed roles for registering for the event
+    allowedRoles: {
+      type: [String],
+      enum: ['student', 'staff', 'ta', 'professor'],
+      default: ['student', 'staff', 'ta', 'professor'],
+    },
+
+    // Track which users already got reminder notifications
+    reminderDaySentTo: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+
+    reminderHourSentTo: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+
+    // 🆕 End date for events (added on dev branch)
+    endDate: {
+      type: Date,
+      required: true,
+    },
+
+    // 🆕 Archive flag (added on dev branch)
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
   },
+
   baseOptions
 );
 

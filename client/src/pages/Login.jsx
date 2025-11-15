@@ -15,7 +15,7 @@ export default function Login() {
     try {
       const loggedInUser = await login(email, password);
       console.log('logged in user', loggedInUser);
-
+     
       if (loggedInUser.role === 'admin') {
         nav('/admin');
       } else if (loggedInUser.role === 'eventOfficer') {
@@ -26,8 +26,10 @@ export default function Login() {
       nav('/staff/dashboard'); 
       }else if (loggedInUser.role === 'ta'){
       nav('/ta/dashboard')
+      }else if (loggedInUser.role === 'professor'){
+        nav('/professor/dashboard');
       }else {
-        nav('/dashboard');
+        nav('/vendor/dashboard');
       }
     } catch (err) {
       console.error(err);

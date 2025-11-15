@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents";
 import AllUsers from "./AllUsers";
 
 import ApprovingEvents from "../components/ApprovingEvents";
+import AttendeesReport from "../components/AttendeesReport";
+import NotificationBell from "../components/NotificationBell";
 
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -15,10 +17,12 @@ const AdminDashboard = () => {
     role: "",
   });
   const [admins, setAdmins] = useState([]);
+  const [selectedRoles, setSelectedRoles] = useState({});
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
   const navigate = useNavigate();
 
   // Fetch pending users
@@ -238,14 +242,32 @@ const AdminDashboard = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
+    <div className="flex justify-between items-center mb-4">
+  <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+
+  <div className="flex items-center gap-4">
+    {/* 🔔 Show notifications for Admin too */}
+    <NotificationBell />
+    <Link
+     to="/loyalty-vendors"
+     className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+     >
+     Loyalty Vendors
+     </Link>
+
+    <button
+      onClick={handleLogout}
+      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+    >
+      Logout
+    </button>
+  </div>
+</div>
+
+       
+      {/* Attendees Report (shared component: shows only total attendees) */}
+      <div className="mt-8 mb-8">
+        <AttendeesReport />
       </div>
 
       {/* Create Admin/Event Officer */}
@@ -358,21 +380,38 @@ const AdminDashboard = () => {
                   {user.name} ({user.email}) - {user.role}
                 </span>
                 <div>
-                  <select
-                    defaultValue={user.role}
-                    onChange={(e) => handleApprove(user._id, e.target.value)}
-                    className="border p-1 mr-2"
-                  >
-                    <option value="staff">Staff</option>
-                    <option value="ta">TA</option>
-                    <option value="professor">Professor</option>
-                  </select>
-                  <button
-                    onClick={() => handleApprove(user._id, user.role)}
-                    className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
-                  >
-                    Approve
-                  </button>
+                  {/* If the pending user is a student, do not show role selector - admin cannot change student role */}
+                  {user.role === 'student' ? (
+                    <>
+                      <span className="mr-4">Student</span>
+                      <button
+                        onClick={() => handleApprove(user._id, 'student')}
+                        className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                      >
+                        Approve
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        value={selectedRoles[user._id] ?? user.role}
+                        onChange={(e) =>
+                          setSelectedRoles({ ...selectedRoles, [user._id]: e.target.value })
+                        }
+                        className="border p-1 mr-2"
+                      >
+                        <option value="staff">Staff</option>
+                        <option value="ta">TA</option>
+                        <option value="professor">Professor</option>
+                      </select>
+                      <button
+                        onClick={() => handleApprove(user._id, selectedRoles[user._id] ?? user.role)}
+                        className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                      >
+                        Approve
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}

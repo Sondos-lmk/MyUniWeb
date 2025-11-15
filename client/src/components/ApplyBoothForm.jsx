@@ -9,7 +9,7 @@ function ApplyBoothForm() {
     durationWeeks: 1,
     reps: [{ name: "", email: "" }],
   });
-
+  const [messageType, setMessageType] = useState(""); // 👈 add this
   const [booths, setBooths] = useState([]);
   const [message, setMessage] = useState("");
 
@@ -18,10 +18,11 @@ function ApplyBoothForm() {
       try {
         const res = await API.get("/events?type=booth");
         const boothsData = res.data?.events || res.data?.booths || res.data || [];
-        const approvedBooths = boothsData
-          .filter((b) => b.status === "approved")
-          .sort((a, b) => a.title.localeCompare(b.title)); // Sort alphabetically
-        setBooths(approvedBooths);
+        // Get all booths with their registered vendors so we can check availability
+        const booths = boothsData
+          .filter(b => b.status === "approved")
+          .sort((a, b) => a.title.localeCompare(b.title));
+        setBooths(booths);
       } catch (err) {
         console.error("Error fetching booths:", err);
       }
@@ -46,31 +47,65 @@ function ApplyBoothForm() {
     }
   };
 
+  // Compute selected booth and estimated price
+const selectedBooth = booths.find(b => b._id === form.boothId);
+
+let estimatedPrice = 0;
+if (selectedBooth && form.startDate) {
+  const start = new Date(form.startDate);
+  const end = new Date(start);
+  end.setDate(end.getDate() + Number(form.durationWeeks) * 7 - 1);
+
+  const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  const sizeMultiplier = form.boothSize === "4x4" ? 1.5 : 1;
+
+  estimatedPrice = selectedBooth.basePricePerDay * days * sizeMultiplier;
+}
+
+
+const isBoothAvailable = (booth) => {
+  // If no dates selected yet, booth is available
+  if (!form.startDate || !form.durationWeeks) return true;
+
+  // Calculate requested booking period
+  const requestedStart = new Date(form.startDate);
+  const requestedEnd = new Date(form.startDate);
+  requestedEnd.setDate(requestedEnd.getDate() + Number(form.durationWeeks) * 7 - 1);
+
+  // Find any approved booking that would overlap with our dates
+  const hasApprovedBooking = booth.registeredVendors?.some(booking => {
+    // Only check approved bookings
+    if (booking.status !== 'approved') return false;
+
+    const bookingStart = new Date(booking.startDate);
+    const bookingEnd = new Date(booking.endDate);
+
+    // Check if dates overlap
+    return requestedStart <= bookingEnd && requestedEnd >= bookingStart;
+  });
+
+  // Booth is available if there are no approved overlapping bookings
+  return !hasApprovedBooking;
+};
+
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage(""); // Clear previous messages
+    setMessageType("");
     const booth = booths.find((b) => b._id === form.boothId);
     if (!booth) {
       setMessage("Selected booth not found.");
+      setMessageType("error");
       return;
     }
 
-    const start = new Date(form.startDate);
-    const end = new Date(start);
-    end.setDate(start.getDate() + form.durationWeeks * 7);
-
-    const overlapping = booth.registeredVendors?.some(
-      (v) =>
-        v.status === "approved" &&
-        v.boothSize === form.boothSize &&
-        ((start >= new Date(v.startDate) && start <= new Date(v.endDate)) ||
-          (end >= new Date(v.startDate) && end <= new Date(v.endDate)) ||
-          (start <= new Date(v.startDate) && end >= new Date(v.endDate)))
-    );
-
-    if (overlapping) {
-      setMessage(
-        "This booth with the selected size is already booked during the selected period."
-      );
+    // Double check availability before submitting
+    const available = isBoothAvailable(booth);
+    if (!available) {
+      setMessage("This booth is already booked for the selected dates.");
+      setMessageType("error");
       return;
     }
 
@@ -83,60 +118,29 @@ function ApplyBoothForm() {
         reps: form.reps,
       });
       setMessage(res.data?.message || "Application submitted successfully!");
+      setMessageType("success"); // ✅ success type
     } catch (err) {
       console.error("Error submitting booth application:", err);
       setMessage(err.response?.data?.error || "Something went wrong.");
+      setMessageType("error");
     }
   };
 
-  // Split booths into top and bottom rows
-  const topRow = booths.slice(0, 3); // A, B, C
-  const bottomRow = booths.slice(3, 6); // D, E, F
+  // Booth rows
+  const topRow = booths.slice(0, 3);
+  const bottomRow = booths.slice(3, 6);
 
   return (
     <div className="p-6">
       <h2 className="text-xl font-bold mb-4">Apply for a Booth</h2>
 
-      {/* Booth Map */}
-      <div className="bg-gray-200 p-6 rounded mb-6 flex flex-col items-center gap-6">
-        {/* Top Row */}
-        <div className="flex justify-center gap-6">
-          {topRow.map((booth) => (
-            <button
-              key={booth._id}
-              onClick={() => setForm({ ...form, boothId: booth._id })}
-              className={`px-3 py-1 rounded border ${
-                form.boothId === booth._id ? "bg-blue-600 text-white" : "bg-white"
-              }`}
-            >
-              {booth.title}
-            </button>
-          ))}
-        </div>
-
-        {/* Center Platform */}
-        <div className="w-75 h-50 bg-green-300 flex items-center justify-center text-white font-bold rounded">
-        Platform
-      </div>
-
-        {/* Bottom Row */}
-        <div className="flex justify-center gap-6">
-          {bottomRow.map((booth) => (
-            <button
-              key={booth._id}
-              onClick={() => setForm({ ...form, boothId: booth._id })}
-              className={`px-3 py-1 rounded border ${
-                form.boothId === booth._id ? "bg-blue-600 text-white" : "bg-white"
-              }`}
-            >
-              {booth.title}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3" onKeyDown={(e) => {
+    if (e.key === "Enter") e.preventDefault(); // Prevent Enter from submitting
+  }}>
+
+        {/* 👇 Added section titles for clarity */}
+        <label className="font-semibold text-lg">Select Booth Size:</label>
         <select
           name="boothSize"
           value={form.boothSize}
@@ -148,6 +152,7 @@ function ApplyBoothForm() {
           <option value="4x4">4x4</option>
         </select>
 
+        <label className="font-semibold text-lg mt-5">Select Start Date:</label>
         <input
           type="date"
           name="startDate"
@@ -157,6 +162,7 @@ function ApplyBoothForm() {
           required
         />
 
+        <label className="font-semibold text-lg">Select Duration (Weeks):</label>
         <select
           name="durationWeeks"
           value={form.durationWeeks}
@@ -170,48 +176,160 @@ function ApplyBoothForm() {
           ))}
         </select>
 
-        <h3 className="font-semibold mt-2">Representatives</h3>
-        {form.reps.map((rep, i) => (
-          <div key={i} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Name"
-              value={rep.name}
-              onChange={(e) => handleRepChange(i, "name", e.target.value)}
-              className="border p-2 rounded flex-1"
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={rep.email}
-              onChange={(e) => handleRepChange(i, "email", e.target.value)}
-              className="border p-2 rounded flex-1"
-              required
-            />
+        {/* ✅ Booth Map (after size/date selection) */}
+        <div className="relative bg-gray-200 p-6 rounded mt-5 mb-6 flex flex-col items-center gap-6">
+          {/* Corner Labels */}
+          <div className="absolute top-2 left-2 bg-amber-800 text-white text-xs font-semibold px-2 py-1 rounded">
+            Pronto
           </div>
-        ))}
+          <div className="absolute top-2 right-2 bg-amber-800 text-white text-xs font-semibold px-2 py-1 rounded">
+            L'Aroma
+          </div>
+          <div className="absolute bottom-2 left-2 bg-amber-800 text-white text-xs font-semibold px-2 py-1 rounded">
+            Friends
+          </div>
+          <div className="absolute bottom-2 right-2 bg-amber-800 text-white text-xs font-semibold px-2 py-1 rounded">
+            Pasta Station
+          </div>
 
-        {form.reps.length < 5 && (
-          <button
-            type="button"
-            onClick={addRep}
-            className="text-blue-500 underline self-start"
-          >
-            + Add Another Representative
-          </button>
-        )}
+          {/* Top Row */}
+          <div className="flex justify-center gap-6 mt-6">
+            {topRow.map((booth) => {
+              const available = isBoothAvailable(booth);
+              return (
+                <button
+                type="button"
+                  key={booth._id}
+                  onClick={() =>
+                    available && setForm({ ...form, boothId: booth._id })
+                  }
+                  disabled={!available}
+                  className={`px-3 py-1 rounded border ${
+                    form.boothId === booth._id
+                      ? "bg-blue-600 text-white"
+                      : available
+                      ? "bg-white"
+                      : "bg-gray-400 text-white cursor-not-allowed"
+                  }`}
+                >
+                  {booth.title}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Center Platform */}
+          <div className="w-75 h-50 bg-teal-600 flex items-center justify-center text-white font-bold rounded shadow-inner">
+            Platform
+          </div>
+
+          {/* Bottom Row */}
+          <div className="flex justify-center gap-6 mb-6">
+            {bottomRow.map((booth) => {
+              const available = isBoothAvailable(booth);
+              return (
+                <button
+                type="button"
+                  key={booth._id}
+                  onClick={() =>
+                    available && setForm({ ...form, boothId: booth._id })
+                  }
+                  disabled={!available}
+                  className={`px-3 py-1 rounded border ${
+                    form.boothId === booth._id
+                      ? "bg-blue-600 text-white"
+                      : available
+                      ? "bg-white"
+                      : "bg-gray-400 text-white cursor-not-allowed"
+                  }`}
+                >
+                  {booth.title}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+{/* Selected Booth Info */}
+{selectedBooth && (
+  <div className="mt-4 p-3 border rounded bg-gray-50">
+    <p>
+      <span className="font-semibold">Booth Location:</span>{" "}
+      {selectedBooth.locationInPlatform || "N/A"}
+    </p>
+    <p>
+      <span className="font-semibold">Estimated Price:</span> {estimatedPrice.toLocaleString()} EGP
+    </p>
+  </div>
+)}
+
+        
+{/* Reps */}
+<h3 className="font-semibold mt-2">Booth Representatives</h3>
+{form.reps.map((rep, i) => (
+  <div key={i} className="mb-3 flex items-center gap-2 w-full">
+    {/* Name input */}
+    <input
+      type="text"
+      placeholder="Name"
+      value={rep.name}
+      onChange={(e) => handleRepChange(i, "name", e.target.value)}
+      className="border p-2 rounded flex-1 min-w-0"
+      required
+    />
+
+    {/* Email input */}
+    <input
+      type="email"
+      placeholder="Email"
+      value={rep.email}
+      onChange={(e) => handleRepChange(i, "email", e.target.value)}
+      className="border p-2 rounded flex-1 min-w-0"
+      required
+    />
+
+    {/* Remove button (stays to the right, never overlaps) */}
+    {form.reps.length > 1 && (
+      <button
+        type="button"
+        onClick={() => {
+          const newReps = form.reps.filter((_, idx) => idx !== i);
+          setForm({ ...form, reps: newReps });
+        }}
+        className="flex-shrink-0 text-red-600 font-bold px-3 py-1 rounded hover:bg-red-100"
+      >
+        ✕
+      </button>
+    )}
+  </div>
+))}
+
+
+
+
+
+
+{form.reps.length < 5 && (
+  <button
+    type="button"
+    onClick={addRep}
+    className="text-teal-500 underline self-start mt-1"
+  >
+    + Add Another Representative
+  </button>
+)}
+
 
         <button
           type="submit"
-          className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 mt-3"
+          className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-900 mt-3"
         >
           Submit Application
         </button>
       </form>
 
       {message && (
-        <p className="mt-3 text-center text-sm text-gray-700">{message}</p>
+        <p className={`mt-3 text-center text-sm font-medium ${messageType === "success" ? "text-green-600" : "text-red-600"}`}>
+        {message}</p>
       )}
     </div>
   );

@@ -25,17 +25,8 @@
 
 // export default router;
 import express from "express";
-import {
-  requireAuth,
-  requireEventOfficer,
-  requireGymAttendee,
-} from "../middleware/auth.js";
-import {
-  createGymSession,
-  getGymSchedule,
-  registerForGymSession,
-  getMyRegisteredSessions,   // ⬅ ADD THIS
-} from "../controllers/gymController.js";
+import { requireAuth, requireEventOfficer } from "../middleware/auth.js";
+import { createGymSession, getGymSchedule, updateGymSession, cancelGymSession } from "../controllers/gymController.js";
 
 const router = express.Router();
 
@@ -55,5 +46,10 @@ router.post(
 
 // Get sessions the logged-in user is registered in
 router.get("/my-sessions", requireAuth, getMyRegisteredSessions);
+// Edit gym session (date, time, duration only) - Events Office only
+router.patch("/:id", requireAuth, requireEventOfficer, updateGymSession);
+
+// Cancel gym session - Events Office only
+router.delete("/:id", requireAuth, requireEventOfficer, cancelGymSession);
 
 export default router;

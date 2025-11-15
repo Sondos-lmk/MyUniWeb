@@ -42,7 +42,7 @@ export default function CreateWorkshop() {
     if (!form.agenda) return setError("Full agenda is required.");
     if (!form.capacity || Number(form.capacity) < 1) return setError("Capacity must be at least 1.");
 
-    const payload = {
+  const payload = {
         type: "workshop", // ✅ required by backend
 
         title: form.title.trim(),
@@ -57,6 +57,11 @@ export default function CreateWorkshop() {
         responsibleFaculty: form.responsibleFaculty,
         extraRequiredResource: (form.extraResources || "").trim(),
         capacity: Number(form.capacity),
+        // Send free-text professor names as an array
+        professorNames: (form.professors || "")
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0),
     };
 
 

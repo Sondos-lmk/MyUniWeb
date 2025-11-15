@@ -10,6 +10,7 @@ import { Student } from '../models/Users/Student.js';
 import { Vendor } from '../models/Users/Vendor.js';
 import Joi from 'joi'; // ✅ Add Joi for validation
 import { sendEmail } from '../utils/email.js';
+import crypto from 'crypto';
 
 function getModelByRole(role) {
   const roleMap = {
@@ -49,77 +50,113 @@ const loginSchema = Joi.object({
 // ---------- REGISTER ----------
 export async function register(req, res) {
   try {
-    // Validate input with Joi
+    // ✅ Validate input (Joi)
     const { value, error } = registerSchema.validate(req.body);
     if (error) return res.status(400).json({ message: error.message });
 
     const { name, email, password, role, uniID, companyName } = value;
     console.log('Register Attempt:', { name, email, role, uniID, companyName });
 
-    // ✅ Role-based email validation
+    // ✅ Handle uploaded files (via multer)
+    const files = req.files || {};
+    const taxFile = files.taxDocument?.[0];
+    const logoFile = files.logo?.[0];
+
+    // ✅ Role-based email rules
     if (role === 'student' && !email.endsWith('@student.guc.edu.eg')) {
-      return res
-        .status(400)
-        .json({ message: 'Student email must end with @student.guc.edu.eg' });
+      return res.status(400).json({ message: 'Student email must end with @student.guc.edu.eg' });
     }
 
-     if (['staff', 'ta', 'professor', 'admin'].includes(role)) {
-      if (!email.endsWith('@guc.edu.eg') ) { 
-        return res.status(400).json({
-          message: `${role} email must end with @guc.edu.eg `,
-        });
+    if (['staff', 'ta', 'professor', 'admin'].includes(role)) {
+      if (!email.endsWith('@guc.edu.eg')) {
+        return res.status(400).json({ message: `${role} email must end with @guc.edu.eg` });
       }
     }
 
-    // Require companyName for vendor(to solve vendor sign up server error)
-    if (role === 'vendor' && (!companyName || companyName === '')) {
-      return res.status(400).json({
-        message: 'Company name is required for vendors',
-      });
+    // ✅ Vendor: require company name + files
+    if (role === 'vendor') {
+      if (!companyName?.trim()) {
+        return res.status(400).json({ message: 'Company name is required for vendors' });
+      }
+      if (!taxFile || !logoFile) {
+        return res.status(400).json({ message: 'taxDocument and logo are required for vendor' });
+      }
     }
 
-    // Choose correct model
-   const Model = getModelByRole(role); // instead of manually checking all models
+    // ✅ Get proper model
+    const Model = getModelByRole(role);
 
-
-    // Check if email or ID already exists
-    if (await Model.findOne({ email }))
-      return res.status(400).json({ message: 'Email already registered' });
-
-    if (uniID && await Model.findOne({ uniID }))
-      return res.status(400).json({ message: 'University ID already registered' });
+    // ✅ Check duplicates
+    if (await Model.findOne({ email })) return res.status(400).json({ message: 'Email already registered' });
+    if (uniID && await Model.findOne({ uniID })) return res.status(400).json({ message: 'University ID already registered' });
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-  let user;
-  if (role === 'vendor') {
-    user = new Vendor({
-      email,
-      passwordHash,
-      role: 'vendor',
-      companyName: companyName.trim(),
-      isVerified: true,
-    });
-  } else {
-    const Model = getModelByRole(role);
-    user = new Model({
+    // ✅ Handle Vendor separately (store file paths)
+    if (role === 'vendor') {
+      const vendor = new Vendor({
+        email,
+        passwordHash,
+        role: 'vendor',
+        companyName: companyName.trim(),
+        taxDocument: `/uploads/vendors/${taxFile.filename}`,
+        logo: `/uploads/vendors/${logoFile.filename}`,
+        isVerified: true, // vendors auto-verified
+      });
+      await vendor.save();
+      console.log('Vendor registered successfully:', email);
+      return res.status(201).json({ message: 'Vendor registered successfully' });
+    }
+
+    // ✅ Handle other roles
+    const user = new Model({
       name,
       email,
       passwordHash,
       role,
       uniID,
-      isVerified: ['student'].includes(role),
+      isVerified: false,
     });
-  }
 
+    // ✅ Add verification token for students
+    if (role === 'student') {
+      try {
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        user.verificationToken = verificationToken;
+        user.verificationExpires = verificationExpires;
+      } catch (err) {
+        console.error('Error generating verification token:', err);
+      }
+    }
 
     await user.save();
-    console.log('User registered:', { email, name, role });
 
+    // ✅ Send verification email (for students only)
+    if (role === 'student') {
+      const verifyLink = `${process.env.BACKEND_URL}/api/auth/verify/${user.verificationToken}`;
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'Verify Your University Event Management Account',
+          html: `
+            <p>Hello ${user.name || 'Student'},</p>
+            <p>Thanks for registering. Please verify your email by clicking the link below:</p>
+            <a href="${verifyLink}" target="_blank">${verifyLink}</a>
+            <p>This link will expire in 24 hours.</p>
+          `,
+        });
+        console.log('Verification email sent to:', user.email);
+      } catch (err) {
+        console.error('Failed to send verification email:', err);
+      }
+    }
+
+    console.log('User registered:', { email, role });
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Register Error:', err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: err.message || 'Server error' });
   }
 }
 
@@ -134,25 +171,33 @@ export async function login(req, res) {
     const { email, password } = value;
     console.log('Login Attempt:', { email });
 
-    // Find user in all models
+    // Find user in all models (include Student, Vendor, Admin, EventOfficer)
     let user =
       (await User.findOne({ email })) ||
+      (await Student.findOne({ email })) ||
       (await Staff.findOne({ email })) ||
       (await Professor.findOne({ email })) ||
-      (await TA.findOne({ email }));
+      (await TA.findOne({ email })) ||
+      (await Admin.findOne({ email })) ||
+      (await EventOfficer.findOne({ email })) ||
+      (await Vendor.findOne({ email }));
 
     if (!user)
       return res.status(401).json({ message: 'Invalid credentials' });
 
     // Check verification (except student/vendor/admin)
-    if (!['student', 'vendor', 'admin'].includes(user.role) && !user.isVerified)
+    if (!['vendor', 'admin'].includes(user.role) && !user.isVerified)
       return res.status(403).json({ message: 'Account not verified' });
-
+if (!user.isActive) {
+  return res
+    .status(403)
+    .json({ message: "Your account has been blocked by an admin." });
+}
     // Check password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch)
       return res.status(401).json({ message: 'Invalid credentials' });
-
+   
     // ✅ Use your helper function to sign the token
     const token = signToken(user);
 
@@ -161,12 +206,12 @@ export async function login(req, res) {
       token,
       user: {
         id: user._id,
-        name: user.name,
+        name: user.name||user.companyName,
         email: user.email,
-        role: user.role
+        role: user.role,
+        companyName: user.companyName
       }
-      // role: user.role,
-      // user: publicUser(user)
+    
     });
   } catch (err) {
     console.error('Login Error:', err);
@@ -183,9 +228,12 @@ export async function verifyEmail(req, res) {
 
     const user =
       (await User.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
+      (await Student.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
       (await Staff.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
       (await Professor.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
-      (await TA.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } }));
+      (await TA.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
+      (await EventOfficer.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } })) ||
+      (await Admin.findOne({ verificationToken: token, verificationExpires: { $gt: Date.now() } }));
 
     if (!user)
       return res.status(400).send('<h1>Invalid or expired verification link</h1>');

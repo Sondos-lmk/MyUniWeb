@@ -109,6 +109,7 @@ export default function GymSchedule() {
           <table className="min-w-full border border-gray-300 rounded-lg shadow-md">
             <thead className="bg-gray-100">
               <tr>
+                <th className="border p-2">Session Type</th>
                 <th className="border p-2">Date</th>
                 <th className="border p-2">Time</th>
                 <th className="border p-2">Duration</th>

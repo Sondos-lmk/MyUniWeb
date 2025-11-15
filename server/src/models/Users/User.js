@@ -17,18 +17,29 @@ const userSchema = new mongoose.Schema(
     },
     email: { type: String, required: true, unique: true, lowercase: true },
     passwordHash: { type: String, required: true },
+
     role: {
       type: String,
       required: true,
       enum: ['student', 'staff', 'professor', 'vendor', 'admin', 'eventOfficer'],
     },
-    // 🔽 added for email verification
+
+    // ⭐ ADD THIS
+    gucId: {
+      type: String,
+      required: function () {
+        return this.role === "student";
+      }
+    },
+
     verificationToken: { type: String },
     verificationExpires: { type: Date },
     isVerified: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true },
   },
   baseOptions
 );
+
 
 // 🔒 Password comparison method
 userSchema.methods.comparePassword = async function (password) {

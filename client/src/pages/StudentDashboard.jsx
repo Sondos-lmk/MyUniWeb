@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import UpcomingEvents from "../components/UpcomingEvents";
 import MyRegisteredEvents from "./MyRegisteredEvents";
@@ -9,17 +9,20 @@ import api from "../services/api";
 import { Link } from "react-router-dom";
 import AttendedEvents from "./AttendedEvents.jsx"; 
 import Favorites from "./Favorites";
+import NotificationBell from "../components/NotificationBell";
+import WalletButton from "../components/WalletButton";
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
-  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "courts" | "gym"
-  
+  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "courts" | "gym" | "vendors"
   const [courts, setCourts] = useState([]);
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [availability, setAvailability] = useState([]);
   const [loadingCourts, setLoadingCourts] = useState(false);
   const [error, setError] = useState("");
+  const [lastBooking, setLastBooking] = useState(null);
+
   const navigate = useNavigate();
 
   // Fetch upcoming events and registered ones
@@ -41,9 +44,12 @@ const StudentDashboard = () => {
         setUpcomingEvents(eventsRes.data.events || []);
 
         // Fetch student's registered events
-        const myEventsRes = await axios.get(`${apiUrl}/api/events/my-registered`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const myEventsRes = await axios.get(
+          `${apiUrl}/api/events/my-registered`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setMyEvents(myEventsRes.data || []);
       } catch (err) {
         console.error("Error fetching student dashboard data:", err);
@@ -59,7 +65,10 @@ const StudentDashboard = () => {
 
   // Logout
   const handleLogout = () => {
-    console.log("Logging out from StudentDashboard, token:", localStorage.getItem("token"));
+    console.log(
+      "Logging out from StudentDashboard, token:",
+      localStorage.getItem("token")
+    );
     localStorage.removeItem("token");
     navigate("/");
   };
@@ -95,17 +104,50 @@ const StudentDashboard = () => {
     }
   };
 
+  const bookCourt = async (courtId, date, startTime, endTime) => {
+    try {
+      const res = await api.post(`/courts/${courtId}/book`, {
+        date,
+        startTime,
+        endTime,
+      });
+
+      const b = res.data.booking;
+
+      // Save booking info to show inside the slot rectangle
+      setLastBooking({
+        date: date,
+        startTime,
+        endTime,
+        studentName: b.studentName,
+        studentGucId: b.studentGucId,
+      });
+
+      // Refresh availability
+      fetchAvailability(courtId);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Booking failed");
+    }
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-blue-700">Student Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
+        <h1 className="text-2xl font-bold text-blue-700">
+          Student Dashboard
+        </h1>
+        <div className="flex items-center gap-4">
+          <WalletButton />
+          <NotificationBell />
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -186,15 +228,25 @@ const StudentDashboard = () => {
         >
           Gym Schedule
         </button>
+
+        <button
+          onClick={() => setActiveTab("vendors")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "vendors"
+              ? "bg-purple-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Loyalty Vendors
+        </button>
       </div>
 
       {/* EVENTS VIEW */}
       {activeTab === "events" && (
         <div className="mt-6">
-          <UpcomingEvents /> 
+          <UpcomingEvents />
         </div>
       )}
-
 
       {/* MY REGISTERED EVENTS */}
       {activeTab === "registered" && (
@@ -221,7 +273,9 @@ const StudentDashboard = () => {
       {/* COURTS VIEW */}
       {activeTab === "courts" && (
         <div className="mt-8">
-          <h2 className="text-2xl font-bold text-center mb-4">Campus Courts</h2>
+          <h2 className="text-2xl font-bold text-center mb-4">
+            Campus Courts
+          </h2>
           {error && <p className="text-red-600 text-center">{error}</p>}
           {loadingCourts ? (
             <p className="text-center">Loading...</p>
@@ -258,9 +312,28 @@ const StudentDashboard = () => {
                     {day.slots.length > 0 ? (
                       <ul className="ml-4 list-disc">
                         {day.slots.map((slot, i) => (
-                          <li key={i}>
-                            {slot.startTime} - {slot.endTime}
-                          </li>
+                          <div
+                            key={i}
+                            onClick={() =>
+                              bookCourt(
+                                selectedCourt,
+                                day.date,
+                                slot.startTime,
+                                slot.endTime
+                              )
+                            }
+                            className="mt-2 mx-auto w-fit px-6 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 cursor-pointer shadow"
+                          >
+                            <div className="font-semibold text-center">
+                              {slot.startTime} - {slot.endTime}
+                            </div>
+
+                            {slot.booked && (
+                              <div className="text-sm text-center mt-1">
+                                {slot.studentName} – {slot.studentGucId}
+                              </div>
+                            )}
+                          </div>
                         ))}
                       </ul>
                     ) : (
@@ -281,6 +354,18 @@ const StudentDashboard = () => {
       {activeTab === "gym" && (
         <div className="mt-6">
           <GymSchedule />
+        </div>
+      )}
+
+      {/* LOYALTY VENDORS */}
+      {activeTab === "vendors" && (
+        <div className="mt-6">
+          <Link
+            to="/loyalty-vendors"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+          >
+            View Loyalty Vendors
+          </Link>
         </div>
       )}
     </div>

@@ -15,7 +15,7 @@ export default function Events() {
     const fetchUpcomingEvents = async () => {
       try {
         const res = await API.get("/events/");
-        setEvents(res.data || []);
+        setEvents(res.data.events || []);
       } catch (err) {
         console.error("Error fetching upcoming events:", err);
         setError("Failed to load events."); // ✅ added
