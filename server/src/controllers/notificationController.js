@@ -5,7 +5,7 @@ import { Staff } from "../models/Users/Staff.js";
 import { TA } from "../models/Users/TA.js";
 import { Professor } from "../models/Users/Professor.js";
 
-// Map role → model
+// ✅ Map role → model (supports Admin, Event Officer, Student, Staff, TA, Professor)
 const roleModelMap = {
   admin: Admin,
   eventOfficer: EventOfficer,
@@ -23,7 +23,7 @@ export const getMyNotifications = async (req, res) => {
 
     const Model = roleModelMap[role];
     if (!Model) {
-      // vendors etc. can simply get empty notifications or 403
+      // vendors, etc., can be blocked or get empty
       return res
         .status(403)
         .json({ message: "Notifications are not available for this role." });
@@ -34,9 +34,11 @@ export const getMyNotifications = async (req, res) => {
       return res.status(404).json({ message: `${role} not found.` });
     }
 
-    const list = Array.isArray(user.notifications) ? user.notifications : [];
+    const list = Array.isArray(user.notifications)
+      ? user.notifications
+      : [];
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       count: list.length,
       notifications: [...list].reverse(), // latest first
@@ -64,7 +66,7 @@ export const clearMyNotifications = async (req, res) => {
 
     await Model.findByIdAndUpdate(userId, { notifications: [] });
 
-    res.json({ success: true, message: "Notifications cleared." });
+    return res.json({ success: true, message: "Notifications cleared." });
   } catch (error) {
     console.error("Error clearing notifications:", error);
     res

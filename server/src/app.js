@@ -10,7 +10,9 @@ import path from 'path';
 dotenv.config();
 import { stripeWebhook } from './controllers/paymentController.js';
 import paymentRoutes from "./routes/paymentRoute.js"
-import authRoutes from './routes/auth.js';
+import authRoutes from "./routes/auth.js";
+
+
 import adminRoutes from './routes/admin.js';
 import eventRoutes from './routes/event.js';
 import userRoutes from './routes/userRoutes.js';
@@ -18,6 +20,9 @@ import gymRoutes from "./routes/gymRoutes.js";
 import courtRoutes from "./routes/court.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import loyaltyRoutes from './routes/loyalityRoutes.js';
+//import courtRoutes from "./routes/court.js";
+
+
 
 
 
@@ -47,27 +52,31 @@ app.use(cors({
 
 
 app.use(express.json());
+app.use(morgan('dev'));
+app.use(cors());
 
-
-// ✅ serve uploaded files
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-
-// ✅ Routes
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+// ROUTES
 app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
-app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-app.use("/api/gym", gymRoutes);
-app.use("/api/courts", courtRoutes);
-app.use("/api/notifications", notificationRoutes);
+app.use('/api/gym', gymRoutes);
+app.use('/api/courts', courtRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/auth', authRoutes);
 
-// ✅ Not found
-app.use((req, res, next) => {
-  res.status(404).json({ message: 'Not Found' });
-});
+// STRIPE WEBHOOK — ALWAYS LAST BEFORE 404!!!
+app.post(
+  '/api/payment/stripe-webhook',
+  express.raw({ type: 'application/json' }),
+  stripeWebhook
+);
+
+// 404 handler
+app.use((req, res) => res.status(404).json({ message: 'Not Found' }));
+
+
 
 // ✅ Error handler
 app.use((err, req, res, next) => {

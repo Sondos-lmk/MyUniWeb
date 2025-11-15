@@ -6,6 +6,7 @@ import { getMyWorkshops } from "../services/workshop";
 import RegisterForEvent from "./RegisterForEvent";
 import UpcomingEvents from "../components/UpcomingEvents";
 import GymSchedule from "./GymSchedule";
+import WalletButton from "../components/WalletButton";
 import NotificationBell from "../components/NotificationBell";
 
 function ProfessorDashboard() {
@@ -22,7 +23,7 @@ function ProfessorDashboard() {
 
     (async () => {
       try {
-        const data = await getMyWorkshops(); // { message, workshops }
+        const data = await getMyWorkshops();
         setMyList(data?.workshops || []);
         setListErr(null);
       } catch (e) {
@@ -33,10 +34,13 @@ function ProfessorDashboard() {
 
   return (
     <div className="p-10">
-      {/* Header + Logout */}
+
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Professor Dashboard</h1>
+
         <div className="flex items-center gap-4">
+          <WalletButton />
           <NotificationBell />
           <button
             onClick={() => {
@@ -100,7 +104,6 @@ function ProfessorDashboard() {
                     {new Date(w.registrationDeadline).toLocaleString()}
                   </div>
 
-                  {/* Show requested edits if any */}
                   {w.status !== "approved" && w.editRequest && (
                     <div
                       style={{
@@ -135,16 +138,23 @@ function ProfessorDashboard() {
 
       {/* Events Section */}
       <div style={{ marginTop: 40 }}>
-        <h2 className="text-2xl font-bold mb-4 text-blue-700">
-          Register for Event
-        </h2>
+        {/* Loyalty Vendors Section */}
+        <h2 className="text-2xl font-bold mb-4 text-purple-700">Loyalty Vendors</h2>
+        <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
+          <a
+            href="/loyalty-vendors"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+          >
+            View Loyalty Vendors
+          </a>
+        </div>
+
+        <h2 className="text-2xl font-bold mb-4 text-blue-700">Register for Event</h2>
         <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
           <RegisterForEvent />
         </div>
 
-        <h2 className="text-2xl font-bold mb-4 text-blue-700">
-          Upcoming Events
-        </h2>
+        <h2 className="text-2xl font-bold mb-4 text-blue-700">Upcoming Events</h2>
         <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
           <UpcomingEvents />
         </div>

@@ -1,10 +1,12 @@
-import { Router } from "express";
-import { getAllCourts, getCourtAvailability } from "../controllers/courtController.js";
-import { requireAuth } from "../middleware/auth.js"; // students must be logged in
+import express from "express";
+import { getAllCourts, getCourtAvailability, bookCourt } from "../controllers/courtController.js";
 
-const router = Router();
+import { requireAuth } from "../middleware/auth.js";
+
+const router = express.Router();
 
 router.get("/", requireAuth, getAllCourts);
 router.get("/:id/availability", requireAuth, getCourtAvailability);
+router.post("/:id/book", requireAuth, bookCourt);
 
 export default router;

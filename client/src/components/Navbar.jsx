@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import NotificationBell from "./NotificationBell";
 
 
+
+
 export default function Navbar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -33,6 +35,7 @@ export default function Navbar() {
           {/* <Link to="/events" className={active("/events")}>
             Events
           </Link> */}
+         
 
           {token && (
             <>
@@ -45,6 +48,7 @@ export default function Navbar() {
               <Link to="/events" className={active("/events")}>
                 Events
               </Link>
+              
 
               {/* ✅ Event Officer Only Links */}
               {role === "eventOfficer" && (
@@ -93,6 +97,7 @@ export default function Navbar() {
             >
               Log out
             </button>
+            
           )}
         </div>
       </nav>
