@@ -33,6 +33,8 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import GenerateVisitorQR from "./pages/GenerateVisitorQR.jsx";
 import LoyaltyVendors from "./pages/LoyaltyVendors";
 import ArchivedEvents from "./pages/ArchivedEvents";
+import AttendedEvents from "./pages/AttendedEvents.jsx";
+
 
 
 

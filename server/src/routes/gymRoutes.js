@@ -25,8 +25,8 @@
 
 // export default router;
 import express from "express";
-import { requireAuth, requireEventOfficer } from "../middleware/auth.js";
-import { createGymSession, getGymSchedule, updateGymSession, cancelGymSession } from "../controllers/gymController.js";
+import { requireAuth, requireEventOfficer,requireGymAttendee } from "../middleware/auth.js";
+import { createGymSession, getGymSchedule, updateGymSession, cancelGymSession,registerForGymSession,getMyRegisteredSessions } from "../controllers/gymController.js";
 
 const router = express.Router();
 

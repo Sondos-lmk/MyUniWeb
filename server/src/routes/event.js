@@ -33,19 +33,19 @@ import {
   addEventToFavorites,
   removeEventFromFavorites,
   getMyFavoriteEvents,
-
- 
-} from '../controllers/eventController.js';
-import Joi from 'joi';
   sendCertificate,
   generateVisitorQR,
   exportEventRegistrations,
-} from "../controllers/eventController.js";
+ 
+} from '../controllers/eventController.js';
+
+import Joi from 'joi';
+
 
 import { sendCertificatesForCompletedWorkshops } from "../utils/certificateScheduler.js";
 import { sendRemindersForUpcomingEvents } from "../utils/reminderScheduler.js";
 
-import { Event } from "../models/Events/Event.js";
+
 import { archivePastEvents } from "../controllers/archiveController.js";
 
 import {
