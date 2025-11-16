@@ -19,6 +19,7 @@ import { generateCertificate } from "../utils/generateCertificate.js";
 import path from "path";
 import XLSX from "xlsx";
 import mongoose from "mongoose";
+import { notifyUsersOfNewEvent } from "../utils/inAppNotification.js";
 
 // --------------------------------------
 // JOI VALIDATION SCHEMAS
@@ -473,7 +474,7 @@ export const createEvent = async (req, res) => {
     const authUserId = req.user?.id || req.user?._id;
     if (authUserId) {
       payload.organizerId = authUserId;
-      payload.createdBy = authUserId; // 👈 add it here, AFTER validation
+      payload.createdBy = authUserId;
     }
 
     // ✅ Optional roles allowed to register for the event
@@ -487,6 +488,13 @@ export const createEvent = async (req, res) => {
     const Model = getEventModel(type);
     const newEvent = new Model(payload);
     await newEvent.save();
+
+    // ✅ New: in-system notification for newly added event
+    try {
+      await notifyUsersOfNewEvent(newEvent);
+    } catch (notifyErr) {
+      console.error("Error sending new-event notifications:", notifyErr);
+    }
 
     res.status(201).json({
       message: `${type} created successfully`,
@@ -595,19 +603,37 @@ export const approveEvent = async (req, res) => {
     event.status = "approved";
     await event.save();
 
+    // 🔹 NEW: notify professor if this is a workshop
+    try {
+      if (event.type === "workshop" && event.createdBy) {
+        const professor = await Professor.findById(event.createdBy);
+        if (professor) {
+          const msg = `✅ Your workshop "${event.title}" has been approved by the Events Office.`;
+          professor.notifications = professor.notifications || [];
+          professor.notifications.push(msg);
+          await professor.save();
+        }
+      }
+    } catch (notifyErr) {
+      console.error("Error sending approval notification to professor:", notifyErr);
+      // Don't block main response if notification fails
+    }
+
     res.status(200).json({
       message: "Event approved successfully",
       event: {
         id: event._id,
         title: event.title,
-        status: event.status
-      }
+        status: event.status,
+      },
     });
   } catch (error) {
     console.error("Approve Event Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
 
 //  Reject event
 export const rejectEvent = async (req, res) => {
@@ -623,19 +649,36 @@ export const rejectEvent = async (req, res) => {
     event.status = "rejected";
     await event.save();
 
+    // 🔹 NEW: notify professor if this is a workshop
+    try {
+      if (event.type === "workshop" && event.createdBy) {
+        const professor = await Professor.findById(event.createdBy);
+        if (professor) {
+          const msg = `❌ Your workshop "${event.title}" has been rejected by the Events Office.`;
+          professor.notifications = professor.notifications || [];
+          professor.notifications.push(msg);
+          await professor.save();
+        }
+      }
+    } catch (notifyErr) {
+      console.error("Error sending rejection notification to professor:", notifyErr);
+      // Don't block main response if notification fails
+    }
+
     res.status(200).json({
       message: "Event rejected successfully",
       event: {
         id: event._id,
         title: event.title,
-        status: event.status
-      }
+        status: event.status,
+      },
     });
   } catch (error) {
     console.error("Reject Event Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 export const registerForWorkshopOrTrip = async (req, res) => {
@@ -863,8 +906,6 @@ export const createWorkshop = async (req, res) => {
     req.body.organizerId = req.user._id.toString();
     const schema = getValidationSchema(type);
 
-    // ⚠️ Don't add createdBy or organizerId yet — wait until after validation
-
     // ✅ Validate user input
     const { error, value } = schema.validate(req.body);
     if (error) {
@@ -875,22 +916,26 @@ export const createWorkshop = async (req, res) => {
     value.organizerId = req.user._id;
     value.createdBy = req.user._id;
     value.status = "pending";
-    
+
     // ✅ Normalize any free-text professor names if provided
     if (req.body.professorNames && Array.isArray(req.body.professorNames)) {
-      value.professorNames = req.body.professorNames.map((n) => String(n).trim()).filter(Boolean);
+      value.professorNames = req.body.professorNames
+        .map((n) => String(n).trim())
+        .filter(Boolean);
     }
 
     // ✅ Automatically include the creating professor
     value.professorsParticipating = [req.user._id];
-    
+
     // ✅ Save the workshop
     const newWorkshop = new Workshop(value);
     await newWorkshop.save();
 
-     //  NEW: Notify all Event Officers about this new pending workshop
+    // Notify all Event Officers about this new pending workshop
     const eventOfficers = await EventOfficer.find();
-    const notificationMessage = `📢 New workshop request from Professor ${req.user.name || "Unknown"}: "${newWorkshop.title}"`;
+    const notificationMessage = `📢 New workshop request from Professor ${
+      req.user.name || "Unknown"
+    }: "${newWorkshop.title}"`;
 
     await Promise.all(
       eventOfficers.map(async (officer) => {
@@ -898,6 +943,13 @@ export const createWorkshop = async (req, res) => {
         await officer.save();
       })
     );
+
+    // ✅ New: general "new event" notification for all allowed roles
+    try {
+      await notifyUsersOfNewEvent(newWorkshop);
+    } catch (notifyErr) {
+      console.error("Error sending new-event notifications for workshop:", notifyErr);
+    }
 
     res.status(201).json({
       message: "Workshop created successfully and is pending approval.",
@@ -911,6 +963,7 @@ export const createWorkshop = async (req, res) => {
     });
   }
 };
+
 
 
 // ----------------------
@@ -946,6 +999,31 @@ export const updateWorkshop = async (req, res) => {
     console.error("Error updating workshop:", error);
     res.status(500).json({
       message: "Server error while updating workshop.",
+      error: error.message,
+    });
+  }
+};
+// ----------------------
+// PROFESSOR: GET MY NOTIFICATIONS
+// ----------------------
+export const getProfessorNotifications = async (req, res) => {
+  try {
+    const professorId = req.user._id || req.user.id;
+
+    const professor = await Professor.findById(professorId).select("notifications name");
+    if (!professor) {
+      return res.status(404).json({ message: "Professor not found." });
+    }
+
+    res.status(200).json({
+      message: "Notifications fetched successfully.",
+      professorName: professor.name,
+      notifications: professor.notifications || [],
+    });
+  } catch (error) {
+    console.error("Error fetching professor notifications:", error);
+    res.status(500).json({
+      message: "Server error while fetching notifications.",
       error: error.message,
     });
   }
@@ -1743,16 +1821,15 @@ export const updateVendorStatus = async (req, res) => {
 
 export const createBazaar = async (req, res) => {
   try {
-
-    if (req.user.role !== 'eventOfficer') {
-      return res.status(403).json({ message: 'Only Event Officers can create bazaars' });
+    if (req.user.role !== "eventOfficer") {
+      return res.status(403).json({ message: "Only Event Officers can create bazaars" });
     }
 
     console.log("🧾 Received body:", req.body);
     // Automatically set organizer and createdBy
     const userId = req.user.id || req.user._id;
     req.body.organizerId = req.body.organizerId || userId;
-    req.body.createdBy = userId; // ✅ add this line
+    req.body.createdBy = userId;
 
     const { error, value } = bazaarSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
@@ -1760,17 +1837,25 @@ export const createBazaar = async (req, res) => {
     const newBazaar = new Bazaar(value);
     await newBazaar.save();
 
-    res.status(201).json({ message: 'Bazaar created successfully', bazaar: newBazaar });
+    // ✅ New: notify all relevant users about the new bazaar
+    try {
+      await notifyUsersOfNewEvent(newBazaar);
+    } catch (notifyErr) {
+      console.error("Error sending new-event notifications for bazaar:", notifyErr);
+    }
+
+    res.status(201).json({ message: "Bazaar created successfully", bazaar: newBazaar });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+
 export const createConference = async (req, res) => {
   try {
     // 🔒 Only Event Officers can create
-    if (req.user.role !== 'eventOfficer') {
-      return res.status(403).json({ error: 'Only Event Officers can create conferences.' });
+    if (req.user.role !== "eventOfficer") {
+      return res.status(403).json({ error: "Only Event Officers can create conferences." });
     }
 
     console.log("🧾 Received body:", req.body);
@@ -1778,26 +1863,34 @@ export const createConference = async (req, res) => {
     const userId = req.user.id || req.user._id;
     req.body.organizerId = req.body.organizerId || userId;
     req.body.createdBy = userId;
-    req.body.type = 'conference'; // ensure type is correctly set
+    req.body.type = "conference";
 
     const { error, value } = conferenceSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
     // Auto-approve conferences
-    value.status = 'approved';
+    value.status = "approved";
 
     const newConference = new Conference(value);
     await newConference.save();
 
+    // ✅ New: notify all relevant users about the new conference
+    try {
+      await notifyUsersOfNewEvent(newConference);
+    } catch (notifyErr) {
+      console.error("Error sending new-event notifications for conference:", notifyErr);
+    }
+
     res.status(201).json({
-      message: 'Conference created successfully',
+      message: "Conference created successfully",
       conference: newConference,
     });
   } catch (err) {
-    console.error('Create Conference Error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Create Conference Error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 export const updateConference = async (req, res) => {
   try {

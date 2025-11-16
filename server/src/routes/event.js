@@ -15,6 +15,7 @@ import {
   getPendingWorkshops,
   getWorkshopParticipants,
   getProfessorWorkshops,
+  getProfessorNotifications,
   getMyRegisteredEvents,
   createConference,
   updateConference,
@@ -28,8 +29,11 @@ import {
   getMyRegisteredEventsFromUser,
   sendCertificate,
   generateVisitorQR,
-  exportEventRegistrations
+  exportEventRegistrations,
 } from "../controllers/eventController.js";
+
+import { sendCertificatesForCompletedWorkshops } from "../utils/certificateScheduler.js";
+import { sendRemindersForUpcomingEvents } from "../utils/reminderScheduler.js";
 
 import { Event } from "../models/Events/Event.js";
 import { archivePastEvents } from "../controllers/archiveController.js";
@@ -100,7 +104,12 @@ router.delete("/:id", requireAuth, requireEventOfficerOrAdmin, deleteEvent);
 router.patch("/:id/updateBazaar", requireAuth, requireEventOfficer, updateBazaar);
 
 // Registrations export
-router.get("/:id/export-registrations", requireAuth, requireEventOfficer, exportEventRegistrations);
+router.get(
+  "/:id/export-registrations",
+  requireAuth,
+  requireEventOfficer,
+  exportEventRegistrations
+);
 
 // -----------------------------------------------------
 // 🔹 PROFESSOR ROUTES
@@ -111,12 +120,14 @@ router.post(
   requireProfessor,
   createWorkshop
 );
+
 router.put(
   "/professor/workshop/:id",
   requireAuth,
   requireProfessor,
   updateWorkshop
 );
+
 router.get(
   "/professor/my-workshops",
   requireAuth,
@@ -129,6 +140,21 @@ router.get(
   requireAuth,
   requireProfessor,
   getWorkshopParticipants
+);
+
+router.get(
+  "/professor/notifications",
+  requireAuth,
+  requireProfessor,
+  getProfessorNotifications
+);
+
+// Pending workshops (Event Officer only)
+router.get(
+  "/pending/workshops",
+  requireAuth,
+  requireEventOfficer,
+  getPendingWorkshops
 );
 
 // -----------------------------------------------------
@@ -147,7 +173,7 @@ router.patch(
 router.get("/my-events", requireAuth, getMyRegisteredEvents);
 router.get("/my-applications", requireAuth, getMyEventApplications);
 router.get("/my-registered", requireAuth, getMyRegisteredEventsFromUser);
-router.get('/', requireAuth, getAllEvents);
+router.get("/", requireAuth, getAllEvents);
 router.post("/register/:eventId", requireAuth, registerForWorkshopOrTrip);
 
 // -----------------------------------------------------
@@ -166,6 +192,7 @@ router.post(
   requireEventOfficer,
   createConference
 );
+
 router.patch(
   "/:id/updateConf",
   requireAuth,
@@ -195,6 +222,46 @@ router.get("/debug/events", async (req, res) => {
     res.json(events);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------
+// 🔹 MANUAL CERTIFICATE SCHEDULER TRIGGER
+// -----------------------------------------------------
+router.post("/trigger-certificates", requireAuth, async (req, res) => {
+  try {
+    await sendCertificatesForCompletedWorkshops();
+    res.json({ message: "Certificate scheduler triggered successfully" });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error triggering certificates",
+      error: error.message,
+    });
+  }
+});
+
+// -----------------------------------------------------
+// 🔹 MANUAL REMINDER SCHEDULER TRIGGER
+// -----------------------------------------------------
+router.post("/trigger-reminders", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "eventOfficer" && req.user.role !== "admin") {
+      return res.status(403).json({
+        message: "Only Event Officers or Admins can trigger reminders.",
+      });
+    }
+
+    const result = await sendRemindersForUpcomingEvents();
+    res.json({
+      message: "Reminder scheduler ran successfully.",
+      ...result,
+    });
+  } catch (error) {
+    console.error("Error triggering reminders:", error);
+    res.status(500).json({
+      message: "Error triggering reminders",
+      error: error.message,
+    });
   }
 });
 
