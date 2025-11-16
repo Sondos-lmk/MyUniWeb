@@ -1,25 +1,37 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import UpcomingEvents from "../components/UpcomingEvents";
-//import MyRegisteredEvents from "./MyRegisteredEvents";
+import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
 import Voting from "../components/Voting";
+import NotificationBell from "../components/NotificationBell";
+import WalletButton from "../components/WalletButton";
+
+// ✅ NEW imports for favorites UI
+import { fetchMyFavorites } from "../services/favorites";
+import EventCard from "../components/EventCard";
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
-  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "courts" | "gym"
+  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "courts" | "gym" | "vendors" | "favorites"
   const [courts, setCourts] = useState([]);
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [availability, setAvailability] = useState([]);
   const [loadingCourts, setLoadingCourts] = useState(false);
   const [error, setError] = useState("");
+  const [lastBooking, setLastBooking] = useState(null);
+
+  // ✅ NEW state for favorites
+  const [favorites, setFavorites] = useState([]);
+  const [favSet, setFavSet] = useState(new Set());
+
   const navigate = useNavigate();
 
-  // Fetch upcoming events and registered ones
+  // Fetch upcoming events, registered events, and favorites
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -38,10 +50,18 @@ const StudentDashboard = () => {
         setUpcomingEvents(eventsRes.data.events || []);
 
         // Fetch student's registered events
-        const myEventsRes = await axios.get(`${apiUrl}/api/events/my-registered`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const myEventsRes = await axios.get(
+          `${apiUrl}/api/events/my-registered`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setMyEvents(myEventsRes.data || []);
+
+        // ✅ Fetch favorites
+        const favs = await fetchMyFavorites();
+        setFavorites(favs);
+        setFavSet(new Set(favs.map((e) => e._id || e.id)));
       } catch (err) {
         console.error("Error fetching student dashboard data:", err);
         if (err.response?.status === 401) {
@@ -54,9 +74,33 @@ const StudentDashboard = () => {
     fetchData();
   }, [navigate]);
 
+  // ✅ Called by EventCard whenever heart is toggled
+  const handleToggleFavorite = (eventId, willBeFav, eventObj) => {
+    setFavSet((prev) => {
+      const s = new Set(prev);
+      if (willBeFav) s.add(eventId);
+      else s.delete(eventId);
+      return s;
+    });
+
+    setFavorites((prev) => {
+      if (willBeFav) {
+        // add if not already there
+        return prev.some((e) => (e._id || e.id) === eventId)
+          ? prev
+          : [...prev, eventObj];
+      }
+      // remove
+      return prev.filter((e) => (e._id || e.id) !== eventId);
+    });
+  };
+
   // Logout
   const handleLogout = () => {
-    console.log("Logging out from StudentDashboard, token:", localStorage.getItem("token"));
+    console.log(
+      "Logging out from StudentDashboard, token:",
+      localStorage.getItem("token")
+    );
     localStorage.removeItem("token");
     navigate("/");
   };
@@ -92,17 +136,50 @@ const StudentDashboard = () => {
     }
   };
 
+  const bookCourt = async (courtId, date, startTime, endTime) => {
+    try {
+      const res = await api.post(`/courts/${courtId}/book`, {
+        date,
+        startTime,
+        endTime,
+      });
+
+      const b = res.data.booking;
+
+      // Save booking info to show inside the slot rectangle
+      setLastBooking({
+        date: date,
+        startTime,
+        endTime,
+        studentName: b.studentName,
+        studentGucId: b.studentGucId,
+      });
+
+      // Refresh availability
+      fetchAvailability(courtId);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Booking failed");
+    }
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-blue-700">Student Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
+        <h1 className="text-2xl font-bold text-blue-700">
+          Student Dashboard
+        </h1>
+        <div className="flex items-center gap-4">
+          <WalletButton />
+          <NotificationBell />
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -118,7 +195,28 @@ const StudentDashboard = () => {
           Upcoming Events
         </button>
 
-    
+        <button
+          onClick={() => setActiveTab("registered")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "registered"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          My Registered Events
+        </button>
+
+        {/* ✅ NEW: Favorites tab button */}
+        <button
+          onClick={() => setActiveTab("favorites")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "favorites"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Favorites
+        </button>
 
         <button
           onClick={() => setActiveTab("register")}
@@ -155,6 +253,17 @@ const StudentDashboard = () => {
         >
           Gym Schedule
         </button>
+
+        <button
+          onClick={() => setActiveTab("vendors")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "vendors"
+              ? "bg-purple-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Loyalty Vendors
+        </button>
       </div>
 
       {/* EVENTS VIEW */}
@@ -162,14 +271,48 @@ const StudentDashboard = () => {
         <div className="mt-6">
           <UpcomingEvents /> 
           <Voting />
+          {/* ✅ Pass favorites info to UpcomingEvents so hearts work */}
+          <UpcomingEvents
+            favoritesSet={favSet}
+            onToggleFavorite={handleToggleFavorite}
+            userRole="student"
+          />
         </div>
       )}
-
 
       {/* MY REGISTERED EVENTS */}
       {activeTab === "registered" && (
         <div className="mt-6">
           <MyRegisteredEvents />
+        </div>
+      )}
+
+      {/* ✅ FAVORITES TAB */}
+      {activeTab === "favorites" && (
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold text-center mb-4">
+            My Favorites
+          </h2>
+          {favorites.length === 0 ? (
+            <p className="text-center text-gray-600">
+              No favorite events yet. Click the heart on any event to add it.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {favorites.map((ev) => {
+                const id = ev._id || ev.id;
+                return (
+                  <EventCard
+                    key={id}
+                    event={ev}
+                    userRole="student"
+                    isFavorite={favSet.has(id)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -183,7 +326,9 @@ const StudentDashboard = () => {
       {/* COURTS VIEW */}
       {activeTab === "courts" && (
         <div className="mt-8">
-          <h2 className="text-2xl font-bold text-center mb-4">Campus Courts</h2>
+          <h2 className="text-2xl font-bold text-center mb-4">
+            Campus Courts
+          </h2>
           {error && <p className="text-red-600 text-center">{error}</p>}
           {loadingCourts ? (
             <p className="text-center">Loading...</p>
@@ -220,9 +365,28 @@ const StudentDashboard = () => {
                     {day.slots.length > 0 ? (
                       <ul className="ml-4 list-disc">
                         {day.slots.map((slot, i) => (
-                          <li key={i}>
-                            {slot.startTime} - {slot.endTime}
-                          </li>
+                          <div
+                            key={i}
+                            onClick={() =>
+                              bookCourt(
+                                selectedCourt,
+                                day.date,
+                                slot.startTime,
+                                slot.endTime
+                              )
+                            }
+                            className="mt-2 mx-auto w-fit px-6 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 cursor-pointer shadow"
+                          >
+                            <div className="font-semibold text-center">
+                              {slot.startTime} - {slot.endTime}
+                            </div>
+
+                            {slot.booked && (
+                              <div className="text-sm text-center mt-1">
+                                {slot.studentName} – {slot.studentGucId}
+                              </div>
+                            )}
+                          </div>
                         ))}
                       </ul>
                     ) : (
@@ -240,6 +404,18 @@ const StudentDashboard = () => {
       {activeTab === "gym" && (
         <div className="mt-6">
           <GymSchedule />
+        </div>
+      )}
+
+      {/* LOYALTY VENDORS */}
+      {activeTab === "vendors" && (
+        <div className="mt-6">
+          <Link
+            to="/loyalty-vendors"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+          >
+            View Loyalty Vendors
+          </Link>
         </div>
       )}
     </div>

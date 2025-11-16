@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
-import { Event } from '../models/Events/Event.js';
+import { Event, ratingSummary } from '../models/Events/Event.js';
 import { Bazaar } from '../models/Events/Bazaar.js';
 import { Booth } from '../models/Events/Booth.js';
 import { Conference } from '../models/Events/Conference.js';
@@ -16,9 +16,11 @@ import { TA } from "../models/Users/TA.js";
 import { EventOfficer } from "../models/Users/EventsOfficer.js";
 import { sendEmail } from "../utils/email.js";
 import { generateCertificate } from "../utils/generateCertificate.js";
+import { Favorite } from "../models/Favorite.js";
 import path from "path";
 import XLSX from "xlsx";
 import mongoose from "mongoose";
+import { notifyUsersOfNewEvent } from "../utils/inAppNotification.js";
 
 // --------------------------------------
 // JOI VALIDATION SCHEMAS
@@ -160,6 +162,16 @@ const getEventModel = (type) => {
   }
 };
 
+// Helper: determine if event is finished (for comments, attended events, etc.)
+const isEventFinished = (e) => {
+  if (!e) return false;
+  const end = e.endDate || e.date || e.updatedAt;
+  return (
+    e.status === 'completed' ||
+    (end && new Date(end) < new Date())
+  );
+};
+
 // --------------------------------------
 // CONTROLLERS
 // --------------------------------------
@@ -217,7 +229,12 @@ export const getEventById = async (req, res) => {
       ]);
     }
 
-    res.status(200).json(event);
+    // Attach derived rating using helper (number or 'unrated')
+    const rating = ratingSummary(event);
+    const eventObj = event.toObject ? event.toObject() : event;
+    eventObj.rating = rating;
+
+    res.status(200).json(eventObj);
   } catch (err) {
     console.error('Error in getEventById:', err);
     res.status(500).json({ error: err.message });
@@ -454,6 +471,233 @@ export const searchEvents = async (req, res) => {
   }
 };
 
+// ROLES allowed to favorite events
+const FAVORITE_ALLOWED = ["student", "staff", "ta", "professor"];
+
+// POST /api/events/:id/favorite
+export const addEventToFavorites = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const role = (req.user.role || "").toLowerCase();
+    const eventId = req.params.id;
+
+    if (!FAVORITE_ALLOWED.includes(role)) {
+      return res.status(403).json({ message: "Only students, staff, TAs, and professors can favorite events." });
+    }
+
+    // Ensure the event exists
+    const exists = await Event.exists({ _id: eventId });
+    if (!exists) return res.status(404).json({ message: "Event not found" });
+
+    // Upsert & add once
+    const fav = await Favorite.findOneAndUpdate(
+      { user: userId },
+      { $addToSet: { events: eventId } },
+      { upsert: true, new: true }
+    );
+
+    return res.status(200).json({ message: "Event added to favorites", favoritesCount: fav.events.length });
+  } catch (err) {
+    console.error("addEventToFavorites error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// DELETE /api/events/:id/favorite
+export const removeEventFromFavorites = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const role = (req.user.role || "").toLowerCase();
+    const eventId = req.params.id;
+
+    if (!FAVORITE_ALLOWED.includes(role)) {
+      return res.status(403).json({ message: "Only students, staff, TAs, and professors can unfavorite events." });
+    }
+
+    const fav = await Favorite.findOneAndUpdate(
+      { user: userId },
+      { $pull: { events: eventId } },
+      { new: true }
+    );
+
+    // If user has no favorites doc yet, just succeed silently
+    const count = fav?.events?.length || 0;
+    return res.status(200).json({ message: "Event removed from favorites", favoritesCount: count });
+  } catch (err) {
+    console.error("removeEventFromFavorites error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// GET /api/events/my/favorites
+export const getMyFavoriteEvents = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const role = (req.user.role || "").toLowerCase();
+
+    if (!FAVORITE_ALLOWED.includes(role)) {
+      return res.status(403).json({ message: "Only students, staff, TAs, and professors can view favorites." });
+    }
+
+    const fav = await Favorite.findOne({ user: userId })
+      .populate("events", "title type startDate endDate location desc status createdAt");
+
+    return res.status(200).json({
+      message: "Favorites fetched successfully",
+      count: fav?.events?.length || 0,
+      events: fav?.events || [],
+    });
+  } catch (err) {
+    console.error("getMyFavoriteEvents error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// ⭐ RATE EVENT
+export const rateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { value } = req.body;
+    const userId = req.user._id || req.user.id;
+
+    // validate rating range
+    if (![1, 2, 3, 4, 5].includes(Number(value))) {
+      return res.status(400).json({ message: "Rating must be 1–5" });
+    }
+
+    // find event
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // allowed roles
+    const allowed = ["student", "staff", "ta", "professor"];
+    if (!allowed.includes((req.user.role || "").toLowerCase()))
+      return res.status(403).json({ message: "Not allowed" });
+
+    // must be registered (either registeredUsers or registeredStudents)
+    const userIdStr = String(userId);
+    const inRegisteredUsers = Array.isArray(event.registeredUsers) &&
+      event.registeredUsers.some((u) => String(u) === userIdStr);
+    const inRegisteredStudents = Array.isArray(event.registeredStudents) &&
+      event.registeredStudents.some((u) => String(u) === userIdStr);
+
+    if (!inRegisteredUsers && !inRegisteredStudents) {
+      return res.status(403).json({ message: "You did not attend this event" });
+    }
+
+    // prevent rating before start date
+    const start = event.startDate || event.date;
+    const now = new Date();
+    const isUpcoming = start && new Date(start) > now;
+    if (isUpcoming) {
+      return res.status(400).json({ message: "Event has not started yet" });
+    }
+
+    // prevent rating multiple times
+    event.ratings = event.ratings || [];
+    const alreadyRated = event.ratings.some(
+      (r) => String(r.user) === userIdStr
+    );
+    if (alreadyRated) {
+      return res.status(403).json({ message: "You have already rated this event" });
+    }
+
+    // save rating
+    event.ratings.push({ user: userId, value: Number(value) });
+    await event.save();
+
+    // calculate average (1 decimal)
+    const sum = event.ratings.reduce((a, r) => a + Number(r.value || 0), 0);
+    const avg = event.ratings.length ? sum / event.ratings.length : 0;
+    const roundedAvg = Math.round(avg * 10) / 10;
+
+    return res.status(200).json({
+      message: "Rating submitted successfully",
+      average: roundedAvg,
+      ratingsCount: event.ratings.length,
+    });
+  } catch (err) {
+    console.error("Rate Event Error:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+};
+
+// 💬 ADD COMMENT
+// POST /api/events/:id/comment
+export const addComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+    const userId = req.user?._id || req.user?.id;
+
+    if (!text || !String(text).trim()) {
+      return res.status(400).json({ message: "Comment text is required" });
+    }
+
+    const allowed = ["student", "staff", "ta", "professor"];
+    if (!allowed.includes((req.user.role || "").toLowerCase())) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // must be registered (either registeredUsers or registeredStudents)
+    const userIdStr = String(userId);
+    const inRegisteredUsers = Array.isArray(event.registeredUsers) &&
+      event.registeredUsers.some((u) => String(u) === userIdStr);
+    const inRegisteredStudents = Array.isArray(event.registeredStudents) &&
+      event.registeredStudents.some((u) => String(u) === userIdStr);
+
+    if (!inRegisteredUsers && !inRegisteredStudents) {
+      return res.status(403).json({ message: "You did not attend this event" });
+    }
+
+    // must be finished
+    if (!isEventFinished(event)) {
+      return res
+        .status(400)
+        .json({ message: "You can comment only after the event is finished" });
+    }
+
+    // one comment per user (block duplicates)
+    event.comments = event.comments || [];
+    const alreadyCommented = event.comments.some(
+      (c) => String(c.user) === userIdStr
+    );
+    if (alreadyCommented) {
+      return res
+        .status(409)
+        .json({ message: "You have already commented on this event" });
+    }
+
+    event.comments.push({
+      user: userId,
+      text: String(text).trim(),
+      createdAt: new Date(),
+    });
+
+    await event.save();
+
+    // return only safe fields
+    const last = event.comments[event.comments.length - 1];
+    return res.status(201).json({
+      message: "Comment added",
+      comment: {
+        _id: last._id,
+        user: last.user,
+        text: last.text,
+        createdAt: last.createdAt,
+      },
+      commentsCount: event.comments.length,
+    });
+  } catch (err) {
+    console.error("Add Comment Error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 
 // Create event
 export const createEvent = async (req, res) => {
@@ -473,7 +717,7 @@ export const createEvent = async (req, res) => {
     const authUserId = req.user?.id || req.user?._id;
     if (authUserId) {
       payload.organizerId = authUserId;
-      payload.createdBy = authUserId; // 👈 add it here, AFTER validation
+      payload.createdBy = authUserId;
     }
 
     // ✅ Optional roles allowed to register for the event
@@ -487,6 +731,13 @@ export const createEvent = async (req, res) => {
     const Model = getEventModel(type);
     const newEvent = new Model(payload);
     await newEvent.save();
+
+    // ✅ New: in-system notification for newly added event
+    try {
+      await notifyUsersOfNewEvent(newEvent);
+    } catch (notifyErr) {
+      console.error("Error sending new-event notifications:", notifyErr);
+    }
 
     res.status(201).json({
       message: `${type} created successfully`,
@@ -595,19 +846,37 @@ export const approveEvent = async (req, res) => {
     event.status = "approved";
     await event.save();
 
+    // 🔹 NEW: notify professor if this is a workshop
+    try {
+      if (event.type === "workshop" && event.createdBy) {
+        const professor = await Professor.findById(event.createdBy);
+        if (professor) {
+          const msg = `✅ Your workshop "${event.title}" has been approved by the Events Office.`;
+          professor.notifications = professor.notifications || [];
+          professor.notifications.push(msg);
+          await professor.save();
+        }
+      }
+    } catch (notifyErr) {
+      console.error("Error sending approval notification to professor:", notifyErr);
+      // Don't block main response if notification fails
+    }
+
     res.status(200).json({
       message: "Event approved successfully",
       event: {
         id: event._id,
         title: event.title,
-        status: event.status
-      }
+        status: event.status,
+      },
     });
   } catch (error) {
     console.error("Approve Event Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
 
 //  Reject event
 export const rejectEvent = async (req, res) => {
@@ -623,19 +892,36 @@ export const rejectEvent = async (req, res) => {
     event.status = "rejected";
     await event.save();
 
+    // 🔹 NEW: notify professor if this is a workshop
+    try {
+      if (event.type === "workshop" && event.createdBy) {
+        const professor = await Professor.findById(event.createdBy);
+        if (professor) {
+          const msg = `❌ Your workshop "${event.title}" has been rejected by the Events Office.`;
+          professor.notifications = professor.notifications || [];
+          professor.notifications.push(msg);
+          await professor.save();
+        }
+      }
+    } catch (notifyErr) {
+      console.error("Error sending rejection notification to professor:", notifyErr);
+      // Don't block main response if notification fails
+    }
+
     res.status(200).json({
       message: "Event rejected successfully",
       event: {
         id: event._id,
         title: event.title,
-        status: event.status
-      }
+        status: event.status,
+      },
     });
   } catch (error) {
     console.error("Reject Event Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 export const registerForWorkshopOrTrip = async (req, res) => {
@@ -863,8 +1149,6 @@ export const createWorkshop = async (req, res) => {
     req.body.organizerId = req.user._id.toString();
     const schema = getValidationSchema(type);
 
-    // ⚠️ Don't add createdBy or organizerId yet — wait until after validation
-
     // ✅ Validate user input
     const { error, value } = schema.validate(req.body);
     if (error) {
@@ -875,22 +1159,26 @@ export const createWorkshop = async (req, res) => {
     value.organizerId = req.user._id;
     value.createdBy = req.user._id;
     value.status = "pending";
-    
+
     // ✅ Normalize any free-text professor names if provided
     if (req.body.professorNames && Array.isArray(req.body.professorNames)) {
-      value.professorNames = req.body.professorNames.map((n) => String(n).trim()).filter(Boolean);
+      value.professorNames = req.body.professorNames
+        .map((n) => String(n).trim())
+        .filter(Boolean);
     }
 
     // ✅ Automatically include the creating professor
     value.professorsParticipating = [req.user._id];
-    
+
     // ✅ Save the workshop
     const newWorkshop = new Workshop(value);
     await newWorkshop.save();
 
-     //  NEW: Notify all Event Officers about this new pending workshop
+    // Notify all Event Officers about this new pending workshop
     const eventOfficers = await EventOfficer.find();
-    const notificationMessage = `📢 New workshop request from Professor ${req.user.name || "Unknown"}: "${newWorkshop.title}"`;
+    const notificationMessage = `📢 New workshop request from Professor ${
+      req.user.name || "Unknown"
+    }: "${newWorkshop.title}"`;
 
     await Promise.all(
       eventOfficers.map(async (officer) => {
@@ -898,6 +1186,13 @@ export const createWorkshop = async (req, res) => {
         await officer.save();
       })
     );
+
+    // ✅ New: general "new event" notification for all allowed roles
+    try {
+      await notifyUsersOfNewEvent(newWorkshop);
+    } catch (notifyErr) {
+      console.error("Error sending new-event notifications for workshop:", notifyErr);
+    }
 
     res.status(201).json({
       message: "Workshop created successfully and is pending approval.",
@@ -911,6 +1206,7 @@ export const createWorkshop = async (req, res) => {
     });
   }
 };
+
 
 
 // ----------------------
@@ -946,6 +1242,31 @@ export const updateWorkshop = async (req, res) => {
     console.error("Error updating workshop:", error);
     res.status(500).json({
       message: "Server error while updating workshop.",
+      error: error.message,
+    });
+  }
+};
+// ----------------------
+// PROFESSOR: GET MY NOTIFICATIONS
+// ----------------------
+export const getProfessorNotifications = async (req, res) => {
+  try {
+    const professorId = req.user._id || req.user.id;
+
+    const professor = await Professor.findById(professorId).select("notifications name");
+    if (!professor) {
+      return res.status(404).json({ message: "Professor not found." });
+    }
+
+    res.status(200).json({
+      message: "Notifications fetched successfully.",
+      professorName: professor.name,
+      notifications: professor.notifications || [],
+    });
+  } catch (error) {
+    console.error("Error fetching professor notifications:", error);
+    res.status(500).json({
+      message: "Server error while fetching notifications.",
       error: error.message,
     });
   }
@@ -1037,6 +1358,56 @@ export const getPendingWorkshops = async (req, res) => {
     });
   }
 };
+// ----------------------
+// PROFESSOR: VIEW WORKSHOP PARTICIPANTS
+// ----------------------
+export const getWorkshopParticipants = async (req, res) => {
+  try {
+    const { id } = req.params; // workshop id from URL
+    const professorId = req.user._id || req.user.id;
+
+    // ✅ Find workshop created by this professor
+    const workshop = await Workshop.findOne({
+      _id: id,
+      createdBy: professorId,
+    }).populate("registeredUsers", "name email idNumber role");
+
+    if (!workshop) {
+      return res.status(404).json({
+        message: "Workshop not found or you are not the creator of this workshop.",
+      });
+    }
+
+    // ✅ Calculate counts
+    const capacity = workshop.capacity || 0;
+    const registeredCount = (workshop.registeredUsers || []).length;
+    const remainingSpots = Math.max(0, capacity - registeredCount);
+
+    // ✅ Shape response
+    const participants = (workshop.registeredUsers || []).map((u) => ({
+      id: u._id,
+      name: u.name,
+      email: u.email,
+      idNumber: u.idNumber,
+      role: u.role,
+    }));
+
+    return res.status(200).json({
+      workshopId: workshop._id,
+      title: workshop.title,
+      capacity,
+      registeredCount,
+      remainingSpots,
+      participants,
+    });
+  } catch (error) {
+    console.error("Error fetching workshop participants:", error);
+    return res.status(500).json({
+      message: "Server error while fetching workshop participants.",
+      error: error.message,
+    });
+  }
+};
 
 export const sendCertificate = async (req, res) => {
   try {
@@ -1098,6 +1469,43 @@ export const getProfessorWorkshops = async (req, res) => {
       message: "Server error while fetching workshops.",
       error: error.message,
     });
+  }
+};
+
+// ✅ Get attended events (for rating & comments list)
+export const getAttendedEvents = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const now = new Date();
+
+    // Events this user registered for AND already ended
+    const events = await Event.find({
+      $or: [
+        { registeredUsers: userId },
+        { registeredStudents: userId },
+      ],
+      $or: [
+        { endDate: { $lt: now } },
+        { date: { $lt: now } }, // fallback if your model uses 'date'
+      ],
+      status: { $in: ["approved", "completed"] },
+    }).sort({ endDate: -1, date: -1 });
+
+    const withRatings = events.map((e) => {
+      const avgOrUnrated = ratingSummary(e);
+      const isUnrated = avgOrUnrated === 'unrated';
+
+      return {
+        ...e.toObject(),
+        averageRating: isUnrated ? null : avgOrUnrated,
+        rating: avgOrUnrated,
+      };
+    });
+
+    return res.status(200).json({ events: withRatings });
+  } catch (err) {
+    console.error("getAttendedEvents error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -1496,55 +1904,65 @@ try {
 
 /////////////////////
 
-// Fetch all bazaars and booths I registered for
-
 export const getMyEventApplications = async (req, res) => {
   try {
     const vendorId = req.user.id || req.user._id;
 
-    // 1️⃣ Get all bazaar applications by this vendor
+    // 1️⃣ Get all bazaars where this vendor registered
     const myBazaars = await Bazaar.find({
       "registeredVendors.vendor": vendorId
-    }).select("title type location startDate endDate registeredVendors finalPrice paymentStatus workersSubmitted");
+    }).select("title type location startDate endDate registeredVendors");
 
-    // 2️⃣ Get all booth applications by this vendor
+    // 2️⃣ Get all booths where this vendor registered
     const myBooths = await Booth.find({
       "registeredVendors.vendor": vendorId
-    }).select(" title type locationInPlatform duration startDate endDate registeredVendors finalPrice paymentStatus workersSubmitted");
+    }).select("title type locationInPlatform duration startDate endDate registeredVendors");
 
-    // Combine and format results
-    const formattedBazaars = myBazaars.map(bazaar => {
-      const reg = bazaar.registeredVendors.find(v => v.vendor.toString() === vendorId);
-      return {
-        id: bazaar._id,
-        type: "bazaar",
-        title: bazaar.title,
-        location: bazaar.location,
-        startDate: bazaar.startDate,
-        endDate: bazaar.endDate,
-        status: reg?.status || "unknown",
-        boothSize: reg?.boothSize || "N/A",
-        finalPrice: reg?.finalPrice || 0,
-        paymentStatus: reg?.paymentStatus || "unpaid",
-        workersSubmitted: reg?.workersSubmitted || false
-      };
+    const formattedBazaars = [];
+    myBazaars.forEach(bazaar => {
+      bazaar.registeredVendors
+        .filter(v => v.vendor.toString() === vendorId)
+        .forEach(reg => {
+          formattedBazaars.push({
+            id: bazaar._id,
+            type: "bazaar",
+            title: bazaar.title,
+            location: bazaar.location,
+            startDate: reg.startDate || bazaar.startDate,
+            endDate: reg.endDate || bazaar.endDate,
+            status: reg.status || "unknown",
+            boothSize: reg.boothSize || "N/A",
+            finalPrice: reg.finalPrice || 0,
+            paymentStatus: reg.paymentStatus || "unpaid",
+             paymentDeadline: reg.paymentDeadline || null, // ✅ added
+            workersSubmitted: reg.workersSubmitted || false,
+            registrationId: reg._id || null,
+            
+          });
+        });
     });
 
-    const formattedBooths = myBooths.map(booth => {
-      const reg = booth.registeredVendors.find(v => v.vendor.toString() === vendorId);
-      return {
-        id: booth._id,
-        type: "booth",
-        title: booth.title,
-        location: booth.locationInPlatform,
-        startDate: reg?.startDate,
-        endDate: reg?.endDate,
-        status: reg?.status || "unknown",
-        boothSize: reg?.boothSize || "N/A",
-        finalPrice: reg?.finalPrice || 0,
-        paymentStatus: reg?.paymentStatus || "unpaid",
-        workersSubmitted: reg?.workersSubmitted || false
-      };
+    const formattedBooths = [];
+    myBooths.forEach(booth => {
+      booth.registeredVendors
+        .filter(v => v.vendor.toString() === vendorId)
+        .forEach(reg => {
+          formattedBooths.push({
+            id: booth._id,
+            type: "booth",
+            title: booth.title,
+            location: booth.locationInPlatform,
+            startDate: reg.startDate || booth.startDate,
+            endDate: reg.endDate || booth.endDate,
+            status: reg.status || "unknown",
+            boothSize: reg.boothSize || "N/A",
+            finalPrice: reg.finalPrice || 0,
+            paymentStatus: reg.paymentStatus || "unpaid",
+            paymentDeadline: reg.paymentDeadline || null, // ✅ added
+            workersSubmitted: reg.workersSubmitted || false,
+            registrationId: reg._id || null,
+          });
+        });
     });
 
     res.status(200).json({
@@ -1552,6 +1970,7 @@ export const getMyEventApplications = async (req, res) => {
       applications: [...formattedBazaars, ...formattedBooths],
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -1669,40 +2088,58 @@ export const updateVendorStatus = async (req, res) => {
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ error: "Event not found" });
 
-    const vendor = event.registeredVendors.find(
-      (v) => v.vendor.toString() === vendorId
+    // Find the vendor REGISTRATION by its _id (not by vendor user ID)
+    const vendorIndex = event.registeredVendors.findIndex(
+      (v) => v._id.toString() === vendorId.toString()
     );
-    if (!vendor) return res.status(404).json({ error: "Vendor not found" });
+    
+    if (vendorIndex === -1) {
+      return res.status(404).json({ error: "Vendor registration not found" });
+    }
 
-    // Only check for overlapping if approving
+    const vendorReg = event.registeredVendors[vendorIndex];
+
+    // Use registration-specific dates if available, otherwise fallback to event dates
+    const vendorStart = vendorReg.startDate || event.startDate;
+    const vendorEnd = vendorReg.endDate || event.endDate;
+
     if (status === "approved") {
-      const overlap = event.registeredVendors.some((v) =>
-        v.vendor.toString() !== vendorId &&
-        v.status === "approved" &&
-        ((vendor.startDate <= v.endDate && vendor.startDate >= v.startDate) ||
-          (vendor.endDate >= v.startDate && vendor.endDate <= v.endDate) ||
-          (vendor.startDate <= v.startDate && vendor.endDate >= v.endDate))
-      );
+      // Check for overlapping approved registrations (ANY vendor including the same one)
+      const overlapping = event.registeredVendors.some((v, idx) => {
+        if (idx === vendorIndex) return false; // skip current registration
+        if (v.status !== "approved") return false; // only check approved registrations
 
-      if (overlap) {
+        const vStart = v.startDate || event.startDate;
+        const vEnd = v.endDate || event.endDate;
+
+        // Check for any date overlap
+        return (
+          (vendorStart <= vEnd && vendorStart >= vStart) ||
+          (vendorEnd >= vStart && vendorEnd <= vEnd) ||
+          (vendorStart <= vStart && vendorEnd >= vEnd)
+        );
+      });
+
+      if (overlapping) {
         return res.status(400).json({
           error: "This booth is already booked during the selected period",
         });
       }
     }
 
-    // Approve/reject
-    vendor.status = status;
+    // Update status
+    event.registeredVendors[vendorIndex].status = status;
+    event.markModified('registeredVendors');
     await event.save();
 
-    // ✅ Send email to vendor
+    // Send email notification to the VENDOR USER (not registration)
     try {
-      const vendorUser = await User.findById(vendorId);
+      const vendorUser = await User.findById(vendorReg.vendor);
       if (vendorUser && vendorUser.email) {
         const subject =
           status === "approved"
-            ? `This is Innovex GUC System, Your application for ${event.title} is approved`
-            : `This is Innovex GUC System, Your application for ${event.title} is rejected`;
+            ? `Innovex GUC: Your application for "${event.title}" is approved`
+            : `Innovex GUC: Your application for "${event.title}" is rejected`;
 
         const text =
           status === "approved"
@@ -1713,6 +2150,7 @@ export const updateVendorStatus = async (req, res) => {
           to: vendorUser.email,
           subject,
           text,
+          html: `<p>${text}</p>`
         });
       }
     } catch (emailErr) {
@@ -1726,20 +2164,17 @@ export const updateVendorStatus = async (req, res) => {
 };
 
 
-
-
 export const createBazaar = async (req, res) => {
   try {
-
-    if (req.user.role !== 'eventOfficer') {
-      return res.status(403).json({ message: 'Only Event Officers can create bazaars' });
+    if (req.user.role !== "eventOfficer") {
+      return res.status(403).json({ message: "Only Event Officers can create bazaars" });
     }
 
     console.log("🧾 Received body:", req.body);
     // Automatically set organizer and createdBy
     const userId = req.user.id || req.user._id;
     req.body.organizerId = req.body.organizerId || userId;
-    req.body.createdBy = userId; // ✅ add this line
+    req.body.createdBy = userId;
 
     const { error, value } = bazaarSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
@@ -1747,17 +2182,25 @@ export const createBazaar = async (req, res) => {
     const newBazaar = new Bazaar(value);
     await newBazaar.save();
 
-    res.status(201).json({ message: 'Bazaar created successfully', bazaar: newBazaar });
+    // ✅ New: notify all relevant users about the new bazaar
+    try {
+      await notifyUsersOfNewEvent(newBazaar);
+    } catch (notifyErr) {
+      console.error("Error sending new-event notifications for bazaar:", notifyErr);
+    }
+
+    res.status(201).json({ message: "Bazaar created successfully", bazaar: newBazaar });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+
 export const createConference = async (req, res) => {
   try {
     // 🔒 Only Event Officers can create
-    if (req.user.role !== 'eventOfficer') {
-      return res.status(403).json({ error: 'Only Event Officers can create conferences.' });
+    if (req.user.role !== "eventOfficer") {
+      return res.status(403).json({ error: "Only Event Officers can create conferences." });
     }
 
     console.log("🧾 Received body:", req.body);
@@ -1765,26 +2208,34 @@ export const createConference = async (req, res) => {
     const userId = req.user.id || req.user._id;
     req.body.organizerId = req.body.organizerId || userId;
     req.body.createdBy = userId;
-    req.body.type = 'conference'; // ensure type is correctly set
+    req.body.type = "conference";
 
     const { error, value } = conferenceSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
     // Auto-approve conferences
-    value.status = 'approved';
+    value.status = "approved";
 
     const newConference = new Conference(value);
     await newConference.save();
 
+    // ✅ New: notify all relevant users about the new conference
+    try {
+      await notifyUsersOfNewEvent(newConference);
+    } catch (notifyErr) {
+      console.error("Error sending new-event notifications for conference:", notifyErr);
+    }
+
     res.status(201).json({
-      message: 'Conference created successfully',
+      message: "Conference created successfully",
       conference: newConference,
     });
   } catch (err) {
-    console.error('Create Conference Error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Create Conference Error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 export const updateConference = async (req, res) => {
   try {
@@ -1915,13 +2366,3 @@ export const generateVisitorQR = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-
-
-
-

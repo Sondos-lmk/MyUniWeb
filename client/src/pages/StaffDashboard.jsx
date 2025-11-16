@@ -2,14 +2,20 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import UpcomingEvents from "../components/UpcomingEvents";
-//import MyRegisteredEvents from "./MyRegisteredEvents";
+import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import Voting from "../components/Voting";
+import NotificationBell from "../components/NotificationBell";
+import WalletButton from "../components/WalletButton";
+import { fetchMyFavorites } from "../services/favorites";
+import EventCard from "../components/EventCard";
 
 const StaffDashboard = () => {
-  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "gym"
+  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "gym" | "vendors"
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [favSet, setFavSet] = useState(new Set());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,17 +32,43 @@ const StaffDashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUpcomingEvents(res.data.events || []);
-      } catch (err) {
-        console.error("Error fetching staff dashboard data:", err);
-        if (err.response?.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
-        }
-      }
-    };
+        
+      const favs = await fetchMyFavorites();
+              setFavorites(favs);
+              setFavSet(new Set(favs.map((e) => e._id || e.id)));
+            } catch (err) {
+              console.error("Error fetching staff dashboard data:", err);
+              if (err.response?.status === 401) {
+                localStorage.removeItem("token");
+                navigate("/login");
+              }
+            }
+             };
 
     fetchEvents();
   }, [navigate]);
+
+   // ✅ Called by EventCard whenever heart is toggled
+  const handleToggleFavorite = (eventId, willBeFav, eventObj) => {
+    setFavSet((prev) => {
+      const s = new Set(prev);
+      if (willBeFav) s.add(eventId);
+      else s.delete(eventId);
+      return s;
+    });
+
+    setFavorites((prev) => {
+      if (willBeFav) {
+        // add if not already there
+        return prev.some((e) => (e._id || e.id) === eventId)
+          ? prev
+          : [...prev, eventObj];
+      }
+      // remove
+      return prev.filter((e) => (e._id || e.id) !== eventId);
+    });
+  };
+
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -48,12 +80,16 @@ const StaffDashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-blue-700">Staff Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-4">
+          <WalletButton />
+          <NotificationBell />
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -67,6 +103,29 @@ const StaffDashboard = () => {
           }`}
         >
           Upcoming Events
+        </button>
+
+        <button
+          onClick={() => setActiveTab("registered")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "registered"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          My Registered Events
+        </button>
+        
+        {/* ✅ NEW: Favorites tab button */}
+        <button
+          onClick={() => setActiveTab("favorites")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "favorites"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Favorites
         </button>
 
         <button
@@ -90,6 +149,17 @@ const StaffDashboard = () => {
         >
           Gym Schedule
         </button>
+
+        <button
+          onClick={() => setActiveTab("vendors")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "vendors"
+              ? "bg-purple-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Loyalty Vendors
+        </button>
       </div>
 
       {/* EVENTS VIEW */}
@@ -97,6 +167,12 @@ const StaffDashboard = () => {
         <div className="mt-6">
           <UpcomingEvents /> 
           <Voting />
+          {/* ✅ Pass favorites info to UpcomingEvents so hearts work */}
+          <UpcomingEvents
+            favoritesSet={favSet}
+            onToggleFavorite={handleToggleFavorite}
+            userRole="student"
+          />
         </div>
       )}
 
@@ -106,6 +182,34 @@ const StaffDashboard = () => {
           <MyRegisteredEvents />
         </div>
       )}
+        {/* ✅ FAVORITES TAB */}
+            {activeTab === "favorites" && (
+              <div className="mt-6">
+                <h2 className="text-2xl font-bold text-center mb-4">
+                  My Favorites
+                </h2>
+                {favorites.length === 0 ? (
+                  <p className="text-center text-gray-600">
+                    No favorite events yet. Click the heart on any event to add it.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {favorites.map((ev) => {
+                      const id = ev._id || ev.id;
+                      return (
+                        <EventCard
+                          key={id}
+                          event={ev}
+                          userRole="student"
+                          isFavorite={favSet.has(id)}
+                          onToggleFavorite={handleToggleFavorite}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
       {/* Register for Event */}
       {activeTab === "register" && (
@@ -118,6 +222,18 @@ const StaffDashboard = () => {
       {activeTab === "gym" && (
         <div className="mt-6">
           <GymSchedule />
+        </div>
+      )}
+
+      {/* Loyalty Vendors Page */}
+      {activeTab === "vendors" && (
+        <div className="mt-6">
+          <a
+            href="/loyalty-vendors"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+          >
+            View Loyalty Vendors
+          </a>
         </div>
       )}
     </div>

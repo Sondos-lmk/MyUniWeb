@@ -1,10 +1,27 @@
 // client/src/components/EventCard.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { saveAs } from "file-saver";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { addFavorite, removeFavorite } from "../services/favorites";
 
-
+// Simple heart SVG
+const Heart = ({ active }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    className="w-6 h-6"
+    fill={active ? "red" : "none"}
+    stroke={active ? "red" : "currentColor"}
+    strokeWidth="2"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M21 8.25c0-2.485-2.016-4.5-4.5-4.5-1.86 0-3.464 1.12-4.2 2.719C11.564 4.87 9.96 3.75 8.1 3.75 5.616 3.75 3.6 5.765 3.6 8.25c0 6.048 8.4 11.25 8.4 11.25s8.4-5.202 8.4-11.25z"
+    />
+  </svg>
+);
 
 const badgeColor = (type) => {
   switch (type) {
@@ -18,12 +35,55 @@ const badgeColor = (type) => {
   }
 };
 
-export default function EventCard({ event, onPrimary, primaryLabel, secondary, disabled , userRole }) {
+export default function EventCard({
+  event,
+  onPrimary,
+  primaryLabel,
+  secondary,
+  disabled,
+  userRole,
+  isFavorite,
+  onToggleFavorite
+}) {
   const navigate = useNavigate();
 
-  // Handle gym sessions differently
+  // 🔑 Unified event id (works for upcoming + favorites)
+  const eventId = event?._id || event?.id;
+
+  /* =========================
+     HEART / FAVORITES (shared)
+     ========================= */
+  const [fav, setFav] = useState(!!isFavorite);
+  const [busyFav, setBusyFav] = useState(false);
+
+  useEffect(() => {
+    setFav(!!isFavorite);
+  }, [isFavorite]);
+
+  const toggleFavorite = async () => {
+    if (!eventId || busyFav) return;
+    setBusyFav(true);
+    try {
+      if (fav) {
+        await removeFavorite(eventId);
+        setFav(false);
+        onToggleFavorite?.(eventId, false, event);
+      } else {
+        await addFavorite(eventId);
+        setFav(true);
+        onToggleFavorite?.(eventId, true, event);
+      }
+    } catch (e) {
+      console.error("Favorite toggle failed:", e);
+    } finally {
+      setBusyFav(false);
+    }
+  };
+
+  // ======================
+  // GYM SESSIONS BRANCH
+  // ======================
   if (event?.type === "gym") {
-    // Local editable state for inline edits
     const [gDate, setGDate] = useState(
       event.date ? new Date(event.date).toISOString().slice(0, 10) : ""
     );
@@ -45,7 +105,7 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
         if (gDate) payload.date = gDate;
         if (gTime) payload.time = gTime;
         if (gDuration !== "") payload.duration = Number(gDuration);
-        await API.patch(`/gym/${event._id}`, payload);
+        await API.patch(`/gym/${eventId}`, payload);
         alert("Gym session updated");
         setEditing(false);
       } catch (err) {
@@ -65,7 +125,7 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
     const handleCancelGym = async () => {
       try {
         if (!window.confirm("Are you sure you want to cancel this gym session?")) return;
-        await API.delete(`/events/${event._id}`);
+        await API.delete(`/events/${eventId}`);
         setIsDeleted(true);
         alert("Gym session cancelled");
       } catch (err) {
@@ -94,7 +154,6 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
                 <div className="font-medium capitalize">{event.sessionType}</div>
               </div>
             )}
-            {/* Fields: read-only by default; switch to inputs only in edit mode */}
             {editing ? (
               <>
                 <div className="p-2 rounded border-2 border-amber-300 bg-amber-50">
@@ -150,7 +209,6 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
             )}
           </div>
 
-          {/* Event Officer actions for Gym */}
           {userRole === "eventOfficer" && (
             <div className="mt-4 flex flex-wrap gap-3">
               {!editing ? (
@@ -197,9 +255,10 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
     );
   }
 
-  // Regular event handling
+  // ======================
+  // REGULAR EVENTS BRANCH
+  // ======================
   const {
-    _id,
     title,
     desc,
     type,
@@ -214,40 +273,38 @@ export default function EventCard({ event, onPrimary, primaryLabel, secondary, d
 
   const fmt = (d) => (d ? new Date(d).toLocaleString() : "—");
 
-const handleExportRegistrations = async () => {
-  try {
-    const res = await API.get(`/events/${event._id}/export-registrations`, {
-      responseType: "blob",
-    });
+  const handleExportRegistrations = async () => {
+    try {
+      const res = await API.get(`/events/${eventId}/export-registrations`, {
+        responseType: "blob",
+      });
 
-    const blob = new Blob([res.data], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
+      const blob = new Blob([res.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
 
-    saveAs(blob, `${event.title.replace(/\s+/g, "_")}_registrations.xlsx`);
-  } catch (err) {
-    console.error("Export error:", err);
+      saveAs(blob, `${event.title.replace(/\s+/g, "_")}_registrations.xlsx`);
+    } catch (err) {
+      console.error("Export error:", err);
 
-    // ✅ Improved user-facing message
-    if (err.response?.status === 400) {
-      alert(err.response.data.message || "No users registered for this event.");
-    } else if (err.response?.status === 403) {
-      alert("Access denied. Only Event Officers can export registrations.");
-    } else if (err.response?.status === 404) {
-      alert("Event not found.");
-    } else {
-      alert("Something went wrong while exporting. Please try again.");
+      if (err.response?.status === 400) {
+        alert(err.response.data.message || "No users registered for this event.");
+      } else if (err.response?.status === 403) {
+        alert("Access denied. Only Event Officers can export registrations.");
+      } else if (err.response?.status === 404) {
+        alert("Event not found.");
+      } else {
+        alert("Something went wrong while exporting. Please try again.");
+      }
     }
-  }
-};
-
+  };
 
   console.log({
-  title,
-  userRole,
-  eventType: event.type,
-  eventStatus: event.status,
-});
+    title,
+    userRole,
+    eventType: event.type,
+    eventStatus: event.status,
+  });
 
   const canEdit =
     userRole === "eventofficer" &&
@@ -255,8 +312,21 @@ const handleExportRegistrations = async () => {
 
   return (
     <div
-      className="group rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all hover:-translate-y-0.5 overflow-hidden"
+      className="group relative rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all hover:-translate-y-0.5 overflow-hidden"
     >
+      {/* ❤️ Heart: only for non-gym events */}
+      <button
+        onClick={toggleFavorite}
+        disabled={busyFav}
+        className={`absolute top-3 right-3 p-1 rounded-full ${
+          busyFav ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"
+        }`}
+        aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+        title={fav ? "Remove from favorites" : "Add to favorites"}
+      >
+        <Heart active={fav} />
+      </button>
+
       <div className="p-5">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold">{title}</h3>
@@ -320,44 +390,41 @@ const handleExportRegistrations = async () => {
           )}
           {secondary}
         </div>
+
         {/* ✅ Event Officer Actions */}
-{/* ACTION BUTTONS SECTION (clean + consistent) */}
-<div className="mt-6 space-y-3">
+        <div className="mt-6 space-y-3">
+          {/* Edit Event (Trips, Bazaars, Conferences) */}
+          {userRole === "eventOfficer" &&
+            ["trip", "bazaar", "conference"].includes(event.type) && (
+              <button
+                onClick={() => navigate(`/events/${eventId}/edit`)}
+                className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-xl text-sm font-semibold transition"
+              >
+                Edit Event
+              </button>
+            )}
 
-  {/* Edit Event (Trips, Bazaars, Conferences) */}
-  {userRole === "eventOfficer" &&
-    ["trip", "bazaar", "conference"].includes(event.type) && (
-      <button
-        onClick={() => navigate(`/events/${event._id}/edit`)}
-        className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-xl text-sm font-semibold transition"
-      >
-        Edit Event
-      </button>
-    )}
+          {/* Export Registrations */}
+          {userRole === "eventOfficer" && event.type !== "conference" && (
+            <button
+              onClick={handleExportRegistrations}
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-sm font-semibold transition"
+            >
+              Export Registrations
+            </button>
+          )}
 
-  {/* Export Registrations */}
-  {userRole === "eventOfficer" && event.type !== "conference" && (
-    <button
-      onClick={handleExportRegistrations}
-      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-sm font-semibold transition"
-    >
-      Export Registrations
-    </button>
-  )}
-
-  {/* Generate Visitor QR (Bazaar + Booth) */}
-  {userRole === "eventOfficer" &&
-    ["bazaar", "booth"].includes(event.type) && (
-      <button
-        onClick={() => navigate(`/events/${event._id}/generate-visitor-qr`)}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl text-sm font-semibold transition"
-      >
-        Generate Visitor QR
-      </button>
-    )}
-
-</div>
-
+          {/* Generate Visitor QR (Bazaar + Booth) */}
+          {userRole === "eventOfficer" &&
+            ["bazaar", "booth"].includes(event.type) && (
+              <button
+                onClick={() => navigate(`/events/${eventId}/generate-visitor-qr`)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl text-sm font-semibold transition"
+              >
+                Generate Visitor QR
+              </button>
+            )}
+        </div>
       </div>
     </div>
   );

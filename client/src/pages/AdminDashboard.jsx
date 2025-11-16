@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents";
 import AllUsers from "./AllUsers";
 
@@ -249,6 +249,12 @@ const AdminDashboard = () => {
   <div className="flex items-center gap-4">
     {/* 🔔 Show notifications for Admin too */}
     <NotificationBell />
+    <Link
+     to="/loyalty-vendors"
+     className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+     >
+     Loyalty Vendors
+     </Link>
 
     <button
       onClick={handleLogout}

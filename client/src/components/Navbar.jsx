@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import NotificationBell from "./NotificationBell";
 
 
+
+
 export default function Navbar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -33,6 +35,7 @@ export default function Navbar() {
           {/* <Link to="/events" className={active("/events")}>
             Events
           </Link> */}
+         
 
           {token && (
             <>
@@ -45,6 +48,7 @@ export default function Navbar() {
               <Link to="/events" className={active("/events")}>
                 Events
               </Link>
+              
 
               {/* ✅ Event Officer Only Links */}
               {role === "eventOfficer" && (
@@ -75,8 +79,9 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Show bell only when logged in as Event Officer */}
-             {token && (role === "eventOfficer" || role === "admin") && <NotificationBell />}
+          {/* Show notifications bell for all logged-in non-vendor roles */}
+          {token && role !== "vendor" && <NotificationBell />}
+
 
           {!token ? (
             <>
@@ -100,6 +105,7 @@ export default function Navbar() {
             >
               Log out
             </button>
+            
           )}
         </div>
       </nav>
