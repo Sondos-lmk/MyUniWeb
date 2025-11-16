@@ -7,10 +7,15 @@ import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import WalletButton from "../components/WalletButton";
 import NotificationBell from "../components/NotificationBell";
+import { fetchMyFavorites } from "../services/favorites";
+import EventCard from "../components/EventCard";
 
 const TADashboard = () => {
   const [activeTab, setActiveTab] = useState("events");
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [favSet, setFavSet] = useState(new Set());
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,17 +32,40 @@ const TADashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUpcomingEvents(res.data.events || []);
-      } catch (err) {
-        console.error("Error fetching TA dashboard data:", err);
-        if (err.response?.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
-        }
-      }
-    };
+     const favs = await fetchMyFavorites();
+             setFavorites(favs);
+             setFavSet(new Set(favs.map((e) => e._id || e.id)));
+           } catch (err) {
+             console.error("Error fetching TA dashboard data:", err);
+             if (err.response?.status === 401) {
+               localStorage.removeItem("token");
+               navigate("/login");
+             }
+           }
+         };
 
     fetchEvents();
   }, [navigate]);
+
+  const handleToggleFavorite = (eventId, willBeFav, eventObj) => {
+    setFavSet((prev) => {
+      const s = new Set(prev);
+      if (willBeFav) s.add(eventId);
+      else s.delete(eventId);
+      return s;
+    });
+
+    setFavorites((prev) => {
+      if (willBeFav) {
+        // add if not already there
+        return prev.some((e) => (e._id || e.id) === eventId)
+          ? prev
+          : [...prev, eventObj];
+      }
+      // remove
+      return prev.filter((e) => (e._id || e.id) !== eventId);
+    });
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -87,6 +115,18 @@ const TADashboard = () => {
           My Registered Events
         </button>
 
+        {/* ✅ NEW: Favorites tab button */}
+        <button
+          onClick={() => setActiveTab("favorites")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "favorites"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Favorites
+        </button>
+
         <button
           onClick={() => setActiveTab("register")}
           className={`px-4 py-2 rounded ${
@@ -121,10 +161,15 @@ const TADashboard = () => {
         </button>
       </div>
 
-      {/* Upcoming Events */}
+      {/* EVENTS VIEW */}
       {activeTab === "events" && (
         <div className="mt-6">
-          <UpcomingEvents />
+          {/* ✅ Pass favorites info to UpcomingEvents so hearts work */}
+          <UpcomingEvents
+            favoritesSet={favSet}
+            onToggleFavorite={handleToggleFavorite}
+            userRole="student"
+          />
         </div>
       )}
 
@@ -134,6 +179,34 @@ const TADashboard = () => {
           <MyRegisteredEvents />
         </div>
       )}
+       {/* ✅ FAVORITES TAB */}
+            {activeTab === "favorites" && (
+              <div className="mt-6">
+                <h2 className="text-2xl font-bold text-center mb-4">
+                  My Favorites
+                </h2>
+                {favorites.length === 0 ? (
+                  <p className="text-center text-gray-600">
+                    No favorite events yet. Click the heart on any event to add it.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {favorites.map((ev) => {
+                      const id = ev._id || ev.id;
+                      return (
+                        <EventCard
+                          key={id}
+                          event={ev}
+                          userRole="student"
+                          isFavorite={favSet.has(id)}
+                          onToggleFavorite={handleToggleFavorite}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
       {/* Register for Event */}
       {activeTab === "register" && (
