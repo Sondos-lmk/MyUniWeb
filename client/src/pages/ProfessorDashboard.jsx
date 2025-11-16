@@ -6,11 +6,14 @@ import { getMyWorkshops } from "../services/workshop";
 import RegisterForEvent from "./RegisterForEvent";
 import UpcomingEvents from "../components/UpcomingEvents";
 import GymSchedule from "./GymSchedule";
-import Voting from "../components/Voting";
 import WalletButton from "../components/WalletButton";
 import NotificationBell from "../components/NotificationBell";
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
+import AttendedEvents from "./AttendedEvents";
+
+// ⭐ ADDED FROM FIRST CODE
+import Voting from "../components/Voting";
 
 function ProfessorDashboard() {
   const { user } = useAuth();
@@ -20,16 +23,16 @@ function ProfessorDashboard() {
   const [myList, setMyList] = useState([]);
   const [listErr, setListErr] = useState(null);
 
-  // ✅ Favorites state
+  // Favorites
   const [favorites, setFavorites] = useState([]);
   const [favSet, setFavSet] = useState(new Set());
 
-  // ✅ Tab state (events | favorites)
+  // Tabs
   const [activeTab, setActiveTab] = useState("events");
 
   const token = localStorage.getItem("token");
 
-  // Fetch my workshops + favorites
+  // Load workshops + favorites
   useEffect(() => {
     if (user?.role !== "professor") return;
 
@@ -48,7 +51,7 @@ function ProfessorDashboard() {
     })();
   }, [user?.role, token]);
 
-  // ❤️ Called when EventCard toggles a heart
+  // Handle Favorites
   const handleToggleFavorite = (eventId, willBeFav, eventObj) => {
     setFavSet((prev) => {
       const s = new Set(prev);
@@ -59,19 +62,17 @@ function ProfessorDashboard() {
 
     setFavorites((prev) => {
       if (willBeFav) {
-        // add if not already there
         return prev.some((e) => (e._id || e.id) === eventId)
           ? prev
           : [...prev, eventObj];
       }
-      // remove
       return prev.filter((e) => (e._id || e.id) !== eventId);
     });
   };
 
   return (
     <div className="p-10">
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Professor Dashboard</h1>
 
@@ -79,7 +80,7 @@ function ProfessorDashboard() {
           <WalletButton />
           <NotificationBell />
 
-          {/* ✅ Favorites button in header (kept as you had it) */}
+          {/* Favorites tab */}
           <button
             onClick={() => setActiveTab("favorites")}
             className={`px-4 py-2 rounded ${
@@ -91,6 +92,19 @@ function ProfessorDashboard() {
             Favorites
           </button>
 
+          {/* Attended tab */}
+          <button
+            onClick={() => setActiveTab("attended")}
+            className={`px-4 py-2 rounded ${
+              activeTab === "attended"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
+          >
+            Attended Events
+          </button>
+
+          {/* Logout */}
           <button
             onClick={() => {
               localStorage.removeItem("token");
@@ -103,6 +117,7 @@ function ProfessorDashboard() {
         </div>
       </div>
 
+      {/* Welcome */}
       <h2 className="text-xl font-semibold mb-6">
         Welcome Professor {user?.name || "User"} 👋
       </h2>
@@ -124,7 +139,7 @@ function ProfessorDashboard() {
         )}
       </div>
 
-      {/* My Workshops */}
+      {/* Workshops */}
       <div style={{ marginTop: 24, textAlign: "left" }}>
         <h2 style={{ margin: "12px 0 8px", fontWeight: 600 }}>My Workshops</h2>
 
@@ -149,7 +164,7 @@ function ProfessorDashboard() {
                   <div style={{ fontWeight: 600 }}>{w.title}</div>
 
                   <div style={{ fontSize: 12, color: "#555" }}>
-                    Status: {w.status} • Reg. deadline:{" "}
+                    Status: {w.status} • Reg. Deadline:{" "}
                     {new Date(w.registrationDeadline).toLocaleString()}
                   </div>
 
@@ -185,9 +200,16 @@ function ProfessorDashboard() {
         )}
       </div>
 
+      {/* Attended events */}
+      {activeTab === "attended" && (
+        <div className="mt-6">
+          <AttendedEvents />
+        </div>
+      )}
+
       {/* Events Section */}
       <div style={{ marginTop: 40 }}>
-        {/* Loyalty Vendors Section */}
+        {/* Loyalty Vendors */}
         <h2 className="text-2xl font-bold mb-4 text-purple-700">
           Loyalty Vendors
         </h2>
@@ -200,6 +222,7 @@ function ProfessorDashboard() {
           </a>
         </div>
 
+        {/* Register for event */}
         <h2 className="text-2xl font-bold mb-4 text-blue-700">
           Register for Event
         </h2>
@@ -207,14 +230,13 @@ function ProfessorDashboard() {
           <RegisterForEvent />
         </div>
 
+        {/* Upcoming events */}
         <h2 className="text-2xl font-bold mb-4 text-blue-700">
           Upcoming Events
         </h2>
 
-        {/* EVENTS VIEW */}
         {activeTab === "events" && (
           <div className="mt-6">
-            {/* Pass favorites info to UpcomingEvents so hearts work */}
             <UpcomingEvents
               favoritesSet={favSet}
               onToggleFavorite={handleToggleFavorite}
@@ -223,7 +245,7 @@ function ProfessorDashboard() {
           </div>
         )}
 
-        {/* FAVORITES TAB */}
+        {/* Favorites */}
         {activeTab === "favorites" && (
           <div className="mt-6">
             <h2 className="text-2xl font-bold text-center mb-4">
@@ -231,7 +253,7 @@ function ProfessorDashboard() {
             </h2>
             {favorites.length === 0 ? (
               <p className="text-center text-gray-600">
-                No favorite events yet. Click the heart on any event to add it.
+                No favorite events yet.
               </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -252,11 +274,14 @@ function ProfessorDashboard() {
           </div>
         )}
 
+        {/* Gym schedule */}
         <h2 className="text-2xl font-bold mb-4 text-blue-700">Gym Schedule</h2>
         <div className="bg-gray-50 border p-4 rounded-lg shadow-md">
           <GymSchedule />
         </div>
       </div>
+
+      {/* ⭐ ADDED FROM FIRST CODE */}
       <Voting />
     </div>
   );
