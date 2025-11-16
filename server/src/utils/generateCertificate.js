@@ -6,11 +6,11 @@ export const generateCertificate = async (studentName, workshopTitle, date) => {
   const __dirname = path.resolve();
   const certificatePath = path.join(
     __dirname,
-    `server/certificates/${studentName}_${workshopTitle}.pdf`
+    `server/uploads/certificates/${studentName}_${workshopTitle}.pdf`
   );
 
   // Ensure folder exists
-  fs.mkdirSync(path.join(__dirname, "server/certificates"), { recursive: true });
+  fs.mkdirSync(path.join(__dirname, "server/uploads/certificates"), { recursive: true });
 
   const doc = new PDFDocument({ size: "A4", layout: "landscape" });
   const stream = fs.createWriteStream(certificatePath);
