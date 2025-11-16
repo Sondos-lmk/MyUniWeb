@@ -6,6 +6,7 @@ import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
+import Voting from "../components/Voting";
 import NotificationBell from "../components/NotificationBell";
 import WalletButton from "../components/WalletButton";
 
@@ -274,6 +275,7 @@ const StudentDashboard = () => {
             onToggleFavorite={handleToggleFavorite}
             userRole="student"
           />
+          <Voting />
         </div>
       )}
 

@@ -28,6 +28,9 @@ import RegisterForEvent from "./pages/RegisterForEvent";
 import MyRegisteredEvents from "./pages/MyRegisteredEvents";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import GenerateVisitorQR from "./pages/GenerateVisitorQR.jsx";
+import CreatePoll from './pages/CreatePoll.jsx';
+import Voting from './components/Voting.jsx';
+import ViewDocuments from './pages/ViewDocuments.jsx';
 import LoyaltyVendors from "./pages/LoyaltyVendors";
 import ArchivedEvents from "./pages/ArchivedEvents";
 
@@ -64,10 +67,14 @@ function App() {
           <Route path="/approved-events" element={<ApprovedEvents />} />
           <Route path="/events" element={<Events />} />
           <Route path="/create-event" element={<EventFormPage />} />
+          <Route path="/eventOfficer/documents" element={<ViewDocuments />} />
           <Route path="/events/:id/edit" element={<EventFormPage />} />
           <Route path="/workshops/:id/request-edit" element={<RequestEditForm />} />
           <Route path="/events/upcoming" element={<UpcomingEvents />} />
           <Route path="/eventOfficer/approveWorkshops" element={<ApproveWorkshops />} />
+          <Route path="/polls/create" element={<CreatePoll />} />
+          {/* Edit route removed - polls are create-only in this build */}
+
 
           {/* NEW PAGES */}
           <Route path="/events/:id/generate-visitor-qr" element={<GenerateVisitorQR />} />
@@ -78,23 +85,27 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
           <Route path="/professor/workshops/new" element={<CreateWorkshop />} />
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
+          <Route path ="/voting" element={<Voting />} />
           <Route path="/professor/workshops/:id/participants" element={<ProfessorWorkshopParticipants />} />
           <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
         </Route>
 
         {/* Student */}
         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route path="/student/dashboard" element={<StudentDashboard />} /> 
+          <Route path ="/voting" element={<Voting />} />
         </Route>
 
         {/* Staff */}
         <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
           <Route path="/staff/dashboard" element={<StaffDashboard />} />
+          <Route path ="/voting" element={<Voting />} />
         </Route>
 
         {/* TA */}
         <Route element={<ProtectedRoute allowedRoles={["ta"]} />}>
           <Route path="/ta/dashboard" element={<TADashboard />} />
+          <Route path ="/voting" element={<Voting />} />
         </Route>
 
         {/* Vendor */}

@@ -5,6 +5,7 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
+import Voting from "../components/Voting";
 import WalletButton from "../components/WalletButton";
 import NotificationBell from "../components/NotificationBell";
 import { fetchMyFavorites } from "../services/favorites";
@@ -170,6 +171,7 @@ const TADashboard = () => {
             onToggleFavorite={handleToggleFavorite}
             userRole="student"
           />
+          <Voting />
         </div>
       )}
 

@@ -20,6 +20,8 @@ import gymRoutes from "./routes/gymRoutes.js";
 import courtRoutes from "./routes/court.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import loyaltyRoutes from './routes/loyalityRoutes.js';
+import pollRoutes from "./routes/pollRoutes.js";
+import documentRoutes from "./routes/documentRoutes.js";
 //import courtRoutes from "./routes/court.js";
 
 
@@ -64,6 +66,8 @@ app.use('/api/courts', courtRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use("/api/polls", pollRoutes);
+app.use("/api/documents", documentRoutes);
 app.use('/api/auth', authRoutes);
 
 // STRIPE WEBHOOK — ALWAYS LAST BEFORE 404!!!

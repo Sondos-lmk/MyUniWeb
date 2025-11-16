@@ -4,10 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents";
 import AllUsers from "./AllUsers";
 
-import ApprovingEvents from "../components/ApprovingEvents";
+import VendorRequestsAdmin from "../components/VendorRequestsAdmin";
 import AttendeesReport from "../components/AttendeesReport";
 import RevenueReport from "../components/RevenueReport";
 import NotificationBell from "../components/NotificationBell";
+import ViewDocuments from "./ViewDocuments";
 
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -425,7 +426,7 @@ const AdminDashboard = () => {
         )}
       </div>
       <div className="mt-10">
-      <ApprovingEvents />
+      <VendorRequestsAdmin />
      </div>
 
       {/* Upcoming Events */}
@@ -487,6 +488,8 @@ const AdminDashboard = () => {
         <div className="mt-12">
           <AllUsers />
         </div>
+
+        <ViewDocuments />
     </div>
   );
 };
