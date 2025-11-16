@@ -97,6 +97,11 @@ router.get("/search", requireAuth, searchEvents);
 
 router.post("/send-certificate", requireAuth, sendCertificate);
 
+// Favorites
+router.post("/:id/favorite", requireAuth, addEventToFavorites);
+router.delete("/:id/favorite", requireAuth, removeEventFromFavorites);
+router.get("/my/favorites", requireAuth, getMyFavoriteEvents);
+
 // Main event CRUD
 router.post("/", createEvent);
 router.patch("/:id", requireAuth, requireEventOfficer, updateEvent);
@@ -179,6 +184,9 @@ router.get("/my-applications", requireAuth, getMyEventApplications);
 router.get("/my-registered", requireAuth, getMyRegisteredEventsFromUser);
 router.get("/", requireAuth, getAllEvents);
 router.post("/register/:eventId", requireAuth, registerForWorkshopOrTrip);
+
+// 🔹 Attended events (for rating/comment history)
+router.get("/attended", requireAuth, getAttendedEvents);
 
 // -----------------------------------------------------
 // 🔹 BAZAAR & BOOTH ROUTES
@@ -268,6 +276,12 @@ router.post("/trigger-reminders", requireAuth, async (req, res) => {
     });
   }
 });
+
+// -----------------------------------------------------
+// 🔹 RATING & COMMENTS ROUTES (before :id catch-all)
+// -----------------------------------------------------
+router.post("/:id/rate", requireAuth, rateEvent);
+router.post("/:id/comment", requireAuth, addComment);
 
 // -----------------------------------------------------
 // 🔹 GET SINGLE EVENT (MUST BE LAST)
