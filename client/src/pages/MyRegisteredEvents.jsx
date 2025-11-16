@@ -243,24 +243,37 @@ export default function MyRegisteredEvents() {
                 {/* --- CONDITIONAL PAYMENT/REFUND SECTION --- */}
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   
-                  {/* Check if event has passed */}
+                  {/* Check if event has passed or registration deadline passed */}
                   {(() => {
                     const eventEndDate = new Date(reg.event.endDate);
+                    const registrationDeadline = reg.event.registrationDeadline ? new Date(reg.event.registrationDeadline) : null;
                     const now = new Date();
                     const hasEventPassed = eventEndDate < now;
+                    const hasDeadlinePassed = registrationDeadline && registrationDeadline < now;
 
                     // If event has passed, show disabled button
                     if (hasEventPassed) {
                       return (
                         <>
-                          <p className="text-sm font-semibold text-gray-500 mb-2">
-                            This event has ended
-                          </p>
                           <button
                             disabled
                             className="w-full bg-gray-400 text-white py-2 px-4 rounded-md cursor-not-allowed"
                           >
                             Event Passed
+                          </button>
+                        </>
+                      );
+                    }
+
+                    // If registration deadline passed, show disabled button
+                    if (hasDeadlinePassed) {
+                      return (
+                        <>
+                          <button
+                            disabled
+                            className="w-full bg-gray-400 text-white py-2 px-4 rounded-md cursor-not-allowed"
+                          >
+                            Registration Deadline Passed
                           </button>
                         </>
                       );

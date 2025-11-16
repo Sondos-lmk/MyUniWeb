@@ -6,6 +6,7 @@ import AllUsers from "./AllUsers";
 
 import VendorRequestsAdmin from "../components/VendorRequestsAdmin";
 import AttendeesReport from "../components/AttendeesReport";
+import RevenueReport from "../components/RevenueReport";
 import NotificationBell from "../components/NotificationBell";
 import ViewDocuments from "./ViewDocuments";
 
@@ -269,6 +270,11 @@ const AdminDashboard = () => {
       {/* Attendees Report (shared component: shows only total attendees) */}
       <div className="mt-8 mb-8">
         <AttendeesReport />
+      </div>
+
+      {/* Revenue Report */}
+      <div className="mt-8 mb-8">
+        <RevenueReport />
       </div>
 
       {/* Create Admin/Event Officer */}

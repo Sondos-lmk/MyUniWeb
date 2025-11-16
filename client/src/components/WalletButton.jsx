@@ -9,7 +9,7 @@ export default function WalletButton() {
   useEffect(() => {
     const loadWallet = async () => {
       try {
-        const res = await api.get("/payments/wallet");
+        const res = await api.get("/payment/wallet");
         setBalance(res.data.balance);
       } catch (err) {
         console.error("Failed to load wallet:", err);

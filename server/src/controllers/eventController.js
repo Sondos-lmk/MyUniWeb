@@ -1062,7 +1062,7 @@ export const getMyRegisteredEventsFromUser = async (req, res) => {
     // 3️⃣ Find the user and populate their registered events
     const user = await Model.findById(userId).populate(
       "registeredEvents.event",
-      "title type startDate endDate location description"
+      "title type startDate endDate registrationDeadline location description"
     );
 
     if (!user)
@@ -1514,9 +1514,16 @@ export const getAttendeesReport = async (req, res) => {
   try {
     const { name, type, startDate, endDate } = req.query;
 
-    // Build flexible query: support events that use `startDate` or `date`, and search multiple fields for name
+    // Build query for only workshops and trips
     const conditions = [];
-    if (type) conditions.push({ type });
+    
+    // If user selected specific type, filter by it; otherwise show both workshop and trip
+    if (type) {
+      conditions.push({ type: type });
+    } else {
+      conditions.push({ type: { $in: ['workshop', 'trip'] } });
+    }
+    
     if (name) {
       const regex = new RegExp(name, 'i');
       conditions.push({
@@ -1534,7 +1541,6 @@ export const getAttendeesReport = async (req, res) => {
       if (startDate) range.$gte = new Date(startDate);
       if (endDate) range.$lte = new Date(endDate);
 
-      // Match events where either `startDate` or `date` falls in the range
       conditions.push({
         $or: [
           { startDate: range },
@@ -1543,55 +1549,58 @@ export const getAttendeesReport = async (req, res) => {
       });
     }
 
-    const query = conditions.length ? { $and: conditions } : {};
+    const query = { $and: conditions };
 
-    // Find events matching filters (flexible for different event shapes)
+    // Find workshops and trips matching filters
     const events = await Event.find(query).lean();
 
-    // For each event compute attendee counts (breakdown by role when possible)
+    // For each event, count only PAID attendees from user collections
     const report = await Promise.all(events.map(async (ev) => {
-      // initialize breakdown
-      let students = 0;
-      let staff = 0;
-      let ta = 0;
-      let professors = 0;
-      let vendors = 0;
+      const eventId = ev._id;
+      
+      // Import user models
+      const { Student } = await import('../models/Users/Student.js');
+      const { Staff } = await import('../models/Users/Staff.js');
+      const { TA } = await import('../models/Users/TA.js');
+      const { Professor } = await import('../models/Users/Professor.js');
 
-      // If the event document stores registeredVendors (bazaar/booth)
-      if (ev.registeredVendors && Array.isArray(ev.registeredVendors)) {
-        // registeredVendors may be array of vendor IDs or objects
-        vendors = ev.registeredVendors.length;
-      }
+      // Count users who have this event with paymentStatus === 'paid'
+      const [students, staff, ta, professors] = await Promise.all([
+        Student.countDocuments({ 
+          registeredEvents: { 
+            $elemMatch: { 
+              event: eventId, 
+              paymentStatus: 'paid' 
+            } 
+          } 
+        }),
+        Staff.countDocuments({ 
+          registeredEvents: { 
+            $elemMatch: { 
+              event: eventId, 
+              paymentStatus: 'paid' 
+            } 
+          } 
+        }),
+        TA.countDocuments({ 
+          registeredEvents: { 
+            $elemMatch: { 
+              event: eventId, 
+              paymentStatus: 'paid' 
+            } 
+          } 
+        }),
+        Professor.countDocuments({ 
+          registeredEvents: { 
+            $elemMatch: { 
+              event: eventId, 
+              paymentStatus: 'paid' 
+            } 
+          } 
+        }),
+      ]);
 
-      // If event stores registeredStudents
-      if (ev.registeredStudents && Array.isArray(ev.registeredStudents)) {
-        students = ev.registeredStudents.length;
-      }
-
-      // If event stores participants (gym sessions)
-      if (ev.participants && Array.isArray(ev.participants)) {
-        // participants may include mixed roles; we count as students here unless user models used
-        students = ev.participants.length;
-      }
-
-      // Fallback: count across user collections who have this event in their registeredEvents
-      if (!vendors && !students) {
-        const eventId = ev._id;
-        const [sCount, stfCount, taCount, profCount, vCount] = await Promise.all([
-          (await import('../models/Users/Student.js')).Student.countDocuments({ registeredEvents: eventId }),
-          (await import('../models/Users/Staff.js')).Staff.countDocuments({ registeredEvents: eventId }),
-          (await import('../models/Users/TA.js')).TA.countDocuments({ registeredEvents: eventId }),
-          (await import('../models/Users/Professor.js')).Professor.countDocuments({ registeredEvents: eventId }),
-          (await import('../models/Users/Vendor.js')).Vendor.countDocuments({ registeredEvents: eventId }),
-        ]);
-        students = sCount;
-        staff = stfCount;
-        ta = taCount;
-        professors = profCount;
-        vendors = vCount;
-      }
-
-      const attendees = students + staff + ta + professors + vendors;
+      const attendees = students + staff + ta + professors;
 
       return {
         id: ev._id,
@@ -1600,13 +1609,151 @@ export const getAttendeesReport = async (req, res) => {
         startDate: ev.startDate || ev.date || null,
         endDate: ev.endDate || null,
         attendees,
-        breakdown: { students, staff, ta, professors, vendors }
+        breakdown: { students, staff, ta, professors }
       };
     }));
 
     res.status(200).json({ count: report.length, report });
   } catch (err) {
     console.error('Error building attendees report:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Revenue Report - Calculate revenue from paid events
+export const getRevenueReport = async (req, res) => {
+  try {
+    const { type, startDate, endDate, sort } = req.query;
+
+    // Build query for revenue-generating events: workshops, trips, bazaar, booth
+    const conditions = [];
+    
+    // Filter by type if specified, otherwise show all revenue-generating types
+    if (type) {
+      conditions.push({ type: type });
+    } else {
+      conditions.push({ type: { $in: ['workshop', 'trip', 'bazaar', 'booth'] } });
+    }
+    
+    // Filter by date range
+    if (startDate || endDate) {
+      const range = {};
+      if (startDate) range.$gte = new Date(startDate);
+      if (endDate) range.$lte = new Date(endDate);
+
+      conditions.push({
+        $or: [
+          { startDate: range },
+          { date: range }
+        ]
+      });
+    }
+
+    const query = { $and: conditions };
+
+    // Find events matching filters
+    const events = await Event.find(query).lean();
+
+    // Calculate revenue for each event
+    const report = await Promise.all(events.map(async (ev) => {
+      const eventId = ev._id;
+      let revenue = 0;
+
+      // Import user models
+      const { Student } = await import('../models/Users/Student.js');
+      const { Staff } = await import('../models/Users/Staff.js');
+      const { TA } = await import('../models/Users/TA.js');
+      const { Professor } = await import('../models/Users/Professor.js');
+      const { Vendor } = await import('../models/Users/Vendor.js');
+
+      // For workshops and trips: sum up prices from paid registrations (all user types)
+      if (ev.type === 'workshop' || ev.type === 'trip') {
+        const allUsers = await Promise.all([
+          Student.find({ 
+            registeredEvents: { 
+              $elemMatch: { 
+                event: eventId, 
+                paymentStatus: 'paid' 
+              } 
+            } 
+          }).select('registeredEvents'),
+          Staff.find({ 
+            registeredEvents: { 
+              $elemMatch: { 
+                event: eventId, 
+                paymentStatus: 'paid' 
+              } 
+            } 
+          }).select('registeredEvents'),
+          TA.find({ 
+            registeredEvents: { 
+              $elemMatch: { 
+                event: eventId, 
+                paymentStatus: 'paid' 
+              } 
+            } 
+          }).select('registeredEvents'),
+          Professor.find({ 
+            registeredEvents: { 
+              $elemMatch: { 
+                event: eventId, 
+                paymentStatus: 'paid' 
+              } 
+            } 
+          }).select('registeredEvents'),
+        ]);
+
+        // Sum up all paid registration prices
+        allUsers.flat().forEach(user => {
+          const paidReg = user.registeredEvents?.find(
+            reg => reg.event.equals(eventId) && reg.paymentStatus === 'paid'
+          );
+          if (paidReg && paidReg.priceAtRegistration) {
+            revenue += paidReg.priceAtRegistration;
+          }
+        });
+      }
+
+      // For bazaars and booths: sum up prices from paid vendor registrations in the event itself
+      if (ev.type === 'bazaar' || ev.type === 'booth') {
+        // Vendor registrations are stored in the event's registeredVendors array
+        if (ev.registeredVendors && Array.isArray(ev.registeredVendors)) {
+          ev.registeredVendors.forEach(vendorReg => {
+            if (vendorReg.paymentStatus === 'paid' && vendorReg.finalPrice) {
+              revenue += vendorReg.finalPrice;
+            }
+          });
+        }
+      }
+
+      return {
+        id: ev._id,
+        title: ev.title || ev.type || 'Untitled',
+        type: ev.type || 'event',
+        startDate: ev.startDate || ev.date || null,
+        endDate: ev.endDate || null,
+        revenue: Math.round(revenue * 100) / 100 // Round to 2 decimal places
+      };
+    }));
+
+    // Sort by revenue if requested
+    let sortedReport = report;
+    if (sort === 'asc') {
+      sortedReport = report.sort((a, b) => a.revenue - b.revenue);
+    } else if (sort === 'desc') {
+      sortedReport = report.sort((a, b) => b.revenue - a.revenue);
+    }
+
+    // Calculate total revenue
+    const totalRevenue = sortedReport.reduce((sum, item) => sum + item.revenue, 0);
+
+    res.status(200).json({ 
+      count: sortedReport.length, 
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      report: sortedReport 
+    });
+  } catch (err) {
+    console.error('Error building revenue report:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -1702,7 +1849,7 @@ export const registerForBazaar = async (req, res) => {
       finalPrice:0,
       paymentStatus:"unpaid"
     });
-    await bazaar.save();
+    await bazaar.save({ validateBeforeSave: false });
     
     // ✅ Send notification to all Event Officers and Admins
 try {
@@ -1864,7 +2011,7 @@ export const registerBooth = async (req, res) => {
 
     });
 
-    await booth.save();
+    await booth.save({ validateBeforeSave: false });
 // ✅ Send notification to all Event Officers and Admins
 try {
 
@@ -2130,7 +2277,7 @@ export const updateVendorStatus = async (req, res) => {
     // Update status
     event.registeredVendors[vendorIndex].status = status;
     event.markModified('registeredVendors');
-    await event.save();
+    await event.save({ validateBeforeSave: false });
 
     // Send email notification to the VENDOR USER (not registration)
     try {

@@ -2,6 +2,7 @@ import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents.jsx";
 import AttendeesReport from "../components/AttendeesReport";
+import RevenueReport from "../components/RevenueReport";
 import Navbar from "../components/Navbar.jsx";
 
 function EventOfficerDashboard() {
@@ -20,6 +21,17 @@ function EventOfficerDashboard() {
             : "Event Officer"}
         </h1>
       </div>
+
+      {/* Attendees report */}
+      <div className="mt-10 px-10 mb-10">
+        <AttendeesReport />
+      </div>
+
+      {/* Revenue report */}
+      <div className="mt-10 px-10 mb-10">
+        <RevenueReport />
+      </div>
+
       <div className="flex gap-4 mb-8">
       <Link
         to="/create-gym-session"
@@ -73,11 +85,6 @@ function EventOfficerDashboard() {
       {/* Upcoming Events */}
       <div className="mt-10 px-10">
         <UpcomingEvents />
-      </div>
-
-      {/* Attendees report */}
-      <div className="mt-10 px-10 mb-10">
-        <AttendeesReport />
       </div>
     </div>
   );

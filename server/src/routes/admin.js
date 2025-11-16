@@ -9,7 +9,7 @@ import { TA } from '../models/Users/TA.js';
 import { EventOfficer } from '../models/Users/EventsOfficer.js';
 import { sendEmail } from '../utils/email.js';
 import { createUserByAdmin, deleteUserByAdmin } from '../controllers/adminController.js';
-import { getAttendeesReport } from '../controllers/eventController.js';
+import { getAttendeesReport, getRevenueReport } from '../controllers/eventController.js';
 import { blockUser, unblockUser } from "../controllers/adminController.js";
 
 import bcrypt from 'bcryptjs';
@@ -160,6 +160,10 @@ router.get('/event-officers', requireAuth, requireAdmin, async (req, res) => {
 // Reports: attendees per event (filterable)
 // Allow both Admins and Event Officers to access this report
 router.get('/reports/attendees', requireAuth, requireEventOfficerOrAdmin, getAttendeesReport);
+
+// Reports: revenue from events (filterable and sortable)
+// Allow both Admins and Event Officers to access this report
+router.get('/reports/revenue', requireAuth, requireEventOfficerOrAdmin, getRevenueReport);
 
 // Create admin or event officer
 router.post('/create/:role', requireAuth, requireAdmin, createUserByAdmin);
