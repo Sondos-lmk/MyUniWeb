@@ -6,6 +6,7 @@ import { getMyWorkshops } from "../services/workshop";
 import RegisterForEvent from "./RegisterForEvent";
 import UpcomingEvents from "../components/UpcomingEvents";
 import GymSchedule from "./GymSchedule";
+import Voting from "../components/Voting";
 import WalletButton from "../components/WalletButton";
 import NotificationBell from "../components/NotificationBell";
 import { fetchMyFavorites } from "../services/favorites";
@@ -256,6 +257,7 @@ function ProfessorDashboard() {
           <GymSchedule />
         </div>
       </div>
+      <Voting />
     </div>
   );
 }

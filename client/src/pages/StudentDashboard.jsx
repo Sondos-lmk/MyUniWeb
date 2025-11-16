@@ -6,6 +6,7 @@ import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
+import Voting from "../components/Voting";
 import NotificationBell from "../components/NotificationBell";
 import WalletButton from "../components/WalletButton";
 
@@ -268,6 +269,8 @@ const StudentDashboard = () => {
       {/* EVENTS VIEW */}
       {activeTab === "events" && (
         <div className="mt-6">
+          <UpcomingEvents /> 
+          <Voting />
           {/* ✅ Pass favorites info to UpcomingEvents so hearts work */}
           <UpcomingEvents
             favoritesSet={favSet}

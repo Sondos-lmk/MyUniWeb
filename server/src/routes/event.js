@@ -30,6 +30,10 @@ import {
   sendCertificate,
   generateVisitorQR,
   exportEventRegistrations,
+  generateVisitorQR,
+  getAllBoothConflicts
+ 
+} from '../controllers/eventController.js';
   addEventToFavorites,
   removeEventFromFavorites,
   getMyFavoriteEvents,
@@ -54,6 +58,11 @@ import {
 
 const router = Router();
 
+//get conflicted booth requests
+router.get("/conflicts", requireAuth, getAllBoothConflicts);
+
+// Everyone logged in (any role) can view upcoming events
+router.get("/upcoming", requireAuth, getUpcomingEvents);
 // -----------------------------------------------------
 // 🔹 DEBUG ROUTE
 // -----------------------------------------------------
@@ -100,6 +109,14 @@ router.get("/search", requireAuth, searchEvents);
 
 router.post("/send-certificate", requireAuth, sendCertificate);
 
+// Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
+router.post('/', createEvent);
+router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
+router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
+router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
+router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
+router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
+router.get('/:id/export-registrations', requireAuth, requireEventOfficer, exportEventRegistrations);
 // Favorites
 router.post("/:id/favorite", requireAuth, addEventToFavorites);
 router.delete("/:id/favorite", requireAuth, removeEventFromFavorites);
@@ -140,6 +157,8 @@ router.put(
   updateWorkshop
 );
 
+
+// ✅ Specific routes first
 router.get(
   "/professor/my-workshops",
   requireAuth,

@@ -1,16 +1,26 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 
 export default function ApprovedEvents() {
+  const [activeTab, setActiveTab] = useState("requests");
+  const [conflictCount, setConflictCount] = useState(0);
+  const [conflicts, setConflicts] = useState([]);
+  const [polls, setPolls] = useState([]);
+
   const [events, setEvents] = useState([]);
   const [vendorsMap, setVendorsMap] = useState({});
+  
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const [bazaarsRes, boothsRes] = await Promise.all([
+        const [bazaarsRes, boothsRes,conflictsRes,pollsRes] = await Promise.all([
           API.get("/events", { params: { type: "bazaar" } }),
           API.get("/events", { params: { type: "booth" } }),
+          API.get("/events/conflicts"),
+          API.get("/polls"),
         ]);
 
         const bazaars = Array.isArray(bazaarsRes.data?.events)
@@ -57,12 +67,32 @@ export default function ApprovedEvents() {
 
           setVendorsMap(map);
         }
+
+
+        setConflicts(conflictsRes.data.conflictedBooths || []);
+        setConflictCount(conflictsRes.data.count || 0);
+
+        // Polls
+        setPolls(pollsRes.data.polls || []);
+
       } catch (err) {
         console.error("Error fetching events:", err);
       }
     };
 
+    //const fetchPolls = async () => {
+    //try {
+      //const res = await API.get("/polls");
+      //console.log("Polls response:", res.data);
+
+      // FIX: Extract array properly
+      //setPolls(res.data.polls || []);
+    //} catch (err) {
+      //console.error("Error fetching polls:", err);
+    //}
+  //};
     fetchEvents();
+    //fetchPolls();
   }, []);
 
   const handleVendorStatus = async (eventId, registrationId, newStatus) => {
@@ -105,8 +135,61 @@ export default function ApprovedEvents() {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Approve Vendor Requests</h2>
+      <h2 className="text-2xl font-bold mb-4">Vendor Requests</h2>
 
+      {/* ---------------------- TABS NAVIGATION ---------------------- */}
+      <div className="flex items-center gap-10 border-b border-gray-200 pb-2 mb-6">
+
+      {/* Approve Requests tab */}
+      <button
+        onClick={() => setActiveTab("requests")}
+        className={`relative text-lg font-semibold pb-2 transition-all ${
+          activeTab === "requests"
+            ? "text-blue-600"
+            : "text-gray-600 hover:text-gray-900"
+        }`}
+      >
+         Requests
+
+        {/* blue underline */}
+        {activeTab === "requests" && (
+          <div className="absolute left-0 bottom-0 h-[3px] w-full bg-blue-600 rounded-full"></div>
+        )}
+      </button>
+
+      {/* Conflicts tab */}
+      <button
+        onClick={() => setActiveTab("conflicts")}
+        className={`relative text-lg font-semibold pb-2 transition-all ${
+          activeTab === "conflicts"
+            ? "text-blue-600"
+            : "text-gray-600 hover:text-gray-900"
+        }`}
+      >
+        Conflicts
+
+        {/* blue underline */}
+        {activeTab === "conflicts" && (
+          <div className="absolute left-0 bottom-0 h-[3px] w-full bg-blue-600 rounded-full"></div>
+        )}
+      </button>
+
+      <button
+        onClick={() => setActiveTab("polls")}
+        className={`relative text-lg font-semibold pb-2 transition-all ${
+          activeTab === "polls"
+            ? "text-blue-600"
+            : "text-gray-600 hover:text-gray-900"
+        }`}
+      >
+        Polls
+        {activeTab === "polls" && (
+          <div className="absolute left-0 bottom-0 h-[3px] w-full bg-blue-600 rounded-full"></div>
+        )}
+      </button>
+    </div>
+    {activeTab === "requests" && (
+      <>
       {events.length === 0 ? (
         <div>
         </div>
@@ -239,6 +322,158 @@ export default function ApprovedEvents() {
             </div>
           );
         })
+      )}
+    </>
+    )}
+
+      {/* ------------- CONFLICTS TAB ------------- */}
+      {activeTab === "conflicts" && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-4">Conflicted Booths</h2>
+          {conflicts.length === 0 ? (
+            <p className="text-gray-500 italic">No booth conflicts found.</p>
+          ) : (
+            conflicts.map((conflict, index) => (
+              <div
+                key={index}
+                className="p-5 bg-red-50 border border-red-300 rounded-xl mb-4"
+              >
+                <h3 className="text-lg font-bold text-red-700 mb-2">
+                  Booth: {conflict.booth?.title || "Unknown Booth"}
+                </h3>
+
+                {conflict.conflicts.map((pair, i) => {
+                  const boothId =
+                    conflict.booth?._id || conflict.booth?.id || conflict.boothId;
+
+                  // Build the vendors array to send to create poll page
+                  const vendorsForPoll = [
+                    {
+                      vendorId:
+                        pair.vendor1?._id ||
+                        pair.vendor1?.vendorId ||
+                        pair.vendor1?.vendor,
+                      name: pair.vendor1Name,
+                    },
+                    {
+                      vendorId:
+                        pair.vendor2?._id ||
+                        pair.vendor2?.vendorId ||
+                        pair.vendor2?.vendor,
+                      name: pair.vendor2Name,
+                    },
+                  ];
+
+                  const conflictStart = pair.vendor1?.startDate;
+                  const conflictEnd = pair.vendor1?.endDate;
+
+                  return (
+                    <div
+                      key={i}
+                      className="p-3 bg-white border rounded-lg mb-3 shadow-sm"
+                    >
+                      <p className="font-medium text-gray-800">
+                        Vendor 1:{" "}
+                        <span className="font-semibold">
+                          {pair.vendor1Name}
+                        </span>
+                      </p>
+                      <p className="font-medium text-gray-800">
+                        Vendor 2:{" "}
+                        <span className="font-semibold">
+                          {pair.vendor2Name}
+                        </span>
+                      </p>
+
+                      <p className="text-sm text-gray-600 mt-2">
+                        Dates Overlap:{" "}
+                        {conflictStart
+                          ? new Date(conflictStart).toLocaleDateString()
+                          : "N/A"}{" "}
+                        →{" "}
+                        {conflictEnd
+                          ? new Date(conflictEnd).toLocaleDateString()
+                          : "N/A"}
+                      </p>
+
+                      {/* ✅ Create Poll Button */}
+                      <button
+                        onClick={() =>
+                          navigate(`/polls/create`, {
+                            state: {
+                              boothId,
+                              boothTitle: conflict.booth?.title,
+                              vendors: vendorsForPoll,
+                              reason: `Date conflict between ${pair.vendor1Name} and ${pair.vendor2Name}`,
+                              conflictStart,
+                              conflictEnd,
+                            },
+                          })
+                        }
+                        className="mt-3 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-all"
+                      >
+                        + Create Poll
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+  {/* ------------- POLLS TAB (EVENT OFFICER VIEW) ------------- */}
+      {activeTab === "polls" && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-4">All Polls</h2>
+
+          {(!Array.isArray(polls) || polls.length === 0) ? (
+            <p className="text-gray-500 italic">No polls created yet.</p>
+          ) : (
+            polls.map((poll) => (
+              <div
+                key={poll._id}
+                className="p-5 bg-white rounded-xl border shadow mb-4"
+              >
+                <h3 className="text-lg font-semibold">{poll.title}</h3>
+                <p className="text-sm text-gray-600">
+                  Question: {poll.question}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Booth: {poll.booth?.title || "Unknown booth"}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Status:{" "}
+                  <span className="font-semibold capitalize">
+                    {poll.status}
+                  </span>
+                </p>
+                <p className="text-sm text-gray-600">
+                  Ends: {poll.endAt ? new Date(poll.endAt).toLocaleString() : "—"}
+                </p>
+
+                <div className="mt-3">
+                  <h4 className="text-sm font-semibold mb-1">
+                    Votes per vendor:
+                  </h4>
+                  {poll.vendors?.map((v) => (
+                    <div
+                      key={v.vendorId}
+                      className="flex justify-between text-sm text-gray-700"
+                    >
+                      <span>{v.name}</span>
+                      <span>{v.votes} votes</span>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Total votes: {poll.totalVotes}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       )}
     </div>
   );
