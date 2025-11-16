@@ -5,11 +5,14 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
-import Voting from "../components/Voting";
 import WalletButton from "../components/WalletButton";
 import NotificationBell from "../components/NotificationBell";
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
+import AttendedEvents from "./AttendedEvents";
+
+// ⭐ ADD THIS (missing in second code)
+import Voting from "../components/Voting";
 
 const TADashboard = () => {
   const [activeTab, setActiveTab] = useState("events");
@@ -33,17 +36,18 @@ const TADashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUpcomingEvents(res.data.events || []);
-     const favs = await fetchMyFavorites();
-             setFavorites(favs);
-             setFavSet(new Set(favs.map((e) => e._id || e.id)));
-           } catch (err) {
-             console.error("Error fetching TA dashboard data:", err);
-             if (err.response?.status === 401) {
-               localStorage.removeItem("token");
-               navigate("/login");
-             }
-           }
-         };
+
+        const favs = await fetchMyFavorites();
+        setFavorites(favs);
+        setFavSet(new Set(favs.map((e) => e._id || e.id)));
+      } catch (err) {
+        console.error("Error fetching TA dashboard data:", err);
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
+      }
+    };
 
     fetchEvents();
   }, [navigate]);
@@ -58,12 +62,10 @@ const TADashboard = () => {
 
     setFavorites((prev) => {
       if (willBeFav) {
-        // add if not already there
         return prev.some((e) => (e._id || e.id) === eventId)
           ? prev
           : [...prev, eventObj];
       }
-      // remove
       return prev.filter((e) => (e._id || e.id) !== eventId);
     });
   };
@@ -92,7 +94,7 @@ const TADashboard = () => {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Tabs */}
       <div className="flex justify-center gap-4 mb-8">
         <button
           onClick={() => setActiveTab("events")}
@@ -116,7 +118,6 @@ const TADashboard = () => {
           My Registered Events
         </button>
 
-        {/* ✅ NEW: Favorites tab button */}
         <button
           onClick={() => setActiveTab("favorites")}
           className={`px-4 py-2 rounded ${
@@ -126,6 +127,17 @@ const TADashboard = () => {
           }`}
         >
           Favorites
+        </button>
+
+        <button
+          onClick={() => setActiveTab("attended")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "attended"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Attended Events
         </button>
 
         <button
@@ -165,50 +177,60 @@ const TADashboard = () => {
       {/* EVENTS VIEW */}
       {activeTab === "events" && (
         <div className="mt-6">
-          {/* ✅ Pass favorites info to UpcomingEvents so hearts work */}
           <UpcomingEvents
             favoritesSet={favSet}
             onToggleFavorite={handleToggleFavorite}
             userRole="student"
           />
+
+          {/* ⭐ ADD THIS (from first code) */}
           <Voting />
         </div>
       )}
 
-      {/* My Registered Events */}
+      {/* Registered Events */}
       {activeTab === "registered" && (
         <div className="mt-6">
           <MyRegisteredEvents />
         </div>
       )}
-       {/* ✅ FAVORITES TAB */}
-            {activeTab === "favorites" && (
-              <div className="mt-6">
-                <h2 className="text-2xl font-bold text-center mb-4">
-                  My Favorites
-                </h2>
-                {favorites.length === 0 ? (
-                  <p className="text-center text-gray-600">
-                    No favorite events yet. Click the heart on any event to add it.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {favorites.map((ev) => {
-                      const id = ev._id || ev.id;
-                      return (
-                        <EventCard
-                          key={id}
-                          event={ev}
-                          userRole="student"
-                          isFavorite={favSet.has(id)}
-                          onToggleFavorite={handleToggleFavorite}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+
+      {/* Favorites */}
+      {activeTab === "favorites" && (
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold text-center mb-4">
+            My Favorites
+          </h2>
+
+          {favorites.length === 0 ? (
+            <p className="text-center text-gray-600">
+              No favorite events yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {favorites.map((ev) => {
+                const id = ev._id || ev.id;
+                return (
+                  <EventCard
+                    key={id}
+                    event={ev}
+                    userRole="student"
+                    isFavorite={favSet.has(id)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Attended */}
+      {activeTab === "attended" && (
+        <div className="mt-6">
+          <AttendedEvents />
+        </div>
+      )}
 
       {/* Register for Event */}
       {activeTab === "register" && (
@@ -217,14 +239,14 @@ const TADashboard = () => {
         </div>
       )}
 
-      {/* Gym Schedule */}
+      {/* Gym */}
       {activeTab === "gym" && (
         <div className="mt-6">
           <GymSchedule />
         </div>
       )}
 
-      {/* Loyalty Vendors Page */}
+      {/* Vendors */}
       {activeTab === "vendors" && (
         <div className="mt-6">
           <a

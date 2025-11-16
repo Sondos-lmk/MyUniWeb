@@ -66,7 +66,16 @@ export function requireProfessor(req, res, next) {
 
   return next();
 }
+export const requireGymAttendee = (req, res, next) => {
+  const allowed = ["student", "staff", "ta", "professor"];
+  const role = (req.user?.role || "").toLowerCase();
 
+  if (!req.user || !allowed.includes(role)) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  next();
+};
 // Admin-only middleware
 export function requireAdmin(req, res, next) {
   if (!req.user) return res.status(401).json({ message: "Not authenticated" });

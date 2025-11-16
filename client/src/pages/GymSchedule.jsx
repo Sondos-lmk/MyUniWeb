@@ -1,29 +1,73 @@
 import React, { useEffect, useState } from "react";
-import  api  from "../services/api";
+import api from "../services/api";
 
 export default function GymSchedule() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ⭐ Added states from first code
+  const [registeringId, setRegisteringId] = useState(null);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  // Fetch all gym sessions
   useEffect(() => {
     const fetchSessions = async () => {
       try {
         const res = await api.get("/gym");
-        setSessions(res.data);
+        setSessions(res.data || []);
+        setError("");
       } catch (err) {
-        console.error(err);
+        console.error("Error loading gym sessions:", err);
+        setError("Failed to load gym sessions.");
       } finally {
         setLoading(false);
       }
     };
+
     fetchSessions();
   }, []);
+
+  // ⭐ Added registration logic from first code
+  const handleRegister = async (sessionId) => {
+    try {
+      setRegisteringId(sessionId);
+      setMessage("");
+      setError("");
+
+      const res = await api.post(`/gym/${sessionId}/register`);
+
+      setMessage(res.data?.message || "Successfully registered for the session 🎉");
+
+      // refresh sessions data after registering
+      const updated = await api.get("/gym");
+      setSessions(updated.data || []);
+    } catch (err) {
+      console.error("Error registering:", err);
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Failed to register for this session.";
+      setError(msg);
+    } finally {
+      setRegisteringId(null);
+    }
+  };
 
   if (loading) return <p className="text-center mt-8">Loading sessions...</p>;
 
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-6 text-center">Gym Schedule</h1>
+
+      {/* ⭐ Success + error messages */}
+      {message && (
+        <p className="mb-4 text-center text-green-700 font-medium">{message}</p>
+      )}
+      {error && (
+        <p className="mb-4 text-center text-red-600 font-medium">{error}</p>
+      )}
+
       {sessions.length === 0 ? (
         <p className="text-center">No gym sessions found.</p>
       ) : (
@@ -35,19 +79,62 @@ export default function GymSchedule() {
                 <th className="border p-2">Date</th>
                 <th className="border p-2">Time</th>
                 <th className="border p-2">Duration</th>
+
+                {/* ⭐ Added participants column */}
+                <th className="border p-2">Participants</th>
+
                 <th className="border p-2">Max Participants</th>
+
+                {/* ⭐ Added Action column */}
+                <th className="border p-2">Action</th>
               </tr>
             </thead>
             <tbody>
-              {sessions.map((s) => (
-                <tr key={s._id} className="text-center">
-                  <td className="border p-2 capitalize">{s.sessionType || "N/A"}</td>
-                  <td className="border p-2">{new Date(s.date).toDateString()}</td>
-                  <td className="border p-2">{s.time}</td>
-                  <td className="border p-2">{s.duration} min</td>
-                  <td className="border p-2">{s.maxParticipants}</td>
-                </tr>
-              ))}
+              {sessions.map((s) => {
+                const participantsCount = s.participants?.length || 0;
+                const isFull = participantsCount >= s.maxParticipants;
+
+                return (
+                  <tr key={s._id} className="text-center">
+                    <td className="border p-2 capitalize">
+                      {s.sessionType || "N/A"}
+                    </td>
+                    <td className="border p-2">
+                      {s.date ? new Date(s.date).toDateString() : "N/A"}
+                    </td>
+                    <td className="border p-2">{s.time}</td>
+                    <td className="border p-2">{s.duration} min</td>
+
+                    {/* ⭐ Added */}
+                    <td className="border p-2">{participantsCount}</td>
+
+                    <td className="border p-2">{s.maxParticipants}</td>
+
+                    {/* ⭐ Register button */}
+                    <td className="border p-2">
+                      {isFull ? (
+                        <span className="text-sm px-3 py-1 rounded bg-gray-300 text-gray-700">
+                          Full
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleRegister(s._id)}
+                          disabled={registeringId === s._id}
+                          className={`px-3 py-1 rounded text-white text-sm ${
+                            registeringId === s._id
+                              ? "bg-gray-500 cursor-not-allowed"
+                              : "bg-blue-600 hover:bg-blue-700"
+                          }`}
+                        >
+                          {registeringId === s._id
+                            ? "Registering..."
+                            : "Register"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
