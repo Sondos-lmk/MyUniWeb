@@ -27,7 +27,8 @@ import {
   getMyRegisteredEventsFromUser,
   sendCertificate,
   exportEventRegistrations,
-  generateVisitorQR
+  generateVisitorQR,
+  getAllBoothConflicts
  
 } from '../controllers/eventController.js';
 
@@ -40,6 +41,9 @@ import {
 
 const router = Router();
 
+//get conflicted booth requests
+router.get("/conflicts", requireAuth, getAllBoothConflicts);
+
 // Everyone logged in (any role) can view upcoming events
 router.get("/upcoming", requireAuth, getUpcomingEvents);
 
@@ -47,8 +51,6 @@ router.get("/upcoming", requireAuth, getUpcomingEvents);
 router.get("/search", requireAuth, searchEvents);
 
 router.post("/send-certificate", requireAuth, sendCertificate);
-
-
 
 // Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
 router.post('/', createEvent);
@@ -58,6 +60,7 @@ router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
 router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
 router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
 router.get('/:id/export-registrations', requireAuth, requireEventOfficer, exportEventRegistrations);
+
 
 
 

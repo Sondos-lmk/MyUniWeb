@@ -1556,6 +1556,72 @@ export const getMyEventApplications = async (req, res) => {
   }
 };
 
+//CHECK ANY CONFLICTED BOOTH REQUESTS(EVENT OFFICER)
+export const getAllBoothConflicts = async (req, res) => {
+  try {
+    const booths = await Booth.find()
+      .populate("registeredVendors.vendor", "companyName name") // get vendor names
+      .lean();
+
+    const conflictedBooths = [];
+
+    for (const booth of booths) {
+      const vendors = booth.registeredVendors.filter(v => v.status === "approved" || v.status === "pending");
+
+      const conflicts = [];
+
+      for (let i = 0; i < vendors.length; i++) {
+        for (let j = i + 1; j < vendors.length; j++) {
+          const v1 = vendors[i];
+          const v2 = vendors[j];
+
+          const overlap =
+            (v1.startDate <= v2.endDate && v1.endDate >= v2.startDate);
+
+          if (overlap) {
+            conflicts.push({
+              vendor1Name: v1.vendor?.companyName || v1.vendor?.name || "Unknown",
+              vendor2Name: v2.vendor?.companyName || v2.vendor?.name || "Unknown",
+
+              vendor1: {
+                startDate: v1.startDate,
+                endDate: v1.endDate
+              },
+
+              vendor2: {
+                startDate: v2.startDate,
+                endDate: v2.endDate
+              }
+            });
+          }
+        }
+      }
+
+      if (conflicts.length > 0) {
+        conflictedBooths.push({
+          booth: {
+            id: booth._id,
+            title: booth.title || "Unknown Booth",
+            location: booth.locationInPlatform || ""
+          },
+          conflicts
+        });
+      }
+    }
+
+    res.status(200).json({
+      conflictedBooths,
+      count: conflictedBooths.length
+    });
+
+  } catch (err) {
+    console.error("Conflict detection error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
 export const registerForGymSession = async (req, res) => {
   try {
     const { sessionId } = req.params; // gym session id
@@ -1803,12 +1869,15 @@ export const generateVisitorQR = async (req, res) => {
     const visitorCode =
       crypto.randomUUID?.() || crypto.randomBytes(16).toString("hex");
 
-    const qrURL = `${process.env.CLIENT_URL}/qr/verify/${visitorCode}`;
+     const qrPayload = {
+     name,
+     nationalId,
+     code: visitorCode,
+     event: event.title,
+     date: new Date().toISOString()
+   };
 
-    // -----------------------------------
-    // 4️⃣ Generate QR (Base64)
-    // -----------------------------------
-    const qrBase64 = await QRCode.toDataURL(qrURL);
+   const qrBase64 = await QRCode.toDataURL(JSON.stringify(qrPayload));
 
     // -----------------------------------
     // 5️⃣ Add visitor entry to the event

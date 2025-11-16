@@ -6,6 +6,7 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
+import Voting from "../components/Voting";
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -160,6 +161,7 @@ const StudentDashboard = () => {
       {activeTab === "events" && (
         <div className="mt-6">
           <UpcomingEvents /> 
+          <Voting />
         </div>
       )}
 

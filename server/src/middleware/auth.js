@@ -73,3 +73,21 @@ export function requireAdmin(req, res, next) {
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
   next();
 }
+
+// Under existing exports in middleware/auth.js
+
+export function requireAcademicUser(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Missing authentication' });
+  }
+
+  const allowedRoles = ['student', 'staff', 'ta', 'professor'];
+  if (!allowedRoles.includes(req.user.role)) {
+    return res
+      .status(403)
+      .json({ message: 'Forbidden: requires academic user (student/staff/TA/professor)' });
+  }
+
+  return next();
+}
+

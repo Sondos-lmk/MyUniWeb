@@ -60,6 +60,14 @@ export default function Navbar() {
                   >
                     Approve Workshops
                   </Link>
+
+                  {/* 👉 NEW: View Documents */}
+                  <Link
+                    to="/eventOfficer/documents"
+                    className={active("/eventOfficer/documents")}
+                  >
+                    View Documents
+                  </Link>
                 </>
               )}
             </>

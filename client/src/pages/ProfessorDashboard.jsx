@@ -7,6 +7,7 @@ import { getMyWorkshops } from "../services/workshop";
 import RegisterForEvent from "./RegisterForEvent";
 import UpcomingEvents from "../components/UpcomingEvents";
 import GymSchedule from "./GymSchedule";
+import Voting from "../components/Voting";
 
 function ProfessorDashboard() {
   const { user } = useAuth();
@@ -132,6 +133,7 @@ function ProfessorDashboard() {
           <GymSchedule />
         </div>
       </div>
+      <Voting />
     </div>
   );
 }
