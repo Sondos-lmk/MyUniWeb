@@ -72,7 +72,6 @@ function App() {
           <Route path="/workshops/:id/request-edit" element={<RequestEditForm />} />
           <Route path="/events/upcoming" element={<UpcomingEvents />} />
           <Route path="/eventOfficer/approveWorkshops" element={<ApproveWorkshops />} />
-          <Route path="/events/:id/generate-visitor-qr"element={<GenerateVisitorQR />}/>
           <Route path="/polls/create" element={<CreatePoll />} />
           {/* Edit route removed - polls are create-only in this build */}
 

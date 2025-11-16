@@ -269,14 +269,13 @@ const StudentDashboard = () => {
       {/* EVENTS VIEW */}
       {activeTab === "events" && (
         <div className="mt-6">
-          <UpcomingEvents /> 
-          <Voting />
           {/* ✅ Pass favorites info to UpcomingEvents so hearts work */}
           <UpcomingEvents
             favoritesSet={favSet}
             onToggleFavorite={handleToggleFavorite}
             userRole="student"
           />
+          <Voting />
         </div>
       )}
 

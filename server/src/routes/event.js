@@ -30,10 +30,7 @@ import {
   sendCertificate,
   generateVisitorQR,
   exportEventRegistrations,
-  generateVisitorQR,
-  getAllBoothConflicts
- 
-} from '../controllers/eventController.js';
+  getAllBoothConflicts,
   addEventToFavorites,
   removeEventFromFavorites,
   getMyFavoriteEvents,
@@ -41,7 +38,8 @@ import {
   rateEvent,
   addComment,
   getAttendedEvents,
-} from "../controllers/eventController.js";
+ 
+} from '../controllers/eventController.js';
 
 import { sendCertificatesForCompletedWorkshops } from "../utils/certificateScheduler.js";
 import { sendRemindersForUpcomingEvents } from "../utils/reminderScheduler.js";
