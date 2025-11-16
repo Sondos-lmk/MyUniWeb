@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
-import { Event } from '../models/Events/Event.js';
+import { Event, ratingSummary } from '../models/Events/Event.js';
 import { Bazaar } from '../models/Events/Bazaar.js';
 import { Booth } from '../models/Events/Booth.js';
 import { Conference } from '../models/Events/Conference.js';
@@ -16,6 +16,7 @@ import { TA } from "../models/Users/TA.js";
 import { EventOfficer } from "../models/Users/EventsOfficer.js";
 import { sendEmail } from "../utils/email.js";
 import { generateCertificate } from "../utils/generateCertificate.js";
+import { Favorite } from "../models/Favorite.js";
 import path from "path";
 import XLSX from "xlsx";
 import mongoose from "mongoose";
@@ -161,6 +162,16 @@ const getEventModel = (type) => {
   }
 };
 
+// Helper: determine if event is finished (for comments, attended events, etc.)
+const isEventFinished = (e) => {
+  if (!e) return false;
+  const end = e.endDate || e.date || e.updatedAt;
+  return (
+    e.status === 'completed' ||
+    (end && new Date(end) < new Date())
+  );
+};
+
 // --------------------------------------
 // CONTROLLERS
 // --------------------------------------
@@ -218,7 +229,12 @@ export const getEventById = async (req, res) => {
       ]);
     }
 
-    res.status(200).json(event);
+    // Attach derived rating using helper (number or 'unrated')
+    const rating = ratingSummary(event);
+    const eventObj = event.toObject ? event.toObject() : event;
+    eventObj.rating = rating;
+
+    res.status(200).json(eventObj);
   } catch (err) {
     console.error('Error in getEventById:', err);
     res.status(500).json({ error: err.message });
@@ -455,6 +471,233 @@ export const searchEvents = async (req, res) => {
   }
 };
 
+// ROLES allowed to favorite events
+const FAVORITE_ALLOWED = ["student", "staff", "ta", "professor"];
+
+// POST /api/events/:id/favorite
+export const addEventToFavorites = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const role = (req.user.role || "").toLowerCase();
+    const eventId = req.params.id;
+
+    if (!FAVORITE_ALLOWED.includes(role)) {
+      return res.status(403).json({ message: "Only students, staff, TAs, and professors can favorite events." });
+    }
+
+    // Ensure the event exists
+    const exists = await Event.exists({ _id: eventId });
+    if (!exists) return res.status(404).json({ message: "Event not found" });
+
+    // Upsert & add once
+    const fav = await Favorite.findOneAndUpdate(
+      { user: userId },
+      { $addToSet: { events: eventId } },
+      { upsert: true, new: true }
+    );
+
+    return res.status(200).json({ message: "Event added to favorites", favoritesCount: fav.events.length });
+  } catch (err) {
+    console.error("addEventToFavorites error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// DELETE /api/events/:id/favorite
+export const removeEventFromFavorites = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const role = (req.user.role || "").toLowerCase();
+    const eventId = req.params.id;
+
+    if (!FAVORITE_ALLOWED.includes(role)) {
+      return res.status(403).json({ message: "Only students, staff, TAs, and professors can unfavorite events." });
+    }
+
+    const fav = await Favorite.findOneAndUpdate(
+      { user: userId },
+      { $pull: { events: eventId } },
+      { new: true }
+    );
+
+    // If user has no favorites doc yet, just succeed silently
+    const count = fav?.events?.length || 0;
+    return res.status(200).json({ message: "Event removed from favorites", favoritesCount: count });
+  } catch (err) {
+    console.error("removeEventFromFavorites error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// GET /api/events/my/favorites
+export const getMyFavoriteEvents = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const role = (req.user.role || "").toLowerCase();
+
+    if (!FAVORITE_ALLOWED.includes(role)) {
+      return res.status(403).json({ message: "Only students, staff, TAs, and professors can view favorites." });
+    }
+
+    const fav = await Favorite.findOne({ user: userId })
+      .populate("events", "title type startDate endDate location desc status createdAt");
+
+    return res.status(200).json({
+      message: "Favorites fetched successfully",
+      count: fav?.events?.length || 0,
+      events: fav?.events || [],
+    });
+  } catch (err) {
+    console.error("getMyFavoriteEvents error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// ⭐ RATE EVENT
+export const rateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { value } = req.body;
+    const userId = req.user._id || req.user.id;
+
+    // validate rating range
+    if (![1, 2, 3, 4, 5].includes(Number(value))) {
+      return res.status(400).json({ message: "Rating must be 1–5" });
+    }
+
+    // find event
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // allowed roles
+    const allowed = ["student", "staff", "ta", "professor"];
+    if (!allowed.includes((req.user.role || "").toLowerCase()))
+      return res.status(403).json({ message: "Not allowed" });
+
+    // must be registered (either registeredUsers or registeredStudents)
+    const userIdStr = String(userId);
+    const inRegisteredUsers = Array.isArray(event.registeredUsers) &&
+      event.registeredUsers.some((u) => String(u) === userIdStr);
+    const inRegisteredStudents = Array.isArray(event.registeredStudents) &&
+      event.registeredStudents.some((u) => String(u) === userIdStr);
+
+    if (!inRegisteredUsers && !inRegisteredStudents) {
+      return res.status(403).json({ message: "You did not attend this event" });
+    }
+
+    // prevent rating before start date
+    const start = event.startDate || event.date;
+    const now = new Date();
+    const isUpcoming = start && new Date(start) > now;
+    if (isUpcoming) {
+      return res.status(400).json({ message: "Event has not started yet" });
+    }
+
+    // prevent rating multiple times
+    event.ratings = event.ratings || [];
+    const alreadyRated = event.ratings.some(
+      (r) => String(r.user) === userIdStr
+    );
+    if (alreadyRated) {
+      return res.status(403).json({ message: "You have already rated this event" });
+    }
+
+    // save rating
+    event.ratings.push({ user: userId, value: Number(value) });
+    await event.save();
+
+    // calculate average (1 decimal)
+    const sum = event.ratings.reduce((a, r) => a + Number(r.value || 0), 0);
+    const avg = event.ratings.length ? sum / event.ratings.length : 0;
+    const roundedAvg = Math.round(avg * 10) / 10;
+
+    return res.status(200).json({
+      message: "Rating submitted successfully",
+      average: roundedAvg,
+      ratingsCount: event.ratings.length,
+    });
+  } catch (err) {
+    console.error("Rate Event Error:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+};
+
+// 💬 ADD COMMENT
+// POST /api/events/:id/comment
+export const addComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+    const userId = req.user?._id || req.user?.id;
+
+    if (!text || !String(text).trim()) {
+      return res.status(400).json({ message: "Comment text is required" });
+    }
+
+    const allowed = ["student", "staff", "ta", "professor"];
+    if (!allowed.includes((req.user.role || "").toLowerCase())) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // must be registered (either registeredUsers or registeredStudents)
+    const userIdStr = String(userId);
+    const inRegisteredUsers = Array.isArray(event.registeredUsers) &&
+      event.registeredUsers.some((u) => String(u) === userIdStr);
+    const inRegisteredStudents = Array.isArray(event.registeredStudents) &&
+      event.registeredStudents.some((u) => String(u) === userIdStr);
+
+    if (!inRegisteredUsers && !inRegisteredStudents) {
+      return res.status(403).json({ message: "You did not attend this event" });
+    }
+
+    // must be finished
+    if (!isEventFinished(event)) {
+      return res
+        .status(400)
+        .json({ message: "You can comment only after the event is finished" });
+    }
+
+    // one comment per user (block duplicates)
+    event.comments = event.comments || [];
+    const alreadyCommented = event.comments.some(
+      (c) => String(c.user) === userIdStr
+    );
+    if (alreadyCommented) {
+      return res
+        .status(409)
+        .json({ message: "You have already commented on this event" });
+    }
+
+    event.comments.push({
+      user: userId,
+      text: String(text).trim(),
+      createdAt: new Date(),
+    });
+
+    await event.save();
+
+    // return only safe fields
+    const last = event.comments[event.comments.length - 1];
+    return res.status(201).json({
+      message: "Comment added",
+      comment: {
+        _id: last._id,
+        user: last.user,
+        text: last.text,
+        createdAt: last.createdAt,
+      },
+      commentsCount: event.comments.length,
+    });
+  } catch (err) {
+    console.error("Add Comment Error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 
 // Create event
 export const createEvent = async (req, res) => {
@@ -1226,6 +1469,43 @@ export const getProfessorWorkshops = async (req, res) => {
       message: "Server error while fetching workshops.",
       error: error.message,
     });
+  }
+};
+
+// ✅ Get attended events (for rating & comments list)
+export const getAttendedEvents = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const now = new Date();
+
+    // Events this user registered for AND already ended
+    const events = await Event.find({
+      $or: [
+        { registeredUsers: userId },
+        { registeredStudents: userId },
+      ],
+      $or: [
+        { endDate: { $lt: now } },
+        { date: { $lt: now } }, // fallback if your model uses 'date'
+      ],
+      status: { $in: ["approved", "completed"] },
+    }).sort({ endDate: -1, date: -1 });
+
+    const withRatings = events.map((e) => {
+      const avgOrUnrated = ratingSummary(e);
+      const isUnrated = avgOrUnrated === 'unrated';
+
+      return {
+        ...e.toObject(),
+        averageRating: isUnrated ? null : avgOrUnrated,
+        rating: avgOrUnrated,
+      };
+    });
+
+    return res.status(200).json({ events: withRatings });
+  } catch (err) {
+    console.error("getAttendedEvents error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -2018,13 +2298,3 @@ export const generateVisitorQR = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-
-
-
-
