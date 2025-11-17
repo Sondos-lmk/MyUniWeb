@@ -38,7 +38,9 @@ import {
   rateEvent,
   addComment,
   getAttendedEvents,
-  cancelVendorApplication
+  cancelVendorApplication,
+  deleteComment,
+  getAllComments
  
 } from '../controllers/eventController.js';
 
@@ -53,6 +55,7 @@ import {
   requireEventOfficer,
   requireEventOfficerOrAdmin,
   requireProfessor,
+  requireAdmin
 } from "../middleware/auth.js";
 
 const router = Router();
@@ -303,6 +306,9 @@ router.post("/trigger-reminders", requireAuth, async (req, res) => {
 // -----------------------------------------------------
 router.post("/:id/rate", requireAuth, rateEvent);
 router.post("/:id/comment", requireAuth, addComment);
+router.delete("/:eventId/comments/:commentId", requireAuth, requireAdmin, deleteComment);
+router.get("/all-comments", requireAuth, requireAdmin, getAllComments);
+
 
 // -----------------------------------------------------
 // 🔹 GET SINGLE EVENT (MUST BE LAST)

@@ -9,6 +9,8 @@ import AttendeesReport from "../components/AttendeesReport";
 import RevenueReport from "../components/RevenueReport";
 import NotificationBell from "../components/NotificationBell";
 import ViewDocuments from "./ViewDocuments";
+import AdminAllComments from "../components/AdminAllComments";
+
 
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -490,6 +492,10 @@ const AdminDashboard = () => {
         </div>
 
         <ViewDocuments />
+        <div className="mt-12">
+  <AdminAllComments />
+</div>
+
     </div>
   );
 };
