@@ -50,6 +50,7 @@ export default function AttendeesReport() {
           <option value="">All types</option>
           <option value="workshop">Workshop</option>
           <option value="trip">Trip</option>
+          <option value="gym">Gym</option>
         </select>
         <input
           type="date"

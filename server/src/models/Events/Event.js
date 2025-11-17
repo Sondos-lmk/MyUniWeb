@@ -10,7 +10,7 @@ const eventSchema = new mongoose.Schema(
   {
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'completed', 'needs revision'],
+      enum: ['pending', 'approved', 'rejected', 'completed', 'needs revision', 'cancelled'],
       default: 'pending',
     },
 
@@ -41,7 +41,7 @@ const eventSchema = new mongoose.Schema(
     // 🆕 End date for events (added on dev branch)
     endDate: {
       type: Date,
-      required: true,
+      required: false,
     },
 
     // 🆕 Archive flag (added on dev branch)

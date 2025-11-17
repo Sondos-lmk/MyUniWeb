@@ -125,7 +125,7 @@ export default function EventCard({
     const handleCancelGym = async () => {
       try {
         if (!window.confirm("Are you sure you want to cancel this gym session?")) return;
-        await API.delete(`/events/${eventId}`);
+        await API.delete(`/gym/${eventId}`);
         setIsDeleted(true);
         alert("Gym session cancelled");
       } catch (err) {

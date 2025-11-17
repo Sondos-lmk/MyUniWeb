@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 export default function GymSchedule() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   // ⭐ Added states from first code
   const [registeringId, setRegisteringId] = useState(null);
@@ -49,6 +51,14 @@ export default function GymSchedule() {
         err.response?.data?.error ||
         "Failed to register for this session.";
       setError(msg);
+      
+      // Refresh sessions even on error to update UI
+      try {
+        const updated = await api.get("/gym");
+        setSessions(updated.data || []);
+      } catch (refreshErr) {
+        console.error("Error refreshing sessions:", refreshErr);
+      }
     } finally {
       setRegisteringId(null);
     }
@@ -80,10 +90,8 @@ export default function GymSchedule() {
                 <th className="border p-2">Time</th>
                 <th className="border p-2">Duration</th>
 
-                {/* ⭐ Added participants column */}
+                {/* ⭐ Combined participants column */}
                 <th className="border p-2">Participants</th>
-
-                <th className="border p-2">Max Participants</th>
 
                 {/* ⭐ Added Action column */}
                 <th className="border p-2">Action</th>
@@ -105,32 +113,49 @@ export default function GymSchedule() {
                     <td className="border p-2">{s.time}</td>
                     <td className="border p-2">{s.duration} min</td>
 
-                    {/* ⭐ Added */}
-                    <td className="border p-2">{participantsCount}</td>
-
-                    <td className="border p-2">{s.maxParticipants}</td>
+                    {/* ⭐ Show current/max participants */}
+                    <td className="border p-2">{participantsCount} / {s.maxParticipants}</td>
 
                     {/* ⭐ Register button */}
                     <td className="border p-2">
-                      {isFull ? (
-                        <span className="text-sm px-3 py-1 rounded bg-gray-300 text-gray-700">
-                          Full
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => handleRegister(s._id)}
-                          disabled={registeringId === s._id}
-                          className={`px-3 py-1 rounded text-white text-sm ${
-                            registeringId === s._id
-                              ? "bg-gray-500 cursor-not-allowed"
-                              : "bg-blue-600 hover:bg-blue-700"
-                          }`}
-                        >
-                          {registeringId === s._id
-                            ? "Registering..."
-                            : "Register"}
-                        </button>
-                      )}
+                      {(() => {
+                        const userId = user?.id || user?._id;
+                        const isRegistered = s.participants?.some(
+                          (p) => String(p._id || p) === String(userId)
+                        );
+                        
+                        if (isRegistered) {
+                          return (
+                            <span className="text-sm px-3 py-1 rounded bg-green-100 text-green-700">
+                              Registered
+                            </span>
+                          );
+                        }
+                        
+                        if (isFull) {
+                          return (
+                            <span className="text-sm px-3 py-1 rounded bg-gray-300 text-gray-700">
+                              Full
+                            </span>
+                          );
+                        }
+                        
+                        return (
+                          <button
+                            onClick={() => handleRegister(s._id)}
+                            disabled={registeringId === s._id}
+                            className={`px-3 py-1 rounded text-white text-sm ${
+                              registeringId === s._id
+                                ? "bg-gray-500 cursor-not-allowed"
+                                : "bg-blue-600 hover:bg-blue-700"
+                            }`}
+                          >
+                            {registeringId === s._id
+                              ? "Registering..."
+                              : "Register"}
+                          </button>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );

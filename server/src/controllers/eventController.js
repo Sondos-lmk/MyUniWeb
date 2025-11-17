@@ -1062,7 +1062,7 @@ export const getMyRegisteredEventsFromUser = async (req, res) => {
     // 3️⃣ Find the user and populate their registered events
     const user = await Model.findById(userId).populate(
       "registeredEvents.event",
-      "title type startDate endDate registrationDeadline location description"
+      "title type startDate endDate registrationDeadline location description sessionType time duration date"
     );
 
     if (!user)
@@ -1514,14 +1514,14 @@ export const getAttendeesReport = async (req, res) => {
   try {
     const { name, type, startDate, endDate } = req.query;
 
-    // Build query for only workshops and trips
+    // Build query for workshops, trips, and gym sessions
     const conditions = [];
     
-    // If user selected specific type, filter by it; otherwise show both workshop and trip
+    // If user selected specific type, filter by it; otherwise show workshop, trip, and gym
     if (type) {
       conditions.push({ type: type });
     } else {
-      conditions.push({ type: { $in: ['workshop', 'trip'] } });
+      conditions.push({ type: { $in: ['workshop', 'trip', 'gym'] } });
     }
     
     if (name) {
@@ -1551,14 +1551,29 @@ export const getAttendeesReport = async (req, res) => {
 
     const query = { $and: conditions };
 
-    // Find workshops and trips matching filters
-    const events = await Event.find(query).lean();
+    // Find workshops, trips, and gym sessions matching filters
+    const events = await Event.find(query).populate('participants').lean();
 
-    // For each event, count only PAID attendees from user collections
+    // For each event, count only PAID attendees from user collections (or participants for gym)
     const report = await Promise.all(events.map(async (ev) => {
       const eventId = ev._id;
       
-      // Import user models
+      // For gym sessions, count participants array
+      if (ev.type === 'gym') {
+        const participantsCount = ev.participants?.length || 0;
+        
+        return {
+          id: ev._id,
+          title: ev.sessionType || ev.title || 'Gym Session',
+          type: ev.type,
+          startDate: ev.date || ev.startDate || null,
+          endDate: ev.endDate || null,
+          attendees: participantsCount,
+          breakdown: { gym: participantsCount }
+        };
+      }
+      
+      // Import user models for workshops/trips
       const { Student } = await import('../models/Users/Student.js');
       const { Staff } = await import('../models/Users/Staff.js');
       const { TA } = await import('../models/Users/TA.js');

@@ -221,23 +221,47 @@ export default function MyRegisteredEvents() {
                 {/* Event Details Section */}
                 <div>
                   <h2 className="text-xl font-semibold text-blue-700 mb-2">
-                    {reg.event.title || "Untitled Event"}
+                    {reg.event.type === 'gym' 
+                      ? `${reg.event.sessionType || 'Gym Session'}`
+                      : reg.event.title || "Untitled Event"}
                   </h2>
                   <p className="text-gray-700 mb-1">
-                    <strong>Price:</strong> ${reg.priceAtRegistration}
+                    <strong>Type:</strong> <span className="capitalize">{reg.event.type || "N/A"}</span>
                   </p>
-                  <p className="text-gray-700 mb-1">
-                    <strong>Start Date:</strong>{" "}
-                    {reg.event.startDate
-                      ? new Date(reg.event.startDate).toLocaleDateString()
-                      : "N/A"}
-                  </p>
-                  <p className="text-gray-700 mb-1">
-                    <strong>End Date:</strong>{" "}
-                    {reg.event.endDate
-                      ? new Date(reg.event.endDate).toLocaleDateString()
-                      : "N/A"}
-                  </p>
+                  {reg.event.type === 'gym' ? (
+                    <>
+                      <p className="text-gray-700 mb-1">
+                        <strong>Date:</strong>{" "}
+                        {reg.event.date
+                          ? new Date(reg.event.date).toLocaleDateString()
+                          : "N/A"}
+                      </p>
+                      <p className="text-gray-700 mb-1">
+                        <strong>Time:</strong> {reg.event.time || "N/A"}
+                      </p>
+                      <p className="text-gray-700 mb-1">
+                        <strong>Duration:</strong> {reg.event.duration || "N/A"} minutes
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-gray-700 mb-1">
+                        <strong>Price:</strong> ${reg.priceAtRegistration || 0}
+                      </p>
+                      <p className="text-gray-700 mb-1">
+                        <strong>Date:</strong>{" "}
+                        {reg.event.startDate || reg.event.date
+                          ? new Date(reg.event.startDate || reg.event.date).toLocaleDateString()
+                          : "N/A"}
+                      </p>
+                      {reg.event.endDate && (
+                        <p className="text-gray-700 mb-1">
+                          <strong>End Date:</strong>{" "}
+                          {new Date(reg.event.endDate).toLocaleDateString()}
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* --- CONDITIONAL PAYMENT/REFUND SECTION --- */}
@@ -245,7 +269,12 @@ export default function MyRegisteredEvents() {
                   
                   {/* Check if event has passed or registration deadline passed */}
                   {(() => {
-                    const eventEndDate = new Date(reg.event.endDate);
+                    // For gym sessions (free events with price 0), don't show payment buttons
+                    if (reg.event.type === 'gym' || reg.priceAtRegistration === 0) {
+                      return null; // Don't show anything for free events
+                    }
+
+                    const eventEndDate = new Date(reg.event.endDate || reg.event.date);
                     const registrationDeadline = reg.event.registrationDeadline ? new Date(reg.event.registrationDeadline) : null;
                     const now = new Date();
                     const hasEventPassed = eventEndDate < now;

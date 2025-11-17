@@ -49,8 +49,14 @@ export const createGymSession = async (req, res) => {
 // ==============================================
 export const getGymSchedule = async (req, res) => {
   try {
-    // ⭐ UPDATED TO MATCH FIRST CODE → Sort by date + time
-    const gymSessions = await GymSession.find().sort({ date: 1, time: 1 });
+    // Get start of today (midnight)
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    
+    // Only show gym sessions from today onwards
+    const gymSessions = await GymSession.find({ date: { $gte: startOfToday } })
+      .populate('participants', '_id')
+      .sort({ date: 1, time: 1 });
     res.status(200).json(gymSessions);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -91,6 +97,8 @@ export const updateGymSession = async (req, res) => {
 
     // Notify registered users
     try {
+      // Populate participants to get user data for emails
+      await session.populate('participants');
       await notifyGymParticipants(session, "updated");
     } catch (e) {
       console.error("Failed to notify participants on update:", e?.message || e);
@@ -141,6 +149,43 @@ export const registerForGymSession = async (req, res) => {
     session.participants.push(userId);
     await session.save();
 
+    // Add gym session to user's registeredEvents (for allowed roles)
+    try {
+      const role = req.user.role?.toLowerCase();
+      console.log("🔍 Adding gym session to user's registeredEvents. Role:", role, "UserId:", userId);
+      
+      const models = {
+        student: (await import("../models/Users/Student.js")).Student,
+        staff: (await import("../models/Users/Staff.js")).Staff,
+        ta: (await import("../models/Users/TA.js")).TA,
+        professor: (await import("../models/Users/Professor.js")).Professor,
+      };
+
+      const UserModel = models[role];
+      if (UserModel) {
+        const user = await UserModel.findById(userId);
+        if (user) {
+          console.log("✅ Found user, current registeredEvents:", user.registeredEvents?.length || 0);
+          user.registeredEvents = user.registeredEvents || [];
+          user.registeredEvents.push({
+            event: sessionId,
+            paymentStatus: 'paid', // Gym sessions are free, so mark as paid
+            priceAtRegistration: 0,
+            registeredAt: new Date()
+          });
+          await user.save();
+          console.log("✅ Successfully added gym session to user's registeredEvents. New count:", user.registeredEvents.length);
+        } else {
+          console.log("❌ User not found with UserModel");
+        }
+      } else {
+        console.log("❌ No UserModel found for role:", role);
+      }
+    } catch (userErr) {
+      console.error("❌ Error adding to user's registeredEvents:", userErr);
+      // Don't fail the whole registration if this fails
+    }
+
     res.status(200).json({
       message: "Successfully registered for the gym session",
       session,
@@ -181,6 +226,8 @@ export const cancelGymSession = async (req, res) => {
 
     // Notify attendees
     try {
+      // Populate participants to get user data for emails
+      await session.populate('participants');
       await notifyGymParticipants(session, "cancelled");
     } catch (e) {
       console.error("Failed to notify participants on cancel:", e?.message || e);
@@ -272,9 +319,17 @@ async function notifyGymParticipants(session, action) {
 function formatSessionWhen(session) {
   try {
     const date = new Date(session.date);
-    const dateStr = isNaN(date.getTime())
-      ? String(session.date)
-      : date.toLocaleString();
+    if (isNaN(date.getTime())) {
+      return `${session.date || ""}${session.time ? ` at ${session.time}` : ""}`;
+    }
+    
+    // Format date as readable string (e.g., "April 30, 2026")
+    const dateStr = date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
     return `${dateStr}${session.time ? ` at ${session.time}` : ""}`;
   } catch (_) {
     return `${session.date || ""}${session.time ? ` at ${session.time}` : ""}`;

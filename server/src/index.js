@@ -20,11 +20,12 @@ console.log('Environment variables:', {
 });
 
 
+// TODO: Implement rejectOverduePayments function if needed
 // Run every hour
-cron.schedule('0 * * * *', async () => {
-  console.log('Checking for overdue payments...');
-  await rejectOverduePayments();
-});
+// cron.schedule('0 * * * *', async () => {
+//   console.log('Checking for overdue payments...');
+//   await rejectOverduePayments();
+// });
 
 
 
