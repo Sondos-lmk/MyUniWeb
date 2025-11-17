@@ -4,6 +4,8 @@ import { saveAs } from "file-saver";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { addFavorite, removeFavorite } from "../services/favorites";
+import { fetchEventFeedback } from "../services/feedback";
+
 
 // Simple heart SVG
 const Heart = ({ active }) => (
@@ -49,12 +51,29 @@ export default function EventCard({
 
   // 🔑 Unified event id (works for upcoming + favorites)
   const eventId = event?._id || event?.id;
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedback, setFeedback] = useState({ ratings: [], comments: [] });
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
+
 
   /* =========================
      HEART / FAVORITES (shared)
      ========================= */
   const [fav, setFav] = useState(!!isFavorite);
   const [busyFav, setBusyFav] = useState(false);
+  const handleViewFeedback = async () => {
+    setShowFeedback(true);
+    setLoadingFeedback(true);
+    try {
+      const data = await fetchEventFeedback(eventId);
+      setFeedback(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingFeedback(false);
+    }
+  };
+
 
   useEffect(() => {
     setFav(!!isFavorite);
@@ -79,6 +98,7 @@ export default function EventCard({
       setBusyFav(false);
     }
   };
+  
 
   // ======================
   // GYM SESSIONS BRANCH
@@ -134,6 +154,8 @@ export default function EventCard({
       }
     };
     if (isDeleted) return null;
+
+    
 
     return (
       <div className="group rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all hover:-translate-y-0.5 overflow-hidden">
@@ -251,7 +273,9 @@ export default function EventCard({
             </div>
           )}
         </div>
+
       </div>
+
     );
   }
 
@@ -386,9 +410,17 @@ export default function EventCard({
               className="rounded-xl px-4 py-2 bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-50"
             >
               {primaryLabel || "Action"}
-            </button>
+            </button> 
           )}
           {secondary}
+          {userRole !== "vendor" && (
+          <button
+          onClick={handleViewFeedback}
+          className="rounded-xl px-4 py-2 bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"
+          >
+           View Feedback
+          </button>
+          )}
         </div>
 
         {/* ✅ Event Officer Actions */}
@@ -424,8 +456,50 @@ export default function EventCard({
                 Generate Visitor QR
               </button>
             )}
+  
+
+
+  
         </div>
       </div>
+      {showFeedback && (
+  <div className="mt-4 border rounded-xl p-4 bg-white shadow-lg">
+    <h3 className="text-xl font-bold mb-2">Feedback</h3>
+
+    {loadingFeedback ? (
+      <p>Loading...</p>
+    ) : (
+      <>
+        <h4 className="font-semibold mt-2">Ratings:</h4>
+        {feedback.ratings.length === 0 ? (
+          <p>No ratings yet</p>
+        ) : (
+          feedback.ratings.map((r, i) => (
+            <p key={i}>⭐ {r.value}</p>
+          ))
+        )}
+
+        <h4 className="font-semibold mt-4">Comments:</h4>
+        {feedback.comments.length === 0 ? (
+          <p>No comments yet</p>
+        ) : (
+          feedback.comments.map((c, i) => (
+            <p key={i}>• {c.text}</p>
+          ))
+        )}
+      </>
+    )}
+
+    <button
+      className="mt-4 bg-gray-300 px-3 py-1 rounded"
+      onClick={() => setShowFeedback(false)}
+    >
+      Close
+    </button>
+  </div>
+)}
+
     </div>
+    
   );
 }
