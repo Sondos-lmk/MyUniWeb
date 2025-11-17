@@ -2579,3 +2579,64 @@ export const cancelVendorApplication = async (req, res) => {
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+export const deleteComment = async (req, res) => {
+  try {
+    const { eventId, commentId } = req.params;
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Find the comment index
+    const index = event.comments.findIndex(
+      (c) => c._id.toString() === commentId
+    );
+
+    if (index === -1) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    // Remove it
+    event.comments.splice(index, 1);
+
+    await event.save();
+
+    res.status(200).json({
+      message: "Comment deleted successfully",
+      comments: event.comments,
+    });
+  } catch (error) {
+    console.error("Delete comment error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+export const getAllComments = async (req, res) => {
+  try {
+    const events = await Event.find({})
+      .populate("comments.user", "name email role")
+      .select("title comments");
+
+    let allComments = [];
+
+    events.forEach((event) => {
+      event.comments.forEach((c) => {
+        allComments.push({
+          eventId: event._id,
+          eventTitle: event.title,
+          commentId: c._id,
+          text: c.text,
+          createdAt: c.createdAt,
+          user: c.user,
+        });
+      });
+    });
+
+    res.status(200).json({ comments: allComments });
+  } catch (error) {
+    console.error("Error fetching all comments:", error);
+    res.status(500).json({ message: "Failed to load comments" });
+  }
+};
+
+

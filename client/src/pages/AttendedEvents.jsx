@@ -111,6 +111,7 @@ const AttendedEvents = () => {
       setSubmitting((prev) => ({ ...prev, [eventId]: false }));
     }
   };
+  
 
   if (loading) {
     return <p>Loading attended events...</p>;
