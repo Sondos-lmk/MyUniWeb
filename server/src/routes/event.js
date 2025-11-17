@@ -38,6 +38,7 @@ import {
   rateEvent,
   addComment,
   getAttendedEvents,
+  cancelVendorApplication
  
 } from '../controllers/eventController.js';
 
@@ -307,5 +308,11 @@ router.post("/:id/comment", requireAuth, addComment);
 // 🔹 GET SINGLE EVENT (MUST BE LAST)
 // -----------------------------------------------------
 router.get("/:id", getEventById);
+
+router.delete(
+  '/:eventId/applications/:registrationId/cancel', 
+  requireAuth, 
+  cancelVendorApplication
+);
 
 export default router;

@@ -2528,3 +2528,54 @@ export const generateVisitorQR = async (req, res) => {
     });
   }
 };
+
+export const cancelVendorApplication = async (req, res) => {
+  try {
+    const { eventId, registrationId } = req.params;
+    const vendorId = req.user._id;
+
+    if (req.user.role !== 'vendor') {
+      return res.status(403).json({ error: 'Only vendors can cancel applications.' });
+    }
+
+    // 1. Find the event using the base Event model
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    // 2. Check if it's a type we can cancel
+    if (event.type !== 'bazaar' && event.type !== 'booth') {
+      return res.status(400).json({ error: 'Cannot cancel application for this event type.' });
+    }
+
+    // 3. Find the specific registration in the event's array
+    // (This assumes both Bazaar and Booth use a "registeredVendors" array)
+    const registration = event.registeredVendors.id(registrationId);
+    if (!registration) {
+      return res.status(404).json({ error: 'Application not found.' });
+    }
+
+    // 4. Authorization: Is this the correct vendor?
+    if (!registration.vendor.equals(vendorId)) {
+      return res.status(403).json({ error: 'You are not authorized to cancel this application.' });
+    }
+
+    // 5. Business Rule: Can only cancel if NOT paid
+    if (registration.paymentStatus === 'paid') {
+      return res.status(400).json({ error: 'Cannot cancel an application that has already been paid.' });
+    }
+
+    // 6. Remove the application using Mongoose's pull method
+    event.registeredVendors.pull({ _id: registrationId });
+    
+    // 7. Save the parent event
+    await event.save();
+
+    res.status(200).json({ message: 'Application cancelled successfully.' });
+
+  } catch (err) {
+    console.error("Error cancelling vendor application:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
