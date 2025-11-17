@@ -22,6 +22,8 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import loyaltyRoutes from './routes/loyalityRoutes.js';
 import pollRoutes from "./routes/pollRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
+import eventFeedbackRoutes from "./routes/eventFeedbackRoutes.js";
+
 //import courtRoutes from "./routes/court.js";
 
 
@@ -69,6 +71,8 @@ app.use('/api/payment', paymentRoutes);
 app.use("/api/polls", pollRoutes);
 app.use("/api/documents", documentRoutes);
 app.use('/api/auth', authRoutes);
+app.use("/api/events", eventFeedbackRoutes);
+
 
 // STRIPE WEBHOOK — ALWAYS LAST BEFORE 404!!!
 app.post(
