@@ -222,9 +222,14 @@ export default function MyRegisteredEvents() {
                 <div>
                   <h2 className="text-xl font-semibold text-blue-700 mb-2">
                     {reg.event.type === 'gym' 
-                      ? `${reg.event.sessionType || 'Gym Session'}`
+                      ? reg.event.title || "Gym Session"
                       : reg.event.title || "Untitled Event"}
                   </h2>
+                  {reg.event.type === 'gym' && (
+                    <p className="text-gray-700 mb-2 capitalize">
+                      <strong>{reg.event.sessionType || 'Gym'} Session</strong>
+                    </p>
+                  )}
                   <p className="text-gray-700 mb-1">
                     <strong>Type:</strong> <span className="capitalize">{reg.event.type || "N/A"}</span>
                   </p>

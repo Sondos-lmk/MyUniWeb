@@ -245,6 +245,7 @@ export const getEventById = async (req, res) => {
 export const getUpcomingEvents = async (req, res) => {
   try {
     const now = new Date();
+    console.log("🔍 Fetching upcoming events, current time:", now);
 
     // Helper function to format each event consistently
     const formatEvent = (event, type) => {
@@ -272,6 +273,9 @@ export const getUpcomingEvents = async (req, res) => {
     };
 
     // Fetch approved upcoming events from all collections in parallel
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    
     const [workshops, trips, bazaars, booths, conferences, gymSessions] = await Promise.all([
       Workshop.find({ startDate: { $gt: now }, status: "approved" }),
       Trip.find({ startDate: { $gt: now }, status: "approved" }),
@@ -284,7 +288,7 @@ export const getUpcomingEvents = async (req, res) => {
         "name email"
       ),
       Conference.find({ startDate: { $gt: now }, status: "approved" }),
-      GymSession.find({ date: { $gt: now }, status: "approved" }),
+      GymSession.find({ date: { $gte: startOfToday }, status: "approved" }).select('+title'),
     ]);
 
     // Combine all events into a single list
@@ -297,6 +301,7 @@ export const getUpcomingEvents = async (req, res) => {
       ...gymSessions.map((e) => ({
         id: e._id,
         type: "gym",
+        title: e.title,
         sessionType: e.sessionType,
         date: e.date,
         time: e.time,
@@ -432,6 +437,7 @@ export const searchEvents = async (req, res) => {
       allResults.push(...results.shift().map((e) => ({
         id: e._id,
         type: "gym",
+        title: e.title,
         sessionType: e.sessionType,
         date: e.date,
         time: e.time,
