@@ -2597,10 +2597,67 @@ export const deleteComment = async (req, res) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
+    // Store comment data before deletion for email
+    const deletedComment = event.comments[index];
+    const userId = deletedComment.user;
+    const commentText = deletedComment.text;
+    const commentDate = deletedComment.createdAt;
+    const eventName = event.name || event.title;
+
     // Remove it
     event.comments.splice(index, 1);
 
     await event.save();
+
+    // Send email notification (async, won't block response)
+    try {
+      const user = await User.findById(userId);
+      
+      if (user) {
+        // Only send to student, staff, ta, professor (not events office)
+        const allowedRoles = ["student", "staff", "ta", "professor"];
+        const userRole = (user.role || "").toLowerCase();
+        
+        if (allowedRoles.includes(userRole)) {
+          // Format the comment date
+          const formattedDate = new Date(commentDate).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+          });
+
+          await sendEmail({
+            to: user.email,
+            subject: "⚠️ Your comment was removed!",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #d32f2f;">⚠️ Comment Removal Notice</h2>
+                
+                <p>Dear ${user.name || "User"},</p>
+                
+                <p>Your comment on <strong>"${eventName}"</strong> posted on <strong>${formattedDate}</strong> has been removed by an administrator for violating community guidelines.</p>
+                
+                <div style="background-color: #f5f5f5; border-left: 4px solid #d32f2f; padding: 12px; margin: 20px 0;">
+                  <strong>Removed comment:</strong>
+                  <p style="margin: 8px 0 0 0; font-style: italic; color: #555;">"${commentText}"</p>
+                </div>
+                
+                <p>Please keep discussions respectful. Repeated violations may lead to account restrictions.</p>
+                
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+                
+                <p style="color: #666; font-size: 14px;">— GUC Innovex Team</p>
+              </div>
+            `,
+          });
+
+          console.log(`✅ Comment removal email sent to ${user.email}`);
+        }
+      }
+    } catch (emailError) {
+      console.error("Error sending comment removal email:", emailError);
+      // Don't fail the deletion if email fails
+    }
 
     res.status(200).json({
       message: "Comment deleted successfully",
