@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function EventFormPage() {
   const { id } = useParams();
@@ -174,6 +175,13 @@ export default function EventFormPage() {
 
   return (
     <div className="p-10 max-w-3xl mx-auto">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
       <h1 className="text-3xl font-bold mb-6">{id ? "Edit Event" : "Create Event"}</h1>
 
       {isReadOnly && (

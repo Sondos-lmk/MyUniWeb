@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import EventCard from "../components/EventCard";
+import { ArrowLeft } from "lucide-react";
 
 export default function Events() {
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(""); // ✅ added
   const [success, setSuccess] = useState(""); // ✅ added
@@ -47,6 +49,13 @@ export default function Events() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
       <h1 className="text-3xl font-bold mb-6">Events</h1>
 
       {/* ✅ Added feedback messages */}

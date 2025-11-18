@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Info } from "lucide-react";
 
 export default function ApproveWorkshops() {
   const navigate = useNavigate();
@@ -63,73 +64,153 @@ export default function ApproveWorkshops() {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6 text-center">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-blue-50 to-indigo-100 p-6">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
+      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
         Approve or Reject Workshops
       </h1>
 
-      {message && <p className="text-green-600 mb-3 text-center">{message}</p>}
-      {error && <p className="text-red-600 mb-3 text-center">{error}</p>}
+      {message && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-center">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-center">
+          {error}
+        </div>
+      )}
 
       {loading ? (
-        <p className="text-center">Loading workshops...</p>
+        <p className="text-center text-gray-600">Loading workshops...</p>
       ) : workshops.length === 0 ? (
-        <p className="text-center">No pending workshops for approval.</p>
+        <p className="text-center text-gray-600">No pending workshops for approval.</p>
       ) : (
-        <div className="overflow-x-auto mt-6">
-          <table className="min-w-full border border-gray-300 rounded-lg shadow-md">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 border">Title</th>
-                <th className="p-2 border">Location</th>
-                <th className="p-2 border">Start</th>
-                <th className="p-2 border">End</th>
-                <th className="p-2 border">Description</th>
-                <th className="p-2 border">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {workshops.map((w) => (
-                <tr key={w._id} className="text-center hover:bg-gray-50">
-                  <td className="p-2 border font-semibold">{w.title}</td>
-                  <td className="p-2 border">{w.location || "-"}</td>
-                  <td className="p-2 border">
-                    {w.startDate
-                      ? new Date(w.startDate).toLocaleDateString()
-                      : "-"}
-                  </td>
-                  <td className="p-2 border">
-                    {w.endDate
-                      ? new Date(w.endDate).toLocaleDateString()
-                      : "-"}
-                  </td>
-                  <td className="p-2 border text-left max-w-xs truncate">
-                    {w.description || "—"}
-                  </td>
-                  <td className="p-2 border">
+        <div className="space-y-4">
+          {workshops.map((w) => (
+            <div
+              key={w._id}
+              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Left side: Title and Description */}
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-gray-800 mb-2">
+                    {w.title}
+                  </h2>
+                  {/* Hover Details Button */}
+                  <div className="relative inline-block group mt-3">
                     <button
-                      onClick={() => handleApprove(w._id)}
-                      className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700"
+                      className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg cursor-default border border-gray-300"
+                      onMouseDown={(e) => e.preventDefault()}
                     >
-                      Accept&Publish
+                      <Info className="w-4 h-4" />
+                      <span>View Details</span>
                     </button>
-                    <button
-                      onClick={() => handleRequestEdit(w._id)}
-                      className="bg-blue-600 text-white px-3 py-1 rounded mr-2 hover:bg-blue-700"
-                    >
-                      Request to Edit
-                    </button>
-                    <button
-                      onClick={() => handleReject(w._id)}
-                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                    >
-                      Reject
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    
+                    {/* Tooltip with all details */}
+                    <div className="absolute left-0 top-full mt-2 w-80 bg-gray-900 text-white text-sm rounded-lg shadow-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                      <div className="space-y-2">
+                                                <div>
+                                                  <span className="font-semibold">Description:</span>{" "}
+                                                  {w.desc || "No description provided"}
+                                                </div>
+                        <div>
+                          <span className="font-semibold">Location:</span>{" "}
+                          {w.location || "-"}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Start Date:</span>{" "}
+                          {w.startDate
+                            ? new Date(w.startDate).toLocaleString()
+                            : "-"}
+                        </div>
+                        <div>
+                          <span className="font-semibold">End Date:</span>{" "}
+                          {w.endDate
+                            ? new Date(w.endDate).toLocaleString()
+                            : "-"}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Capacity:</span>{" "}
+                          {w.capacity || "Not specified"}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Required Budget:</span>{" "}
+                          {w.requiredBudget ? `$${w.requiredBudget}` : "Not specified"}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Fundraising Source:</span>{" "}
+                          {w.fundraisingSource || "-"}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Responsible Faculty:</span>{" "}
+                          {w.responsibleFaculty || "-"}
+                        </div>
+                        {((w.professorNames && w.professorNames.length > 0) || 
+                          (w.professorsParticipating && w.professorsParticipating.length > 0)) && (
+                          <div>
+                            <span className="font-semibold">Professors Participating:</span>{" "}
+                            {w.professorNames && w.professorNames.length > 0
+                              ? w.professorNames.join(", ")
+                              : w.professorsParticipating && w.professorsParticipating.length > 0
+                              ? w.professorsParticipating.map(p => p.name || p.email).join(", ")
+                              : "-"}
+                          </div>
+                        )}
+                        {w.fullAgenda && (
+                          <div>
+                            <span className="font-semibold">Full Agenda:</span>{" "}
+                            <div className="mt-1 text-gray-300">{w.fullAgenda}</div>
+                          </div>
+                        )}
+                        {w.extraRequiredResource && (
+                          <div>
+                            <span className="font-semibold">Extra Resources:</span>{" "}
+                            {w.extraRequiredResource}
+                          </div>
+                        )}
+                        {w.createdBy && (
+                          <div>
+                            <span className="font-semibold">Created By:</span>{" "}
+                            {w.createdBy.name || w.createdBy.email || "Unknown"}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side: Action buttons */}
+                <div className="flex flex-col gap-2 md:min-w-[200px]">
+                  <button
+                    onClick={() => handleApprove(w._id)}
+                    className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-medium"
+                  >
+                    Accept & Publish
+                  </button>
+                  <button
+                    onClick={() => handleRequestEdit(w._id)}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium"
+                  >
+                    Request to Edit
+                  </button>
+                  <button
+                    onClick={() => handleReject(w._id)}
+                    className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-lg hover:from-red-700 hover:to-red-800 transition-all font-medium"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
