@@ -1570,8 +1570,8 @@ export const getAttendeesReport = async (req, res) => {
         
         return {
           id: ev._id,
-          title: ev.sessionType || ev.title || 'Gym Session',
-          type: ev.type,
+          title: ev.title || 'Gym Session',
+          type: ev.sessionType || 'gym',
           startDate: ev.date || ev.startDate || null,
           endDate: ev.endDate || null,
           attendees: participantsCount,

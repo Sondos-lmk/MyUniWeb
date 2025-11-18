@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 import VendorDocumentsModal from "../components/VendorDocumentModal.jsx";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function ViewDocuments() {
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [vendorsMap, setVendorsMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -61,6 +64,13 @@ export default function ViewDocuments() {
 
   return (
     <div className="p-6">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
       <h1 className="text-3xl font-bold mb-6">View Vendor & Worker Documents</h1>
 
       {events.length === 0 ? (

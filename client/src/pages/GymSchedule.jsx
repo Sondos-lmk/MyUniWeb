@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function GymSchedule() {
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -68,6 +71,13 @@ export default function GymSchedule() {
 
   return (
     <div className="p-8">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
       <h1 className="text-3xl font-bold mb-6 text-center">Gym Schedule</h1>
 
       {/* ⭐ Success + error messages */}
