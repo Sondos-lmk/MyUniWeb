@@ -8,9 +8,10 @@ import { notifyUsersOfNewEvent } from "../utils/inAppNotification.js";
 // ==============================================
 export const createGymSession = async (req, res) => {
   try {
-    const { sessionType, date, time, duration, maxParticipants } = req.body;
+    const { title, sessionType, date, time, duration, maxParticipants } = req.body;
 
     const newSession = new GymSession({
+      title: title || `${sessionType} Session`,
       sessionType,
       date,
       time,

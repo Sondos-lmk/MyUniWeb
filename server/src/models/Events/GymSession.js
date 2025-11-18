@@ -6,6 +6,8 @@ const gymSessionSchema = new mongoose.Schema(
   {
     // inherits: title/createdBy/status/type/etc. from Event via discriminator
 
+    title: { type: String, required: true }, // Session name/title
+
     sessionType: { type: String, default: "general" }, // e.g. "cross circuit", "cardio", etc.
 
     date: { type: Date, required: true },

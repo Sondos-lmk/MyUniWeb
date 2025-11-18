@@ -162,7 +162,7 @@ export default function EventCard({
         <div className="p-5">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-lg font-semibold capitalize">
-              {event.sessionType ? `${event.sessionType} Session` : "Gym Session"}
+              {event.title}
             </h3>
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeColor("gym")}`}>
               gym
@@ -322,13 +322,6 @@ export default function EventCard({
       }
     }
   };
-
-  console.log({
-    title,
-    userRole,
-    eventType: event.type,
-    eventStatus: event.status,
-  });
 
   const canEdit =
     userRole === "eventofficer" &&
