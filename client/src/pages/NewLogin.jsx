@@ -54,9 +54,7 @@ export default function NewLogin() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="bg-gradient-to-br from-cyan-600 to-blue-700 p-3 rounded-lg shadow-lg">
-              <GraduationCap className="size-12 text-white" />
-            </div>
+            <img src="http://localhost:4000/uploads/logo/logoredefined.png"  alt="Innovex" className="w-40 h-40 object-contain"/>
           </div>
           <div>
             <CardTitle className="text-3xl mb-2">Welcome to Innovex</CardTitle>

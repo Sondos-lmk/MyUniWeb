@@ -71,9 +71,9 @@ export default function NewStudentSignup() {
             Back
           </Button>
           <div className="flex justify-center">
-            <div className="bg-gradient-to-br from-cyan-600 to-blue-700 p-3 rounded-lg shadow-lg">
-              <GraduationCap className="size-12 text-white" />
-            </div>
+           <div className="flex justify-center">
+            <img src="http://localhost:4000/uploads/logo/logoredefined.png"  alt="Innovex" className="w-40 h-40 object-contain"/>
+          </div>
           </div>
           <div>
             <CardTitle className="text-2xl mb-2">Student Registration</CardTitle>

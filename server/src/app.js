@@ -59,6 +59,9 @@ app.use(express.json());
 app.use(morgan('dev'));
 app.use(cors());
 
+// ✅ serve uploaded files
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // ROUTES
 app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
