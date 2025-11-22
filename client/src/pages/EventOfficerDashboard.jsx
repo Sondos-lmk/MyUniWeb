@@ -1,83 +1,97 @@
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents.jsx";
 import AttendeesReport from "../components/AttendeesReport";
+import RevenueReport from "../components/RevenueReport";
 import Navbar from "../components/Navbar.jsx";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Calendar, Dumbbell, Store, Archive, GraduationCap, ArrowLeft } from "lucide-react";
 
 function EventOfficerDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-blue-50 to-indigo-100">
       {/* Navbar */}
       <Navbar />
 
-      <div className="p-10">
-        <h1 className="text-2xl font-bold mb-6">
-          Welcome,{" "}
-          {user?.name
-            ? user.name.charAt(0).toUpperCase() + user.name.slice(1)
-            : "Event Officer"}
-        </h1>
-      </div>
-      <div className="flex gap-4 mb-8">
-      <Link
-        to="/create-gym-session"
-        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-      >
-        Create Gym Session
-      </Link>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Welcome Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <GraduationCap className="w-8 h-8 text-cyan-600" />
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
+              Event Officer Dashboard
+            </h1>
+          </div>
+          <p className="text-gray-600 text-lg">
+            Welcome back {user?.name ? user.name.charAt(0).toUpperCase() + user.name.slice(1) : "Event Officer"}!
+          </p>
+        </div>
 
-      <Link
-        to="/gym-schedule"
-        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
-      >
-        View Gym Schedule
-      </Link>
-      {/* vendor BUTTON HERE */}
-      <Link
-        to="/loyalty-vendors"
-        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-      >
-      Loyalty Vendors
-      </Link>
+        {/* Quick Actions */}
+        <Card className="mb-8 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link to="/create-gym-session">
+                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800">
+                  <Dumbbell className="w-6 h-6" />
+                  <span>Create Gym Session</span>
+                </Button>
+              </Link>
 
+              <Link to="/gym-schedule">
+                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800">
+                  <Calendar className="w-6 h-6" />
+                  <span>View Gym Schedule</span>
+                </Button>
+              </Link>
 
+              <Link to="/loyalty-vendors">
+                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800">
+                  <Store className="w-6 h-6" />
+                  <span>Loyalty Vendors</span>
+                </Button>
+              </Link>
 
-    </div>
+              <Link to="/eventOfficer/archived-events">
+                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-gradient-to-r from-gray-600 to-slate-700 hover:from-gray-700 hover:to-slate-800">
+                  <Archive className="w-6 h-6" />
+                  <span>Archived Events</span>
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* TOP BUTTONS */}
-      <div className="flex gap-4 mb-8 px-10">
-        <Link
-          to="/create-gym-session"
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Create Gym Session
-        </Link>
+        {/* Reports Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Attendees Report */}
+          <Card className="shadow-lg">
+            <CardContent className="p-6">
+              <AttendeesReport />
+            </CardContent>
+          </Card>
 
-        <Link
-          to="/gym-schedule"
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
-        >
-          View Gym Schedule
-        </Link>
+          {/* Revenue Report */}
+          <Card className="shadow-lg">
+            <CardContent className="p-6">
+              <RevenueReport />
+            </CardContent>
+          </Card>
+        </div>
 
-        <Link
-          to="/eventOfficer/archived-events"
-          className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg"
-        >
-          View Archived Events
-        </Link>
-      </div>
-
-      {/* Upcoming Events */}
-      <div className="mt-10 px-10">
-        <UpcomingEvents />
-      </div>
-
-      {/* Attendees report */}
-      <div className="mt-10 px-10 mb-10">
-        <AttendeesReport />
+        {/* Upcoming Events Section */}
+        <Card className="shadow-lg">
+          <CardContent className="p-6">
+            <UpcomingEvents />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

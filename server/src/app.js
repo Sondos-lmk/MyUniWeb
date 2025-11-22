@@ -20,6 +20,10 @@ import gymRoutes from "./routes/gymRoutes.js";
 import courtRoutes from "./routes/court.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import loyaltyRoutes from './routes/loyalityRoutes.js';
+import pollRoutes from "./routes/pollRoutes.js";
+import documentRoutes from "./routes/documentRoutes.js";
+import eventFeedbackRoutes from "./routes/eventFeedbackRoutes.js";
+
 //import courtRoutes from "./routes/court.js";
 
 
@@ -55,6 +59,9 @@ app.use(express.json());
 app.use(morgan('dev'));
 app.use(cors());
 
+// ✅ serve uploaded files
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // ROUTES
 app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
@@ -64,7 +71,11 @@ app.use('/api/courts', courtRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use("/api/polls", pollRoutes);
+app.use("/api/documents", documentRoutes);
 app.use('/api/auth', authRoutes);
+app.use("/api/events", eventFeedbackRoutes);
+
 
 // STRIPE WEBHOOK — ALWAYS LAST BEFORE 404!!!
 app.post(

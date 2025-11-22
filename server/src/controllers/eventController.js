@@ -245,6 +245,7 @@ export const getEventById = async (req, res) => {
 export const getUpcomingEvents = async (req, res) => {
   try {
     const now = new Date();
+    console.log("🔍 Fetching upcoming events, current time:", now);
 
     // Helper function to format each event consistently
     const formatEvent = (event, type) => {
@@ -272,6 +273,9 @@ export const getUpcomingEvents = async (req, res) => {
     };
 
     // Fetch approved upcoming events from all collections in parallel
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    
     const [workshops, trips, bazaars, booths, conferences, gymSessions] = await Promise.all([
       Workshop.find({ startDate: { $gt: now }, status: "approved" }),
       Trip.find({ startDate: { $gt: now }, status: "approved" }),
@@ -284,7 +288,7 @@ export const getUpcomingEvents = async (req, res) => {
         "name email"
       ),
       Conference.find({ startDate: { $gt: now }, status: "approved" }),
-      GymSession.find({ date: { $gt: now }, status: "approved" }),
+      GymSession.find({ date: { $gte: startOfToday }, status: "approved" }).select('+title'),
     ]);
 
     // Combine all events into a single list
@@ -297,6 +301,7 @@ export const getUpcomingEvents = async (req, res) => {
       ...gymSessions.map((e) => ({
         id: e._id,
         type: "gym",
+        title: e.title,
         sessionType: e.sessionType,
         date: e.date,
         time: e.time,
@@ -432,6 +437,7 @@ export const searchEvents = async (req, res) => {
       allResults.push(...results.shift().map((e) => ({
         id: e._id,
         type: "gym",
+        title: e.title,
         sessionType: e.sessionType,
         date: e.date,
         time: e.time,
@@ -1062,7 +1068,7 @@ export const getMyRegisteredEventsFromUser = async (req, res) => {
     // 3️⃣ Find the user and populate their registered events
     const user = await Model.findById(userId).populate(
       "registeredEvents.event",
-      "title type startDate endDate location description"
+      "title type startDate endDate registrationDeadline location description sessionType time duration date"
     );
 
     if (!user)
@@ -1514,9 +1520,16 @@ export const getAttendeesReport = async (req, res) => {
   try {
     const { name, type, startDate, endDate } = req.query;
 
-    // Build flexible query: support events that use `startDate` or `date`, and search multiple fields for name
+    // Build query for workshops, trips, and gym sessions
     const conditions = [];
-    if (type) conditions.push({ type });
+    
+    // If user selected specific type, filter by it; otherwise show workshop, trip, and gym
+    if (type) {
+      conditions.push({ type: type });
+    } else {
+      conditions.push({ type: { $in: ['workshop', 'trip', 'gym'] } });
+    }
+    
     if (name) {
       const regex = new RegExp(name, 'i');
       conditions.push({
@@ -1534,7 +1547,6 @@ export const getAttendeesReport = async (req, res) => {
       if (startDate) range.$gte = new Date(startDate);
       if (endDate) range.$lte = new Date(endDate);
 
-      // Match events where either `startDate` or `date` falls in the range
       conditions.push({
         $or: [
           { startDate: range },
@@ -1543,55 +1555,73 @@ export const getAttendeesReport = async (req, res) => {
       });
     }
 
-    const query = conditions.length ? { $and: conditions } : {};
+    const query = { $and: conditions };
 
-    // Find events matching filters (flexible for different event shapes)
-    const events = await Event.find(query).lean();
+    // Find workshops, trips, and gym sessions matching filters
+    const events = await Event.find(query).populate('participants').lean();
 
-    // For each event compute attendee counts (breakdown by role when possible)
+    // For each event, count only PAID attendees from user collections (or participants for gym)
     const report = await Promise.all(events.map(async (ev) => {
-      // initialize breakdown
-      let students = 0;
-      let staff = 0;
-      let ta = 0;
-      let professors = 0;
-      let vendors = 0;
-
-      // If the event document stores registeredVendors (bazaar/booth)
-      if (ev.registeredVendors && Array.isArray(ev.registeredVendors)) {
-        // registeredVendors may be array of vendor IDs or objects
-        vendors = ev.registeredVendors.length;
+      const eventId = ev._id;
+      
+      // For gym sessions, count participants array
+      if (ev.type === 'gym') {
+        const participantsCount = ev.participants?.length || 0;
+        
+        return {
+          id: ev._id,
+          title: ev.title || 'Gym Session',
+          type: ev.sessionType || 'gym',
+          startDate: ev.date || ev.startDate || null,
+          endDate: ev.endDate || null,
+          attendees: participantsCount,
+          breakdown: { gym: participantsCount }
+        };
       }
+      
+      // Import user models for workshops/trips
+      const { Student } = await import('../models/Users/Student.js');
+      const { Staff } = await import('../models/Users/Staff.js');
+      const { TA } = await import('../models/Users/TA.js');
+      const { Professor } = await import('../models/Users/Professor.js');
 
-      // If event stores registeredStudents
-      if (ev.registeredStudents && Array.isArray(ev.registeredStudents)) {
-        students = ev.registeredStudents.length;
-      }
+      // Count users who have this event with paymentStatus === 'paid'
+      const [students, staff, ta, professors] = await Promise.all([
+        Student.countDocuments({ 
+          registeredEvents: { 
+            $elemMatch: { 
+              event: eventId, 
+              paymentStatus: 'paid' 
+            } 
+          } 
+        }),
+        Staff.countDocuments({ 
+          registeredEvents: { 
+            $elemMatch: { 
+              event: eventId, 
+              paymentStatus: 'paid' 
+            } 
+          } 
+        }),
+        TA.countDocuments({ 
+          registeredEvents: { 
+            $elemMatch: { 
+              event: eventId, 
+              paymentStatus: 'paid' 
+            } 
+          } 
+        }),
+        Professor.countDocuments({ 
+          registeredEvents: { 
+            $elemMatch: { 
+              event: eventId, 
+              paymentStatus: 'paid' 
+            } 
+          } 
+        }),
+      ]);
 
-      // If event stores participants (gym sessions)
-      if (ev.participants && Array.isArray(ev.participants)) {
-        // participants may include mixed roles; we count as students here unless user models used
-        students = ev.participants.length;
-      }
-
-      // Fallback: count across user collections who have this event in their registeredEvents
-      if (!vendors && !students) {
-        const eventId = ev._id;
-        const [sCount, stfCount, taCount, profCount, vCount] = await Promise.all([
-          (await import('../models/Users/Student.js')).Student.countDocuments({ registeredEvents: eventId }),
-          (await import('../models/Users/Staff.js')).Staff.countDocuments({ registeredEvents: eventId }),
-          (await import('../models/Users/TA.js')).TA.countDocuments({ registeredEvents: eventId }),
-          (await import('../models/Users/Professor.js')).Professor.countDocuments({ registeredEvents: eventId }),
-          (await import('../models/Users/Vendor.js')).Vendor.countDocuments({ registeredEvents: eventId }),
-        ]);
-        students = sCount;
-        staff = stfCount;
-        ta = taCount;
-        professors = profCount;
-        vendors = vCount;
-      }
-
-      const attendees = students + staff + ta + professors + vendors;
+      const attendees = students + staff + ta + professors;
 
       return {
         id: ev._id,
@@ -1600,13 +1630,151 @@ export const getAttendeesReport = async (req, res) => {
         startDate: ev.startDate || ev.date || null,
         endDate: ev.endDate || null,
         attendees,
-        breakdown: { students, staff, ta, professors, vendors }
+        breakdown: { students, staff, ta, professors }
       };
     }));
 
     res.status(200).json({ count: report.length, report });
   } catch (err) {
     console.error('Error building attendees report:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Revenue Report - Calculate revenue from paid events
+export const getRevenueReport = async (req, res) => {
+  try {
+    const { type, startDate, endDate, sort } = req.query;
+
+    // Build query for revenue-generating events: workshops, trips, bazaar, booth
+    const conditions = [];
+    
+    // Filter by type if specified, otherwise show all revenue-generating types
+    if (type) {
+      conditions.push({ type: type });
+    } else {
+      conditions.push({ type: { $in: ['workshop', 'trip', 'bazaar', 'booth'] } });
+    }
+    
+    // Filter by date range
+    if (startDate || endDate) {
+      const range = {};
+      if (startDate) range.$gte = new Date(startDate);
+      if (endDate) range.$lte = new Date(endDate);
+
+      conditions.push({
+        $or: [
+          { startDate: range },
+          { date: range }
+        ]
+      });
+    }
+
+    const query = { $and: conditions };
+
+    // Find events matching filters
+    const events = await Event.find(query).lean();
+
+    // Calculate revenue for each event
+    const report = await Promise.all(events.map(async (ev) => {
+      const eventId = ev._id;
+      let revenue = 0;
+
+      // Import user models
+      const { Student } = await import('../models/Users/Student.js');
+      const { Staff } = await import('../models/Users/Staff.js');
+      const { TA } = await import('../models/Users/TA.js');
+      const { Professor } = await import('../models/Users/Professor.js');
+      const { Vendor } = await import('../models/Users/Vendor.js');
+
+      // For workshops and trips: sum up prices from paid registrations (all user types)
+      if (ev.type === 'workshop' || ev.type === 'trip') {
+        const allUsers = await Promise.all([
+          Student.find({ 
+            registeredEvents: { 
+              $elemMatch: { 
+                event: eventId, 
+                paymentStatus: 'paid' 
+              } 
+            } 
+          }).select('registeredEvents'),
+          Staff.find({ 
+            registeredEvents: { 
+              $elemMatch: { 
+                event: eventId, 
+                paymentStatus: 'paid' 
+              } 
+            } 
+          }).select('registeredEvents'),
+          TA.find({ 
+            registeredEvents: { 
+              $elemMatch: { 
+                event: eventId, 
+                paymentStatus: 'paid' 
+              } 
+            } 
+          }).select('registeredEvents'),
+          Professor.find({ 
+            registeredEvents: { 
+              $elemMatch: { 
+                event: eventId, 
+                paymentStatus: 'paid' 
+              } 
+            } 
+          }).select('registeredEvents'),
+        ]);
+
+        // Sum up all paid registration prices
+        allUsers.flat().forEach(user => {
+          const paidReg = user.registeredEvents?.find(
+            reg => reg.event.equals(eventId) && reg.paymentStatus === 'paid'
+          );
+          if (paidReg && paidReg.priceAtRegistration) {
+            revenue += paidReg.priceAtRegistration;
+          }
+        });
+      }
+
+      // For bazaars and booths: sum up prices from paid vendor registrations in the event itself
+      if (ev.type === 'bazaar' || ev.type === 'booth') {
+        // Vendor registrations are stored in the event's registeredVendors array
+        if (ev.registeredVendors && Array.isArray(ev.registeredVendors)) {
+          ev.registeredVendors.forEach(vendorReg => {
+            if (vendorReg.paymentStatus === 'paid' && vendorReg.finalPrice) {
+              revenue += vendorReg.finalPrice;
+            }
+          });
+        }
+      }
+
+      return {
+        id: ev._id,
+        title: ev.title || ev.type || 'Untitled',
+        type: ev.type || 'event',
+        startDate: ev.startDate || ev.date || null,
+        endDate: ev.endDate || null,
+        revenue: Math.round(revenue * 100) / 100 // Round to 2 decimal places
+      };
+    }));
+
+    // Sort by revenue if requested
+    let sortedReport = report;
+    if (sort === 'asc') {
+      sortedReport = report.sort((a, b) => a.revenue - b.revenue);
+    } else if (sort === 'desc') {
+      sortedReport = report.sort((a, b) => b.revenue - a.revenue);
+    }
+
+    // Calculate total revenue
+    const totalRevenue = sortedReport.reduce((sum, item) => sum + item.revenue, 0);
+
+    res.status(200).json({ 
+      count: sortedReport.length, 
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      report: sortedReport 
+    });
+  } catch (err) {
+    console.error('Error building revenue report:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -1702,7 +1870,7 @@ export const registerForBazaar = async (req, res) => {
       finalPrice:0,
       paymentStatus:"unpaid"
     });
-    await bazaar.save();
+    await bazaar.save({ validateBeforeSave: false });
     
     // ✅ Send notification to all Event Officers and Admins
 try {
@@ -1864,7 +2032,7 @@ export const registerBooth = async (req, res) => {
 
     });
 
-    await booth.save();
+    await booth.save({ validateBeforeSave: false });
 // ✅ Send notification to all Event Officers and Admins
 try {
 
@@ -1975,6 +2143,71 @@ export const getMyEventApplications = async (req, res) => {
   }
 };
 
+//CHECK ANY CONFLICTED BOOTH REQUESTS(EVENT OFFICER)
+export const getAllBoothConflicts = async (req, res) => {
+  try {
+    const booths = await Booth.find()
+      .populate("registeredVendors.vendor", "companyName name") // get vendor names
+      .lean();
+
+    const conflictedBooths = [];
+
+    for (const booth of booths) {
+      const vendors = booth.registeredVendors.filter(v => v.status === "approved" || v.status === "pending");
+
+      const conflicts = [];
+
+      for (let i = 0; i < vendors.length; i++) {
+        for (let j = i + 1; j < vendors.length; j++) {
+          const v1 = vendors[i];
+          const v2 = vendors[j];
+
+          const overlap =
+            (v1.startDate <= v2.endDate && v1.endDate >= v2.startDate);
+
+          if (overlap) {
+            conflicts.push({
+              vendor1Name: v1.vendor?.companyName || v1.vendor?.name || "Unknown",
+              vendor2Name: v2.vendor?.companyName || v2.vendor?.name || "Unknown",
+
+              vendor1: {
+                startDate: v1.startDate,
+                endDate: v1.endDate
+              },
+
+              vendor2: {
+                startDate: v2.startDate,
+                endDate: v2.endDate
+              }
+            });
+          }
+        }
+      }
+
+      if (conflicts.length > 0) {
+        conflictedBooths.push({
+          booth: {
+            id: booth._id,
+            title: booth.title || "Unknown Booth",
+            location: booth.locationInPlatform || ""
+          },
+          conflicts
+        });
+      }
+    }
+
+    res.status(200).json({
+      conflictedBooths,
+      count: conflictedBooths.length
+    });
+
+  } catch (err) {
+    console.error("Conflict detection error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 
 export const registerForGymSession = async (req, res) => {
   try {
@@ -2065,7 +2298,7 @@ export const updateVendorStatus = async (req, res) => {
     // Update status
     event.registeredVendors[vendorIndex].status = status;
     event.markModified('registeredVendors');
-    await event.save();
+    await event.save({ validateBeforeSave: false });
 
     // Send email notification to the VENDOR USER (not registration)
     try {
@@ -2255,12 +2488,15 @@ export const generateVisitorQR = async (req, res) => {
     const visitorCode =
       crypto.randomUUID?.() || crypto.randomBytes(16).toString("hex");
 
-    const qrURL = `${process.env.CLIENT_URL}/qr/verify/${visitorCode}`;
+     const qrPayload = {
+     name,
+     nationalId,
+     code: visitorCode,
+     event: event.title,
+     date: new Date().toISOString()
+   };
 
-    // -----------------------------------
-    // 4️⃣ Generate QR (Base64)
-    // -----------------------------------
-    const qrBase64 = await QRCode.toDataURL(qrURL);
+   const qrBase64 = await QRCode.toDataURL(JSON.stringify(qrPayload));
 
     // -----------------------------------
     // 5️⃣ Add visitor entry to the event
@@ -2298,3 +2534,172 @@ export const generateVisitorQR = async (req, res) => {
     });
   }
 };
+
+export const cancelVendorApplication = async (req, res) => {
+  try {
+    const { eventId, registrationId } = req.params;
+    const vendorId = req.user._id;
+
+    if (req.user.role !== 'vendor') {
+      return res.status(403).json({ error: 'Only vendors can cancel applications.' });
+    }
+
+    // 1. Find the event using the base Event model
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    // 2. Check if it's a type we can cancel
+    if (event.type !== 'bazaar' && event.type !== 'booth') {
+      return res.status(400).json({ error: 'Cannot cancel application for this event type.' });
+    }
+
+    // 3. Find the specific registration in the event's array
+    // (This assumes both Bazaar and Booth use a "registeredVendors" array)
+    const registration = event.registeredVendors.id(registrationId);
+    if (!registration) {
+      return res.status(404).json({ error: 'Application not found.' });
+    }
+
+    // 4. Authorization: Is this the correct vendor?
+    if (!registration.vendor.equals(vendorId)) {
+      return res.status(403).json({ error: 'You are not authorized to cancel this application.' });
+    }
+
+    // 5. Business Rule: Can only cancel if NOT paid
+    if (registration.paymentStatus === 'paid') {
+      return res.status(400).json({ error: 'Cannot cancel an application that has already been paid.' });
+    }
+
+    // 6. Remove the application using Mongoose's pull method
+    event.registeredVendors.pull({ _id: registrationId });
+    
+    // 7. Save the parent event
+    await event.save();
+
+    res.status(200).json({ message: 'Application cancelled successfully.' });
+
+  } catch (err) {
+    console.error("Error cancelling vendor application:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+export const deleteComment = async (req, res) => {
+  try {
+    const { eventId, commentId } = req.params;
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Find the comment index
+    const index = event.comments.findIndex(
+      (c) => c._id.toString() === commentId
+    );
+
+    if (index === -1) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    // Store comment data before deletion for email
+    const deletedComment = event.comments[index];
+    const userId = deletedComment.user;
+    const commentText = deletedComment.text;
+    const commentDate = deletedComment.createdAt;
+    const eventName = event.name || event.title;
+
+    // Remove it
+    event.comments.splice(index, 1);
+
+    await event.save();
+
+    // Send email notification (async, won't block response)
+    try {
+      const user = await User.findById(userId);
+      
+      if (user) {
+        // Only send to student, staff, ta, professor (not events office)
+        const allowedRoles = ["student", "staff", "ta", "professor"];
+        const userRole = (user.role || "").toLowerCase();
+        
+        if (allowedRoles.includes(userRole)) {
+          // Format the comment date
+          const formattedDate = new Date(commentDate).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+          });
+
+          await sendEmail({
+            to: user.email,
+            subject: "⚠️ Your comment was removed!",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #d32f2f;">⚠️ Comment Removal Notice</h2>
+                
+                <p>Dear ${user.name || "User"},</p>
+                
+                <p>Your comment on <strong>"${eventName}"</strong> posted on <strong>${formattedDate}</strong> has been removed by an administrator for violating community guidelines.</p>
+                
+                <div style="background-color: #f5f5f5; border-left: 4px solid #d32f2f; padding: 12px; margin: 20px 0;">
+                  <strong>Removed comment:</strong>
+                  <p style="margin: 8px 0 0 0; font-style: italic; color: #555;">"${commentText}"</p>
+                </div>
+                
+                <p>Please keep discussions respectful. Repeated violations may lead to account restrictions.</p>
+                
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+                
+                <p style="color: #666; font-size: 14px;">— GUC Innovex Team</p>
+              </div>
+            `,
+          });
+
+          console.log(`✅ Comment removal email sent to ${user.email}`);
+        }
+      }
+    } catch (emailError) {
+      console.error("Error sending comment removal email:", emailError);
+      // Don't fail the deletion if email fails
+    }
+
+    res.status(200).json({
+      message: "Comment deleted successfully",
+      comments: event.comments,
+    });
+  } catch (error) {
+    console.error("Delete comment error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+export const getAllComments = async (req, res) => {
+  try {
+    const events = await Event.find({})
+      .populate("comments.user", "name email role")
+      .select("title comments");
+
+    let allComments = [];
+
+    events.forEach((event) => {
+      event.comments.forEach((c) => {
+        allComments.push({
+          eventId: event._id,
+          eventTitle: event.title,
+          commentId: c._id,
+          text: c.text,
+          createdAt: c.createdAt,
+          user: c.user,
+        });
+      });
+    });
+
+    res.status(200).json({ comments: allComments });
+  } catch (error) {
+    console.error("Error fetching all comments:", error);
+    res.status(500).json({ message: "Failed to load comments" });
+  }
+};
+
+

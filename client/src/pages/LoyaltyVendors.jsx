@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function LoyaltyVendors() {
+  const navigate = useNavigate();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,6 +32,13 @@ export default function LoyaltyVendors() {
 
   return (
     <div className="p-6">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
       <h1 className="text-2xl font-bold mb-4">GUC Loyalty Program Partners</h1>
 
       {loading && <p>Loading vendors...</p>}

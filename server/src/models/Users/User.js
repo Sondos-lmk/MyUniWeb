@@ -24,12 +24,10 @@ const userSchema = new mongoose.Schema(
       enum: ['student', 'staff', 'professor', 'vendor', 'admin', 'eventOfficer'],
     },
 
-    // ⭐ ADD THIS
+    // ⭐ Optional field for backward compatibility with old users
     gucId: {
       type: String,
-      required: function () {
-        return this.role === "student";
-      }
+      required: false
     },
 
     verificationToken: { type: String },

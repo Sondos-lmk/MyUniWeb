@@ -20,11 +20,12 @@ console.log('Environment variables:', {
 });
 
 
+// TODO: Implement rejectOverduePayments function if needed
 // Run every hour
-cron.schedule('0 * * * *', async () => {
-  console.log('Checking for overdue payments...');
-  await rejectOverduePayments();
-});
+// cron.schedule('0 * * * *', async () => {
+//   console.log('Checking for overdue payments...');
+//   await rejectOverduePayments();
+// });
 
 
 
@@ -48,10 +49,8 @@ async function bootstrap() {
   // For testing: run every minute. Later you can change to '*/15 * * * *' (every 15 minutes)
   cron.schedule("* * * * *", async () => {
     try {
-      const result = await sendRemindersForUpcomingEvents();
-      console.log(
-        `⏰ Reminder scheduler ran: day=${result.totalDayReminders}, hour=${result.totalHourReminders}`
-      );
+      await sendRemindersForUpcomingEvents();
+      // Removed console.log to reduce terminal spam
     } catch (err) {
       console.error(
         "❌ Error in reminder scheduler:",

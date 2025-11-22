@@ -12,6 +12,38 @@ function MyApplications() {
 
   const token = localStorage.getItem("token");
 
+  const handleCancelApplication = async (appToCancel) => {
+    if (!window.confirm("Are you sure you want to cancel this application? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      // setLoading(true); // <-- This is intentionally removed to prevent UI flicker
+      // Call the new DELETE endpoint
+      await API.delete(
+        `/events/${appToCancel.id}/applications/${appToCancel.registrationId}/cancel`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert("Application cancelled successfully.");
+
+      // Update the UI by removing the cancelled app from state
+      setApplications((prevApps) => 
+        prevApps.filter(
+          (app) => app.registrationId !== appToCancel.registrationId
+        )
+      );
+
+    } catch (err) {
+      console.error("Error cancelling application:", err);
+      alert(err.response?.data?.error || "Failed to cancel application.");
+    } finally {
+      // setLoading(false); // <-- This is intentionally removed
+    }
+  };
+
   // ---------------------------- Worker Submission ----------------------------
   const handleAddWorker = () => {
     setWorkers([...workers, { name: "", idPicture: null }]);
@@ -184,8 +216,9 @@ function MyApplications() {
             {applications.map((app, idx) => (
               <div
                 key={app.registrationId || idx}
-                className="border p-4 rounded-lg flex justify-between items-center"
+                className="border p-4 rounded-lg flex justify-between items-start" // Changed to items-start
               >
+                {/* --- LEFT SIDE: INFO, STATUS, AND BUTTONS --- */}
                 <div>
                   <h3 className="font-semibold text-lg">
                     {app.title || "Untitled Event"}
@@ -209,9 +242,10 @@ function MyApplications() {
                       </span>
                     </span>
                   </p>
+                  
+                  {/* --- MODIFIED SECTION --- */}
                   {app.status === "approved" && (
-                    <>
-                      <br />
+                    <div className="mt-2"> {/* Wrapped in a div for layout */}
                       Payment Status:{" "}
                       <span
                         className={`font-semibold ${
@@ -222,16 +256,46 @@ function MyApplications() {
                       >
                         {app.paymentStatus?.toUpperCase() || "UNPAID"}
                       </span>
+                      
                       {app.workersSubmitted && (
                         <span className="ml-2 text-xs text-green-600">
-                          <br />
                           ✓ Workers info submitted
                         </span>
                       )}
-                    </>
+
+                      {/* --- BUTTONS MOVED HERE --- */}
+                      {app.paymentStatus !== "paid" && (
+                        <div className="mt-2 flex gap-2"> {/* Added flex and gap */}
+                          <button
+                            onClick={() => handleCancelApplication(app)}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handlePayment(app)}
+                            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors"
+                          >
+                            {app.workersSubmitted ? "Pay Now" : "Workers Info"}
+                          </button>
+                          {app.paymentDeadline && (
+                            <p className="mt-2 text-sm text-red-800">
+                              {Math.max(
+                                0,
+                                Math.ceil((new Date(app.paymentDeadline) - new Date()) / (1000 * 60 * 60 * 24))
+                              )}{" "}
+                              day{Math.abs(Math.ceil((new Date(app.paymentDeadline) - new Date()) / (1000 * 60 * 60 * 24))) !== 1 ? "s" : ""} left
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {/* --- END OF MOVED BUTTONS --- */}
+                    </div>
                   )}
+                  {/* --- END OF MODIFIED SECTION --- */}
                 </div>
 
+                {/* --- RIGHT SIDE: STATUS BADGE ONLY --- */}
                 <div className="flex flex-col items-end gap-2">
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-semibold ${
@@ -244,27 +308,9 @@ function MyApplications() {
                   >
                     {(app.status || "unknown").toUpperCase()}
                   </span>
-
-                  {app.status === "approved" &&
-                    app.paymentStatus !== "paid" && (
-                      <div className="mt-18">
-                        <button
-                          onClick={() => handlePayment(app)}
-                          className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors"
-                        >
-                          {app.workersSubmitted ? "Pay Now" : "Workers Info"}
-                        </button>
-                        {app.paymentDeadline && (
-                        <p className="mt-2 text-sm text-red-800">
-                          {Math.max(
-                            0,
-                            Math.ceil((new Date(app.paymentDeadline) - new Date()) / (1000 * 60 * 60 * 24))
-                          )}{" "}
-                          day{Math.abs(Math.ceil((new Date(app.paymentDeadline) - new Date()) / (1000 * 60 * 60 * 24))) !== 1 ? "s" : ""} left
-                        </p>
-                      )}
-                      </div>
-                    )}
+                  
+                  {/* Buttons were here, but are now moved to the left */}
+                  
                 </div>
               </div>
             ))}

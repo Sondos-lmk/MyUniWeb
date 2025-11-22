@@ -6,11 +6,11 @@ export const generateCertificate = async (studentName, workshopTitle, date) => {
   const __dirname = path.resolve();
   const certificatePath = path.join(
     __dirname,
-    `server/certificates/${studentName}_${workshopTitle}.pdf`
+    `server/uploads/certificates/${studentName}_${workshopTitle}.pdf`
   );
 
   // Ensure folder exists
-  fs.mkdirSync(path.join(__dirname, "server/certificates"), { recursive: true });
+  fs.mkdirSync(path.join(__dirname, "server/uploads/certificates"), { recursive: true });
 
   const doc = new PDFDocument({ size: "A4", layout: "landscape" });
   const stream = fs.createWriteStream(certificatePath);
@@ -41,7 +41,7 @@ export const generateCertificate = async (studentName, workshopTitle, date) => {
     .fontSize(16)
     .text(`Date: ${date}`, { align: "center" })
     .moveDown(2)
-    .text("GUC Events Management System", { align: "center" });
+    .text("GUC Innovex Team", { align: "center" });
 
   doc.end();
 

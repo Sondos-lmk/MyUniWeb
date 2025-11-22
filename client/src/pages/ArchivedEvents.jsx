@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import Navbar from "../components/Navbar";
-
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function ArchivedEvents() {
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,11 +33,15 @@ export default function ArchivedEvents() {
     );
 
   return (
-    <div>
-      <Navbar />
-
-      <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">Archived Events</h1>
+    <div className="p-8">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
+      <h1 className="text-3xl font-bold mb-6">Archived Events</h1>
 
         {events.length === 0 ? (
           <p className="text-gray-600">No archived events found.</p>
@@ -66,7 +71,6 @@ export default function ArchivedEvents() {
           </div>
         )}
       </div>
-    </div>
   );
 }
 

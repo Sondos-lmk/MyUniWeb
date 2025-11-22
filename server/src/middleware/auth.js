@@ -66,10 +66,37 @@ export function requireProfessor(req, res, next) {
 
   return next();
 }
+export const requireGymAttendee = (req, res, next) => {
+  const allowed = ["student", "staff", "ta", "professor"];
+  const role = (req.user?.role || "").toLowerCase();
 
+  if (!req.user || !allowed.includes(role)) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  next();
+};
 // Admin-only middleware
 export function requireAdmin(req, res, next) {
   if (!req.user) return res.status(401).json({ message: "Not authenticated" });
   if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
   next();
 }
+
+// Under existing exports in middleware/auth.js
+
+export function requireAcademicUser(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Missing authentication' });
+  }
+
+  const allowedRoles = ['student', 'staff', 'ta', 'professor'];
+  if (!allowedRoles.includes(req.user.role)) {
+    return res
+      .status(403)
+      .json({ message: 'Forbidden: requires academic user (student/staff/TA/professor)' });
+  }
+
+  return next();
+}
+

@@ -30,11 +30,19 @@ import {
   sendCertificate,
   generateVisitorQR,
   exportEventRegistrations,
+  getAllBoothConflicts,
+  addEventToFavorites,
+  removeEventFromFavorites,
+  getMyFavoriteEvents,
+  // ⭐ newly added imports for rating & comments
+  rateEvent,
+  addComment,
+  getAttendedEvents,
+  cancelVendorApplication,
+  deleteComment,
+  getAllComments
  
 } from '../controllers/eventController.js';
-
-import Joi from 'joi';
-
 
 import { sendCertificatesForCompletedWorkshops } from "../utils/certificateScheduler.js";
 import { sendRemindersForUpcomingEvents } from "../utils/reminderScheduler.js";
@@ -47,10 +55,16 @@ import {
   requireEventOfficer,
   requireEventOfficerOrAdmin,
   requireProfessor,
+  requireAdmin
 } from "../middleware/auth.js";
 
 const router = Router();
 
+//get conflicted booth requests
+router.get("/conflicts", requireAuth, getAllBoothConflicts);
+
+// Everyone logged in (any role) can view upcoming events
+router.get("/upcoming", requireAuth, getUpcomingEvents);
 // -----------------------------------------------------
 // 🔹 DEBUG ROUTE
 // -----------------------------------------------------
@@ -97,6 +111,14 @@ router.get("/search", requireAuth, searchEvents);
 
 router.post("/send-certificate", requireAuth, sendCertificate);
 
+// Only Events Officers can create, update or delete events. Listing and viewing are public (or require auth elsewhere).
+router.post('/', createEvent);
+router.patch('/:id', requireAuth, requireEventOfficer, updateEvent); // update route
+router.patch('/:id/approve', requireAuth, requireEventOfficer, approveEvent);
+router.patch('/:id/reject', requireAuth, requireEventOfficer, rejectEvent);
+router.delete('/:id', requireAuth, requireEventOfficerOrAdmin, deleteEvent);
+router.patch('/:id/updateBazaar', requireAuth, requireEventOfficer, updateBazaar);
+router.get('/:id/export-registrations', requireAuth, requireEventOfficer, exportEventRegistrations);
 // Favorites
 router.post("/:id/favorite", requireAuth, addEventToFavorites);
 router.delete("/:id/favorite", requireAuth, removeEventFromFavorites);
@@ -137,6 +159,8 @@ router.put(
   updateWorkshop
 );
 
+
+// ✅ Specific routes first
 router.get(
   "/professor/my-workshops",
   requireAuth,
@@ -282,10 +306,19 @@ router.post("/trigger-reminders", requireAuth, async (req, res) => {
 // -----------------------------------------------------
 router.post("/:id/rate", requireAuth, rateEvent);
 router.post("/:id/comment", requireAuth, addComment);
+router.delete("/:eventId/comments/:commentId", requireAuth, requireAdmin, deleteComment);
+router.get("/all-comments", requireAuth, requireAdmin, getAllComments);
+
 
 // -----------------------------------------------------
 // 🔹 GET SINGLE EVENT (MUST BE LAST)
 // -----------------------------------------------------
 router.get("/:id", getEventById);
+
+router.delete(
+  '/:eventId/applications/:registrationId/cancel', 
+  requireAuth, 
+  cancelVendorApplication
+);
 
 export default router;

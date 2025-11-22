@@ -3,12 +3,15 @@ import { User } from "../models/Users/User.js";
 import { sendEmail } from "../utils/email.js";
 import { notifyUsersOfNewEvent } from "../utils/inAppNotification.js";
 
-// Create new gym session (Events Office only)
+// ==============================================
+// CREATE GYM SESSION (Events Office only)
+// ==============================================
 export const createGymSession = async (req, res) => {
   try {
-    const { sessionType, date, time, duration, maxParticipants } = req.body;
+    const { title, sessionType, date, time, duration, maxParticipants } = req.body;
 
     const newSession = new GymSession({
+      title: title || `${sessionType} Session`,
       sessionType,
       date,
       time,
@@ -17,17 +20,20 @@ export const createGymSession = async (req, res) => {
       createdBy: req.user._id,
       status: "approved",
       type: "gym",
-      // optional: if you want to use allowedRoles, uncomment:
+      // optional: allowed roles
       // allowedRoles: ["student", "staff", "ta", "professor"],
     });
 
     await newSession.save();
 
-    // ✅ New: notify all relevant users about the new gym session
+    // ⭐ ADDED FROM FIRST CODE — Notify users of new gym session
     try {
       await notifyUsersOfNewEvent(newSession);
     } catch (notifyErr) {
-      console.error("Error sending new-event notifications for gym session:", notifyErr);
+      console.error(
+        "Error sending new-event notifications for gym session:",
+        notifyErr
+      );
     }
 
     res.status(201).json({
@@ -39,18 +45,28 @@ export const createGymSession = async (req, res) => {
   }
 };
 
-
-// View all gym sessions (everyone)
+// ==============================================
+// VIEW ALL GYM SESSIONS
+// ==============================================
 export const getGymSchedule = async (req, res) => {
   try {
-    const gymSessions = await GymSession.find().sort({ date: 1 });
+    // Get start of today (midnight)
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    
+    // Only show gym sessions from today onwards
+    const gymSessions = await GymSession.find({ date: { $gte: startOfToday } })
+      .populate('participants', '_id')
+      .sort({ date: 1, time: 1 });
     res.status(200).json(gymSessions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Update an existing gym session (Events Office only)
+// ==============================================
+// UPDATE GYM SESSION (Events Office)
+// ==============================================
 export const updateGymSession = async (req, res) => {
   try {
     const { id } = req.params;
@@ -65,7 +81,12 @@ export const updateGymSession = async (req, res) => {
     const now = new Date();
     const sessionDate = new Date(session.date || 0);
     if (sessionDate <= now) {
-      return res.status(400).json({ message: "Cannot edit a session that has already started or passed" });
+      return res
+        .status(400)
+        .json({
+          message:
+            "Cannot edit a session that has already started or passed",
+        });
     }
 
     // Only allow date, time, duration edits
@@ -75,60 +96,114 @@ export const updateGymSession = async (req, res) => {
 
     await session.save();
 
-    // Notify registered participants (students/staff/ta/professor)
+    // Notify registered users
     try {
+      // Populate participants to get user data for emails
+      await session.populate('participants');
       await notifyGymParticipants(session, "updated");
     } catch (e) {
       console.error("Failed to notify participants on update:", e?.message || e);
-      // Do not fail the update on email errors
     }
 
-    res.status(200).json({ message: "Gym session updated successfully", session });
+    res
+      .status(200)
+      .json({ message: "Gym session updated successfully", session });
   } catch (err) {
     console.error("Update Gym Error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-//  Register for a gym session (Student/Staff/TA/Professor)
-export const registerForGymSession = async (req, res) => {
-    try {
-      const { sessionId } = req.params;
-      const userId = req.user._id; // comes from the token
-  
-      const session = await GymSession.findById(sessionId);
-      if (!session) {
-        return res.status(404).json({ message: "Gym session not found" });
-      }
-  
-      //  Check if already registered
-      if (session.participants && session.participants.includes(userId)) {
-        return res.status(400).json({ message: "You are already registered for this session" });
-      }
-  
-      //  Check if spots are available
-      if (session.participants && session.participants.length >= session.maxParticipants) {
-        return res.status(400).json({ message: "This session is full" });
-      }
-  
-      // Add the user to participants array
-      session.participants = session.participants || [];
-      session.participants.push(userId);
-      await session.save();
-  
-      res.status(200).json({
-        message: "Successfully registered for the gym session",
-        session,
-      });
-    } catch (err) {
-      console.error("Register Gym Error:", err);
-      res.status(500).json({ message: "Server error", error: err.message });
-    }
-  };
 
-// Cancel a gym session (Events Office only)
+// ==============================================
+// REGISTER FOR GYM SESSION
+// ==============================================
+export const registerForGymSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user._id;
+
+    const session = await GymSession.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: "Gym session not found" });
+    }
+
+    // ⭐ UPDATED FROM FIRST CODE — safer duplicate check
+    if (
+      session.participants &&
+      session.participants.some((id) => String(id) === String(userId))
+    ) {
+      return res
+        .status(400)
+        .json({ message: "You are already registered for this session" });
+    }
+
+    // Check if spots available
+    if (
+      session.participants &&
+      session.participants.length >= session.maxParticipants
+    ) {
+      return res.status(400).json({ message: "This session is full" });
+    }
+
+    // Add user to participants
+    session.participants = session.participants || [];
+    session.participants.push(userId);
+    await session.save();
+
+    // Add gym session to user's registeredEvents (for allowed roles)
+    try {
+      const role = req.user.role?.toLowerCase();
+      console.log("🔍 Adding gym session to user's registeredEvents. Role:", role, "UserId:", userId);
+      
+      const models = {
+        student: (await import("../models/Users/Student.js")).Student,
+        staff: (await import("../models/Users/Staff.js")).Staff,
+        ta: (await import("../models/Users/TA.js")).TA,
+        professor: (await import("../models/Users/Professor.js")).Professor,
+      };
+
+      const UserModel = models[role];
+      if (UserModel) {
+        const user = await UserModel.findById(userId);
+        if (user) {
+          console.log("✅ Found user, current registeredEvents:", user.registeredEvents?.length || 0);
+          user.registeredEvents = user.registeredEvents || [];
+          user.registeredEvents.push({
+            event: sessionId,
+            paymentStatus: 'paid', // Gym sessions are free, so mark as paid
+            priceAtRegistration: 0,
+            registeredAt: new Date()
+          });
+          await user.save();
+          console.log("✅ Successfully added gym session to user's registeredEvents. New count:", user.registeredEvents.length);
+        } else {
+          console.log("❌ User not found with UserModel");
+        }
+      } else {
+        console.log("❌ No UserModel found for role:", role);
+      }
+    } catch (userErr) {
+      console.error("❌ Error adding to user's registeredEvents:", userErr);
+      // Don't fail the whole registration if this fails
+    }
+
+    res.status(200).json({
+      message: "Successfully registered for the gym session",
+      session,
+    });
+  } catch (err) {
+    console.error("Register Gym Error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// ==============================================
+// CANCEL GYM SESSION (Events Office)
+// ==============================================
 export const cancelGymSession = async (req, res) => {
   try {
     const { id } = req.params;
+
     const session = await GymSession.findById(id);
     if (!session) {
       return res.status(404).json({ message: "Gym session not found" });
@@ -138,52 +213,93 @@ export const cancelGymSession = async (req, res) => {
     const now = new Date();
     const sessionDate = new Date(session.date || 0);
     if (sessionDate <= now) {
-      return res.status(400).json({ message: "Cannot cancel a session that has already started or passed" });
+      return res
+        .status(400)
+        .json({
+          message:
+            "Cannot cancel a session that has already started or passed",
+        });
     }
 
-    // Mark as cancelled via base Event status
+    // Mark session as cancelled
     session.status = "cancelled";
     await session.save();
 
-    // Notify registered participants
+    // Notify attendees
     try {
+      // Populate participants to get user data for emails
+      await session.populate('participants');
       await notifyGymParticipants(session, "cancelled");
     } catch (e) {
       console.error("Failed to notify participants on cancel:", e?.message || e);
-      // Continue even if email fails
     }
 
-    res.status(200).json({ message: "Gym session cancelled successfully", session });
+    res
+      .status(200)
+      .json({ message: "Gym session cancelled successfully", session });
   } catch (err) {
     console.error("Cancel Gym Error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-// Helper to notify registered attendees by email
+// ==============================================
+// GET MY REGISTERED SESSIONS (From First Code)
+// ==============================================
+export const getMyRegisteredSessions = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const sessions = await GymSession.find({
+      participants: userId,
+    }).sort({ date: 1, time: 1 });
+
+    res.status(200).json({
+      message: "My registered gym sessions fetched successfully",
+      count: sessions.length,
+      sessions,
+    });
+  } catch (err) {
+    console.error("Get My Gym Sessions Error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// ==============================================
+// EMAIL NOTIFICATION HELPERS
+// ==============================================
 async function notifyGymParticipants(session, action) {
   if (!session?.participants?.length) return;
 
   const allowedRoles = new Set(["student", "staff", "ta", "professor"]);
-  // Load participants' emails and roles
-  const users = await User.find({ _id: { $in: session.participants } }).select("email role name").lean();
-  const recipients = users.filter(u => allowedRoles.has((u.role || "").toLowerCase()));
+
+  const users = await User.find({
+    _id: { $in: session.participants },
+  })
+    .select("email role name")
+    .lean();
+
+  const recipients = users.filter((u) =>
+    allowedRoles.has((u.role || "").toLowerCase())
+  );
   if (!recipients.length) return;
 
   const when = formatSessionWhen(session);
-  const subject = action === "cancelled"
-    ? `Gym Session Cancelled: ${session.sessionType} (${when})`
-    : `Gym Session Updated: ${session.sessionType} (${when})`;
+  const subject =
+    action === "cancelled"
+      ? `Gym Session Cancelled: ${session.sessionType} (${when})`
+      : `Gym Session Updated: ${session.sessionType} (${when})`;
 
-  const html = action === "cancelled"
-    ? `
+  const html =
+    action === "cancelled"
+      ? `
       <p>Dear attendee,</p>
       <p>The gym session you registered for has been <strong>cancelled</strong>.</p>
       <p><strong>Session:</strong> ${escapeHtml(session.sessionType)}<br/>
          <strong>When:</strong> ${escapeHtml(when)}</p>
       <p>We apologize for the inconvenience.</p>
     `
-    : `
+      : `
       <p>Dear attendee,</p>
       <p>The gym session you registered for has been <strong>updated</strong>.</p>
       <p><strong>Session:</strong> ${escapeHtml(session.sessionType)}<br/>
@@ -192,7 +308,6 @@ async function notifyGymParticipants(session, action) {
       <p>Please check the schedule for the latest details.</p>
     `;
 
-  // Send emails sequentially to simplify error handling
   for (const r of recipients) {
     try {
       await sendEmail({ to: r.email, subject, html });
@@ -205,7 +320,17 @@ async function notifyGymParticipants(session, action) {
 function formatSessionWhen(session) {
   try {
     const date = new Date(session.date);
-    const dateStr = isNaN(date.getTime()) ? String(session.date) : date.toLocaleString();
+    if (isNaN(date.getTime())) {
+      return `${session.date || ""}${session.time ? ` at ${session.time}` : ""}`;
+    }
+    
+    // Format date as readable string (e.g., "April 30, 2026")
+    const dateStr = date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
     return `${dateStr}${session.time ? ` at ${session.time}` : ""}`;
   } catch (_) {
     return `${session.date || ""}${session.time ? ` at ${session.time}` : ""}`;
@@ -220,4 +345,3 @@ function escapeHtml(str = "") {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-  

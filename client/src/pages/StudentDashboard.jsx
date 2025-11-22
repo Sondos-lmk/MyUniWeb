@@ -8,15 +8,19 @@ import GymSchedule from "./GymSchedule";
 import api from "../services/api";
 import NotificationBell from "../components/NotificationBell";
 import WalletButton from "../components/WalletButton";
+import AttendedEvents from "./AttendedEvents";
 
-// ✅ NEW imports for favorites UI
+// ⭐ ADDED FROM FIRST CODE
+import Voting from "../components/Voting";
+
+// Favorites imports
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
-  const [activeTab, setActiveTab] = useState("events"); // "events" | "registered" | "register" | "courts" | "gym" | "vendors" | "favorites"
+  const [activeTab, setActiveTab] = useState("events"); 
   const [courts, setCourts] = useState([]);
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [availability, setAvailability] = useState([]);
@@ -24,13 +28,13 @@ const StudentDashboard = () => {
   const [error, setError] = useState("");
   const [lastBooking, setLastBooking] = useState(null);
 
-  // ✅ NEW state for favorites
+  // Favorites
   const [favorites, setFavorites] = useState([]);
   const [favSet, setFavSet] = useState(new Set());
 
   const navigate = useNavigate();
 
-  // Fetch upcoming events, registered events, and favorites
+  // Fetch events + my registered + favorites
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -42,22 +46,18 @@ const StudentDashboard = () => {
 
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-        // Fetch upcoming approved events
         const eventsRes = await axios.get(`${apiUrl}/api/events/upcoming`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUpcomingEvents(eventsRes.data.events || []);
 
-        // Fetch student's registered events
         const myEventsRes = await axios.get(
           `${apiUrl}/api/events/my-registered`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         setMyEvents(myEventsRes.data || []);
 
-        // ✅ Fetch favorites
+        // Favorites
         const favs = await fetchMyFavorites();
         setFavorites(favs);
         setFavSet(new Set(favs.map((e) => e._id || e.id)));
@@ -73,7 +73,7 @@ const StudentDashboard = () => {
     fetchData();
   }, [navigate]);
 
-  // ✅ Called by EventCard whenever heart is toggled
+  // Toggle Favorite
   const handleToggleFavorite = (eventId, willBeFav, eventObj) => {
     setFavSet((prev) => {
       const s = new Set(prev);
@@ -84,27 +84,21 @@ const StudentDashboard = () => {
 
     setFavorites((prev) => {
       if (willBeFav) {
-        // add if not already there
         return prev.some((e) => (e._id || e.id) === eventId)
           ? prev
           : [...prev, eventObj];
       }
-      // remove
       return prev.filter((e) => (e._id || e.id) !== eventId);
     });
   };
 
   // Logout
   const handleLogout = () => {
-    console.log(
-      "Logging out from StudentDashboard, token:",
-      localStorage.getItem("token")
-    );
     localStorage.removeItem("token");
     navigate("/");
   };
 
-  // Fetch all courts
+  // Courts: fetch all courts
   const fetchCourts = async () => {
     setLoadingCourts(true);
     try {
@@ -119,7 +113,7 @@ const StudentDashboard = () => {
     }
   };
 
-  // Fetch court availability
+  // Courts: fetch availability
   const fetchAvailability = async (courtId) => {
     setSelectedCourt(courtId);
     setLoadingCourts(true);
@@ -135,6 +129,7 @@ const StudentDashboard = () => {
     }
   };
 
+  // Courts: book a slot
   const bookCourt = async (courtId, date, startTime, endTime) => {
     try {
       const res = await api.post(`/courts/${courtId}/book`, {
@@ -145,16 +140,14 @@ const StudentDashboard = () => {
 
       const b = res.data.booking;
 
-      // Save booking info to show inside the slot rectangle
       setLastBooking({
-        date: date,
+        date,
         startTime,
         endTime,
         studentName: b.studentName,
         studentGucId: b.studentGucId,
       });
 
-      // Refresh availability
       fetchAvailability(courtId);
     } catch (err) {
       console.error(err);
@@ -164,11 +157,10 @@ const StudentDashboard = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
+
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-blue-700">
-          Student Dashboard
-        </h1>
+        <h1 className="text-2xl font-bold text-blue-700">Student Dashboard</h1>
         <div className="flex items-center gap-4">
           <WalletButton />
           <NotificationBell />
@@ -181,7 +173,7 @@ const StudentDashboard = () => {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* NAVIGATION TABS */}
       <div className="flex justify-center gap-4 mt-4 mb-8">
         <button
           onClick={() => setActiveTab("events")}
@@ -205,7 +197,7 @@ const StudentDashboard = () => {
           My Registered Events
         </button>
 
-        {/* ✅ NEW: Favorites tab button */}
+        {/* FAVORITES TAB */}
         <button
           onClick={() => setActiveTab("favorites")}
           className={`px-4 py-2 rounded ${
@@ -215,6 +207,17 @@ const StudentDashboard = () => {
           }`}
         >
           Favorites
+        </button>
+
+        <button
+          onClick={() => setActiveTab("attended")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "attended"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Attended Events
         </button>
 
         <button
@@ -265,15 +268,17 @@ const StudentDashboard = () => {
         </button>
       </div>
 
-      {/* EVENTS VIEW */}
+      {/* UPCOMING EVENTS */}
       {activeTab === "events" && (
         <div className="mt-6">
-          {/* ✅ Pass favorites info to UpcomingEvents so hearts work */}
           <UpcomingEvents
             favoritesSet={favSet}
             onToggleFavorite={handleToggleFavorite}
             userRole="student"
           />
+
+          {/* ⭐ ADDED FROM FIRST CODE */}
+          <Voting />
         </div>
       )}
 
@@ -284,15 +289,13 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      {/* ✅ FAVORITES TAB */}
+      {/* FAVORITES TAB */}
       {activeTab === "favorites" && (
         <div className="mt-6">
-          <h2 className="text-2xl font-bold text-center mb-4">
-            My Favorites
-          </h2>
+          <h2 className="text-2xl font-bold text-center mb-4">My Favorites</h2>
           {favorites.length === 0 ? (
             <p className="text-center text-gray-600">
-              No favorite events yet. Click the heart on any event to add it.
+              No favorite events yet.
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -313,6 +316,13 @@ const StudentDashboard = () => {
         </div>
       )}
 
+      {/* ATTENDED EVENTS */}
+      {activeTab === "attended" && (
+        <div className="mt-6">
+          <AttendedEvents />
+        </div>
+      )}
+
       {/* REGISTER FOR EVENT */}
       {activeTab === "register" && (
         <div className="mt-6">
@@ -320,13 +330,15 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      {/* COURTS VIEW */}
+      {/* COURTS TAB */}
       {activeTab === "courts" && (
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-center mb-4">
             Campus Courts
           </h2>
+
           {error && <p className="text-red-600 text-center">{error}</p>}
+
           {loadingCourts ? (
             <p className="text-center">Loading...</p>
           ) : (
@@ -352,6 +364,7 @@ const StudentDashboard = () => {
               <h3 className="text-xl font-bold text-center mb-2">
                 Availability
               </h3>
+
               <div className="grid gap-3">
                 {availability.map((day) => (
                   <div
@@ -359,6 +372,7 @@ const StudentDashboard = () => {
                     className="border rounded-md p-3 bg-gray-50 shadow-sm"
                   >
                     <p className="font-semibold">{day.date}</p>
+
                     {day.slots.length > 0 ? (
                       <ul className="ml-4 list-disc">
                         {day.slots.map((slot, i) => (
@@ -397,14 +411,14 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      {/* GYM SCHEDULE */}
+      {/* GYM TAB */}
       {activeTab === "gym" && (
         <div className="mt-6">
           <GymSchedule />
         </div>
       )}
 
-      {/* LOYALTY VENDORS */}
+      {/* LOYALTY VENDORS TAB */}
       {activeTab === "vendors" && (
         <div className="mt-6">
           <Link
