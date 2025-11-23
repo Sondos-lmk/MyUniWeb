@@ -5,8 +5,7 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
-import WalletButton from "../components/WalletButton";
-import NotificationBell from "../components/NotificationBell";
+import DashboardLayout from "../components/DashboardLayout";
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
 import AttendedEvents from "./AttendedEvents";
@@ -70,29 +69,24 @@ const TADashboard = () => {
     });
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/");
-  };
+  const sidebarItems = [
+    { key: "events", label: "Upcoming Events", icon: null, onClick: () => setActiveTab("events") },
+    { key: "registered", label: "My Registered Events", icon: null, onClick: () => setActiveTab("registered") },
+    { key: "favorites", label: "Favorites", icon: null, onClick: () => setActiveTab("favorites") },
+    { key: "attended", label: "Attended Events", icon: null, onClick: () => setActiveTab("attended") },
+    { key: "register", label: "Register for Event", icon: null, onClick: () => setActiveTab("register") },
+    { key: "gym", label: "Gym Schedule", icon: null, onClick: () => setActiveTab("gym") },
+    { key: "vendors", label: "Loyalty Vendors", icon: null, onClick: () => setActiveTab("vendors") },
+  ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-blue-700">
-          Teaching Assistant Dashboard
-        </h1>
-        <div className="flex items-center gap-4">
-          <WalletButton />
-          <NotificationBell />
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
+    <DashboardLayout
+      dashboardTitle="TA Dashboard"
+      roleLabel="Teaching Assistant"
+      roleColor="bg-green-500"
+      sidebarItems={sidebarItems}
+      activeKey={activeTab}
+    >
 
       {/* Tabs */}
       <div className="flex justify-center gap-4 mb-8">
@@ -257,7 +251,7 @@ const TADashboard = () => {
           </a>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 };
 
