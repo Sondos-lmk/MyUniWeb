@@ -17,6 +17,7 @@ import EventOfficerDashboard from "./pages/EventOfficerDashboard";
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import ProfessorDashboard from './pages/ProfessorDashboard';
+import ProfessorCreateWorkshopPage from "./pages/ProfessorCreateWorkshopPage";
 import ProfessorWorkshopParticipants from "./pages/ProfessorWorkshopParticipants";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateGymSession from "./pages/CreateGymSession";
@@ -37,6 +38,11 @@ import Voting from './components/Voting.jsx';
 import ViewDocuments from './pages/ViewDocuments.jsx';
 import LoyaltyVendors from "./pages/LoyaltyVendors";
 import ArchivedEvents from "./pages/ArchivedEvents";
+
+import AttendedEvents from "./pages/AttendedEvents.jsx";
+
+
+
 import ManageVendorRequests from "./pages/ManageVendorRequests";
 import ManageAllEvents from "./pages/ManageAllEvents";
 import ManageAllUsers from "./pages/ManageAllUsers";
@@ -55,6 +61,11 @@ import EventOfficerLoyalty from "./pages/EventOfficerLoyalty.jsx";
 import EventOfficerReportsAttendees from "./pages/EventOfficerReportsAttendees.jsx";
 import EventOfficerReportsRevenue from "./pages/EventOfficerReportsRevenue.jsx";
 import EventOfficerCreateEvent from "./pages/EventOfficerCreateEvent.jsx";
+import ProfessorMyWorkshopsPage from "./pages/ProfessorMyWorkshopsPage.jsx";
+import ProfessorUpcomingEventsPage from "./pages/ProfessorUpcomingEventsPage";
+
+// Removed incorrect import - using StudentDashboard directly
+
 
 
 import "./App.css";
@@ -121,9 +132,12 @@ function App() {
 
         {/* Professor */}
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
-          <Route path="/professor/workshops/new" element={<CreateWorkshop />} />
+          <Route path="/professor/workshops/new" element={<ProfessorCreateWorkshopPage />} />
+           <Route path="/professor/my-workshops" element={<ProfessorMyWorkshopsPage />} />
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
           <Route path ="/voting" element={<Voting />} />
+          <Route path="/professor/upcoming-events" element={<ProfessorUpcomingEventsPage />} />
+
           <Route path="/professor/workshops/:id/participants" element={<ProfessorWorkshopParticipants />} />
           <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
         </Route>

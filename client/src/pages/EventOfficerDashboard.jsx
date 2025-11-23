@@ -46,6 +46,8 @@ function EventOfficerDashboard() {
     <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={sidebarItems}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Quick Actions Only (Overview) */}
+
+        {/* Quick Actions */}
         <Card className="mb-8 shadow-lg">
           <CardHeader>
             <CardTitle className="text-xl">Quick Actions</CardTitle>
