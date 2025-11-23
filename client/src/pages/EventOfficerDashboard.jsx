@@ -15,18 +15,6 @@ function EventOfficerDashboard() {
   return (
     <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={[]}>
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Welcome Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <GraduationCap className="w-8 h-8 text-cyan-600" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
-              Event Officer Dashboard
-            </h1>
-          </div>
-          <p className="text-gray-600 text-lg">
-            Welcome back {user?.name ? user.name.charAt(0).toUpperCase() + user.name.slice(1) : "Event Officer"}!
-          </p>
-        </div>
 
         {/* Quick Actions */}
         <Card className="mb-8 shadow-lg">
