@@ -310,6 +310,13 @@ function ProfessorDashboard() {
             >
               My Workshops
             </button>
+            {/*Loyaity Vendors*/}
+            <button
+              className="flex-1 min-h-[8rem] bg-purple-100 text-purple-700 text-2xl font-bold rounded-xl flex items-center justify-center shadow hover:bg-purple-200 transition"
+              onClick={() => navigate("/loyalty-vendors")}
+            >
+              Loyality Vendors
+            </button>
           </div>
         </section>
 
@@ -322,19 +329,8 @@ function ProfessorDashboard() {
 
         {/* Loyalty vendors + events + gym */}
         <div style={{ marginTop: 40 }}>
-          <h2 className="text-2xl font-bold mb-4 text-purple-700">
-            Loyalty Vendors
-          </h2>
-          <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
-            <a
-              href="/loyalty-vendors"
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-            >
-              View Loyalty Vendors
-            </a>
-          </div>
-
-          <h2 className="text-2xl font-bold mb-4 text-blue-700">
+          
+<h2 className="text-2xl font-bold mb-4 text-blue-700">
             Register for Event
           </h2>
           <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
