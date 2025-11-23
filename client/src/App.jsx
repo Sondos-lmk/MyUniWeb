@@ -49,6 +49,7 @@ import ManageAllComments from "./pages/ManageAllComments";
 import CreateAdminOfficer from "./pages/CreateAdminOfficer";
 import ManageAdminsOfficers from "./pages/ManageAdminsOfficers";
 import ManagePendingUsers from "./pages/ManagePendingUsers";
+import ProfessorMyWorkshopsPage from "./pages/ProfessorMyWorkshopsPage.jsx";
 // Removed incorrect import - using StudentDashboard directly
 
 
@@ -114,6 +115,7 @@ function App() {
         {/* Professor */}
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
           <Route path="/professor/workshops/new" element={<ProfessorCreateWorkshopPage />} />
+           <Route path="/professor/my-workshops" element={<ProfessorMyWorkshopsPage />} />
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
           <Route path ="/voting" element={<Voting />} />
           <Route path="/professor/workshops/:id/participants" element={<ProfessorWorkshopParticipants />} />
