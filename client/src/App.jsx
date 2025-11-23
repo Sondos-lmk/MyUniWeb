@@ -17,6 +17,7 @@ import EventOfficerDashboard from "./pages/EventOfficerDashboard";
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import ProfessorDashboard from './pages/ProfessorDashboard';
+import ProfessorCreateWorkshopPage from "./pages/ProfessorCreateWorkshopPage";
 import ProfessorWorkshopParticipants from "./pages/ProfessorWorkshopParticipants";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateGymSession from "./pages/CreateGymSession";
@@ -48,6 +49,7 @@ import ManageAllComments from "./pages/ManageAllComments";
 import CreateAdminOfficer from "./pages/CreateAdminOfficer";
 import ManageAdminsOfficers from "./pages/ManageAdminsOfficers";
 import ManagePendingUsers from "./pages/ManagePendingUsers";
+// Removed incorrect import - using StudentDashboard directly
 
 
 
@@ -111,7 +113,7 @@ function App() {
 
         {/* Professor */}
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
-          <Route path="/professor/workshops/new" element={<CreateWorkshop />} />
+          <Route path="/professor/workshops/new" element={<ProfessorCreateWorkshopPage />} />
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
           <Route path ="/voting" element={<Voting />} />
           <Route path="/professor/workshops/:id/participants" element={<ProfessorWorkshopParticipants />} />

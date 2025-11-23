@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents";
 import AttendeesReport from "../components/AttendeesReport";
 import RevenueReport from "../components/RevenueReport";
-import Navbar from "../components/Navbar";
+import DashboardLayout from "../components/DashboardLayout";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { UserPlus, Users, UserCheck, GraduationCap } from "lucide-react";
@@ -13,24 +13,18 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-blue-50 to-indigo-100">
-      {/* Navbar */}
-      <Navbar />
+  const sidebarItems = [
+    { to: "/admin", label: "Overview", icon: GraduationCap },
+    { to: "/admin/all-users", label: "All Users", icon: Users },
+    { to: "/admin/create-admin-officer", label: "Create Admin/Officer", icon: UserPlus },
+    { to: "/admin/manage-admins-officers", label: "Manage Admins/Officers", icon: Users },
+    { to: "/admin/pending-users", label: "Pending Users", icon: UserCheck },
+  ];
 
+  return (
+    <DashboardLayout dashboardTitle="Admin Dashboard" roleLabel="Administrator" roleColor="bg-indigo-600" sidebarItems={sidebarItems}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Welcome Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <GraduationCap className="w-8 h-8 text-cyan-600" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
-              Admin Dashboard
-            </h1>
-          </div>
-          <p className="text-gray-600 text-lg">
-            Welcome back {user?.name ? user.name.charAt(0).toUpperCase() + user.name.slice(1) : "Admin"}!
-          </p>
-        </div>
 
         {/* Quick Actions */}
         <Card className="mb-8 shadow-lg">
@@ -87,7 +81,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
