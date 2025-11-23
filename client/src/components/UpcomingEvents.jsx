@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
-import EventCard from "../components/EventCard"; // ⭐ NEW: use EventCard with hearts
+import EventCard from "../components/EventCard";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Search } from "lucide-react";
 
 // ⭐ Now accepts favorites + userRole from dashboard
 const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }) => {
@@ -99,105 +109,115 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold mb-2">Upcoming Events</h2>
-
-      {/* 🔍 Search Bar */}
-      <form
-        onSubmit={handleSearch}
-        className="flex flex-wrap gap-3 justify-start mb-4 items-center border-t pt-3"
-      >
-        <input
-          type="text"
-          placeholder="Search by event or professor name..."
-          value={searchName}
-          onChange={(e) => setSearchName(e.target.value)}
-          className="border rounded-lg px-3 py-2 w-60 focus:ring focus:ring-blue-200"
-        />
-
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          className="border rounded-lg px-3 py-2 w-40"
+      {/* 🔍 Search and Filter Section */}
+      <div className="space-y-4">
+        {/* Top Row: Search, Type Filter, Search Button */}
+        <form
+          onSubmit={handleSearch}
+          className="grid md:grid-cols-3 gap-4 items-end"
         >
-          <option value="">All Types</option>
-          <option value="workshop">Workshop</option>
-          <option value="trip">Trip</option>
-          <option value="bazaar">Bazaar</option>
-          <option value="booth">Booth</option>
-          <option value="conference">Conference</option>
-          <option value="gym">Gym Session</option>
-        </select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <Input
+              type="text"
+              placeholder="Search by event or professor name..."
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="workshop">Workshop</SelectItem>
+              <SelectItem value="trip">Trip</SelectItem>
+              <SelectItem value="bazaar">Bazaar</SelectItem>
+              <SelectItem value="booth">Booth</SelectItem>
+              <SelectItem value="conference">Conference</SelectItem>
+              <SelectItem value="gym">Gym Session</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Search
+          </Button>
+        </form>
+
+        {/* Bottom Row: Location, Date, Sort, Filter Button */}
+        <form
+          onSubmit={handleAdvancedSearch}
+          className="grid md:grid-cols-2 gap-4 items-end"
         >
-          Search
-        </button>
+          <Input
+            type="text"
+            placeholder="Filter by location..."
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          />
 
-        {(searchName || type) && (
-          <button
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </form>
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
             type="button"
-            onClick={() => {
-              setSearchName("");
-              setType("");
-              fetchEvents();
+            onClick={async (e) => {
+              e.preventDefault();
+              const newSortOrder = sortOrder === "asc" ? "desc" : "asc";
+              setSortOrder(newSortOrder);
+              // Trigger search with new sort order
+              setLoading(true);
+              setError(null);
+              
+              try {
+                const token = localStorage.getItem("token");
+                const params = {};
+                if (searchName) params.title = searchName;
+                if (type) params.type = type;
+                if (location) params.location = location;
+                if (date) params.date = date;
+                params.sort = newSortOrder;
+                
+                const res = await API.get("/events", {
+                  params,
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                
+                const payload = Array.isArray(res.data)
+                  ? res.data
+                  : res.data.events || [];
+                setEvents(payload);
+              } catch (err) {
+                console.error("Error sorting events:", err);
+                setError("Failed to sort events.");
+              } finally {
+                setLoading(false);
+              }
             }}
-            className="text-sm text-gray-600 underline"
           >
-            Clear
-          </button>
-        )}
-      </form>
-
-      <form
-        onSubmit={handleAdvancedSearch}
-        className="flex flex-wrap gap-4 justify-start items-center border-t pt-3"
-      >
-        <input
-          type="text"
-          placeholder="Filter by location..."
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          className="border rounded-lg px-3 py-2 w-52 focus:ring focus:ring-blue-200"
-        />
-
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="border rounded-lg px-3 py-2 focus:ring focus:ring-blue-200"
-        />
-
-        <button
-          type="submit"
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-        >
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            className="border rounded-lg px-3 py-2 w-40 text-black bg-white focus:ring focus:ring-blue-200"
-          >
-            <option value="asc">Sort by Date ↑</option>
-            <option value="desc">Sort by Date ↓</option>
-          </select>
-          Filter by Location/Date
-        </button>
-
-        {(location || date) && (
-          <button
+            Sort by Date {sortOrder === "asc" ? "↑" : "↓"}
+          </Button>
+          <Button
             type="button"
-            onClick={() => {
-              setLocation("");
-              setDate("");
-              fetchEvents();
-            }}
-            className="text-sm text-gray-600 underline"
+            onClick={handleAdvancedSearch}
+            className="bg-green-600 hover:bg-green-700 text-white"
           >
-            Clear
-          </button>
-        )}
-      </form>
+            Filter by Location/Date
+          </Button>
+        </div>
+      </div>
 
       {/* ⚙️ Loading & Error States */}
       {loading && <p>Loading events...</p>}
@@ -210,6 +230,35 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
       <div className="space-y-3">
         {events.map((event) => {
           const id = event._id || event.id;
+
+          // theme classes for primary/register button per event type
+          const typeClassMap = {
+            trip: 'bg-blue-600 hover:bg-blue-700 text-white',
+            bazaar: 'bg-amber-600 hover:bg-amber-700 text-white',
+            booth: 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white',
+            conference: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+            workshop: 'bg-purple-600 hover:bg-purple-700 text-white',
+            gym: 'bg-rose-600 hover:bg-rose-700 text-white',
+            default: 'bg-slate-900 hover:bg-slate-800 text-white'
+          };
+
+          const primaryClass = typeClassMap[event.type] || typeClassMap.default;
+
+          const handleRegister = async () => {
+            try {
+              setLoading(true);
+              await API.post(`/events/register/${id}`, { eventId: id });
+              alert('Registration successful');
+              // optionally refresh event list
+              await fetchEvents();
+            } catch (err) {
+              console.error('Register error', err);
+              alert(err.response?.data?.error || 'Registration failed');
+            } finally {
+              setLoading(false);
+            }
+          };
+
           return (
             <EventCard
               key={id}
@@ -217,6 +266,9 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
               userRole={userRole}
               isFavorite={favoritesSet?.has(id)}
               onToggleFavorite={onToggleFavorite}
+              onPrimary={userRole === 'student' ? handleRegister : undefined}
+              primaryLabel={userRole === 'student' ? 'Register' : undefined}
+              primaryClass={primaryClass}
             />
           );
         })}
