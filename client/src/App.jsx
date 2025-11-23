@@ -50,6 +50,8 @@ import CreateAdminOfficer from "./pages/CreateAdminOfficer";
 import ManageAdminsOfficers from "./pages/ManageAdminsOfficers";
 import ManagePendingUsers from "./pages/ManagePendingUsers";
 import ProfessorMyWorkshopsPage from "./pages/ProfessorMyWorkshopsPage.jsx";
+import ProfessorUpcomingEventsPage from "./pages/ProfessorUpcomingEventsPage";
+
 // Removed incorrect import - using StudentDashboard directly
 
 
@@ -118,6 +120,8 @@ function App() {
            <Route path="/professor/my-workshops" element={<ProfessorMyWorkshopsPage />} />
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
           <Route path ="/voting" element={<Voting />} />
+          <Route path="/professor/upcoming-events" element={<ProfessorUpcomingEventsPage />} />
+
           <Route path="/professor/workshops/:id/participants" element={<ProfessorWorkshopParticipants />} />
           <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
         </Route>
