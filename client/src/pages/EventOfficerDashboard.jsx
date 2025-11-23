@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents.jsx";
 import AttendeesReport from "../components/AttendeesReport";
 import RevenueReport from "../components/RevenueReport";
-import Navbar from "../components/Navbar.jsx";
+import DashboardLayout from "../components/DashboardLayout";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Calendar, Dumbbell, Store, Archive, GraduationCap, ArrowLeft } from "lucide-react";
@@ -13,10 +13,7 @@ function EventOfficerDashboard() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-blue-50 to-indigo-100">
-      {/* Navbar */}
-      <Navbar />
-
+    <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={[]}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Welcome Header */}
         <div className="mb-8">
@@ -93,7 +90,7 @@ function EventOfficerDashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 

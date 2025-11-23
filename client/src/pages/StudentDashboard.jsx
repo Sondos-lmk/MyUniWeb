@@ -6,8 +6,7 @@ import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
-import NotificationBell from "../components/NotificationBell";
-import WalletButton from "../components/WalletButton";
+import DashboardLayout from "../components/DashboardLayout";
 import AttendedEvents from "./AttendedEvents";
 
 // ⭐ ADDED FROM FIRST CODE
@@ -16,6 +15,7 @@ import Voting from "../components/Voting";
 // Favorites imports
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
+import { Calendar, CheckCircle, Star, Home, Trophy, Dumbbell, Store, Heart } from "lucide-react";
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -92,11 +92,68 @@ const StudentDashboard = () => {
     });
   };
 
-  // Logout
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/");
-  };
+  // Sidebar items for student dashboard
+  const sidebarItems = [
+    { 
+      key: "events",
+      label: "Upcoming Events", 
+      icon: Calendar,
+      onClick: () => setActiveTab("events"),
+      path: "/student/dashboard"
+    },
+    { 
+      key: "registered",
+      label: "My Registered Events", 
+      icon: CheckCircle,
+      onClick: () => setActiveTab("registered"),
+      path: "/student/dashboard"
+    },
+    { 
+      key: "favorites",
+      label: "Favorites", 
+      icon: Star,
+      onClick: () => setActiveTab("favorites"),
+      path: "/student/dashboard"
+    },
+    { 
+      key: "attended",
+      label: "Attended Events", 
+      icon: Heart,
+      onClick: () => setActiveTab("attended"),
+      path: "/student/dashboard"
+    },
+    { 
+      key: "register",
+      label: "Register for Event", 
+      icon: Home,
+      onClick: () => setActiveTab("register"),
+      path: "/student/dashboard"
+    },
+    { 
+      key: "courts",
+      label: "View Courts", 
+      icon: Trophy,
+      onClick: () => {
+        setActiveTab("courts");
+        fetchCourts();
+      },
+      path: "/student/dashboard"
+    },
+    { 
+      key: "gym",
+      label: "Gym Schedule", 
+      icon: Dumbbell,
+      onClick: () => setActiveTab("gym"),
+      path: "/student/dashboard"
+    },
+    { 
+      key: "vendors",
+      label: "Loyalty Vendors", 
+      icon: Store,
+      onClick: () => setActiveTab("vendors"),
+      path: "/student/dashboard"
+    },
+  ];
 
   // Courts: fetch all courts
   const fetchCourts = async () => {
@@ -156,117 +213,13 @@ const StudentDashboard = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-blue-700">Student Dashboard</h1>
-        <div className="flex items-center gap-4">
-          <WalletButton />
-          <NotificationBell />
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {/* NAVIGATION TABS */}
-      <div className="flex justify-center gap-4 mt-4 mb-8">
-        <button
-          onClick={() => setActiveTab("events")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "events"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          Upcoming Events
-        </button>
-
-        <button
-          onClick={() => setActiveTab("registered")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "registered"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          My Registered Events
-        </button>
-
-        {/* FAVORITES TAB */}
-        <button
-          onClick={() => setActiveTab("favorites")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "favorites"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          Favorites
-        </button>
-
-        <button
-          onClick={() => setActiveTab("attended")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "attended"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          Attended Events
-        </button>
-
-        <button
-          onClick={() => setActiveTab("register")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "register"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          Register for Event
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab("courts");
-            fetchCourts();
-          }}
-          className={`px-4 py-2 rounded ${
-            activeTab === "courts"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          View Courts
-        </button>
-
-        <button
-          onClick={() => setActiveTab("gym")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "gym"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          Gym Schedule
-        </button>
-
-        <button
-          onClick={() => setActiveTab("vendors")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "vendors"
-              ? "bg-purple-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          Loyalty Vendors
-        </button>
-      </div>
+    <DashboardLayout
+      dashboardTitle="Student Dashboard"
+      roleLabel="Verified Student"
+      roleColor="bg-green-500"
+      sidebarItems={sidebarItems}
+      activeKey={activeTab}
+    >
 
       {/* UPCOMING EVENTS */}
       {activeTab === "events" && (
@@ -429,7 +382,7 @@ const StudentDashboard = () => {
           </Link>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 };
 
