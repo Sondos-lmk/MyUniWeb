@@ -8,19 +8,21 @@ import GymSchedule from "./GymSchedule";
 import api from "../services/api";
 import DashboardLayout from "../components/DashboardLayout";
 import AttendedEvents from "./AttendedEvents";
-
-// ⭐ ADDED FROM FIRST CODE
-import Voting from "../components/Voting";
+import VendorPolls from "../components/VendorPolls";
 
 // Favorites imports
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
-import { Calendar, CheckCircle, Star, Home, Trophy, Dumbbell, Store, Heart } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { Calendar, CheckCircle, Star, Home, Trophy, Dumbbell, Store, Heart, Wallet, Clock, Trophy as TrophyIcon } from "lucide-react";
+import { Card, CardContent } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
-  const [activeTab, setActiveTab] = useState("events"); 
+  const [activeTab, setActiveTab] = useState("home"); 
   const [courts, setCourts] = useState([]);
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [availability, setAvailability] = useState([]);
@@ -32,7 +34,75 @@ const StudentDashboard = () => {
   const [favorites, setFavorites] = useState([]);
   const [favSet, setFavSet] = useState(new Set());
 
+  // Wallet balance
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [loadingWallet, setLoadingWallet] = useState(true);
+
+  // Loyalty vendors
+  const [loyaltyVendors, setLoyaltyVendors] = useState([]);
+  const [loadingVendors, setLoadingVendors] = useState(true);
+
+  // Gym sessions
+  const [gymSessions, setGymSessions] = useState([]);
+  const [loadingGym, setLoadingGym] = useState(true);
+  const [registeringId, setRegisteringId] = useState(null);
+
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Fetch wallet balance
+  const fetchWalletBalance = async () => {
+    try {
+      setLoadingWallet(true);
+      const res = await api.get("/payment/wallet");
+      setWalletBalance(res.data.balance || 0);
+    } catch (err) {
+      console.error("Error fetching wallet:", err);
+      setWalletBalance(150.5); // Fallback to default
+    } finally {
+      setLoadingWallet(false);
+    }
+  };
+
+  // Fetch loyalty vendors
+  const fetchLoyaltyVendors = async () => {
+    try {
+      setLoadingVendors(true);
+      const res = await api.get("/loyalty/vendors");
+      setLoyaltyVendors(res.data.vendors || []);
+    } catch (err) {
+      console.error("Error fetching loyalty vendors:", err);
+    } finally {
+      setLoadingVendors(false);
+    }
+  };
+
+  // Fetch gym sessions
+  const fetchGymSessions = async () => {
+    try {
+      setLoadingGym(true);
+      const res = await api.get("/gym");
+      setGymSessions(res.data || []);
+    } catch (err) {
+      console.error("Error fetching gym sessions:", err);
+    } finally {
+      setLoadingGym(false);
+    }
+  };
+
+  // Handle gym registration
+  const handleGymRegister = async (sessionId) => {
+    try {
+      setRegisteringId(sessionId);
+      await api.post(`/gym/${sessionId}/register`);
+      fetchGymSessions(); // Refresh sessions
+    } catch (err) {
+      console.error("Error registering for gym session:", err);
+      alert(err.response?.data?.message || "Failed to register for session");
+    } finally {
+      setRegisteringId(null);
+    }
+  };
 
   // Fetch events + my registered + favorites
   useEffect(() => {
@@ -61,6 +131,9 @@ const StudentDashboard = () => {
         const favs = await fetchMyFavorites();
         setFavorites(favs);
         setFavSet(new Set(favs.map((e) => e._id || e.id)));
+
+        // Fetch wallet balance
+        fetchWalletBalance();
       } catch (err) {
         console.error("Error fetching student dashboard data:", err);
         if (err.response?.status === 401) {
@@ -72,6 +145,15 @@ const StudentDashboard = () => {
 
     fetchData();
   }, [navigate]);
+
+  // Fetch data when tab changes
+  useEffect(() => {
+    if (activeTab === "vendors") {
+      fetchLoyaltyVendors();
+    } else if (activeTab === "gym") {
+      fetchGymSessions();
+    }
+  }, [activeTab]);
 
   // Toggle Favorite
   const handleToggleFavorite = (eventId, willBeFav, eventObj) => {
@@ -123,13 +205,6 @@ const StudentDashboard = () => {
       path: "/student/dashboard"
     },
     { 
-      key: "register",
-      label: "Register for Event", 
-      icon: Home,
-      onClick: () => setActiveTab("register"),
-      path: "/student/dashboard"
-    },
-    { 
       key: "courts",
       label: "View Courts", 
       icon: Trophy,
@@ -137,20 +212,6 @@ const StudentDashboard = () => {
         setActiveTab("courts");
         fetchCourts();
       },
-      path: "/student/dashboard"
-    },
-    { 
-      key: "gym",
-      label: "Gym Schedule", 
-      icon: Dumbbell,
-      onClick: () => setActiveTab("gym"),
-      path: "/student/dashboard"
-    },
-    { 
-      key: "vendors",
-      label: "Loyalty Vendors", 
-      icon: Store,
-      onClick: () => setActiveTab("vendors"),
       path: "/student/dashboard"
     },
   ];
@@ -221,7 +282,81 @@ const StudentDashboard = () => {
       activeKey={activeTab}
     >
 
-      {/* UPCOMING EVENTS */}
+      {/* DEFAULT HOME VIEW - Quick Actions and Vendor Polls */}
+      {activeTab === "home" && (
+        <div className="mt-6">
+          {/* Quick Actions Section */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-slate-900 mb-4 text-center">Quick Actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Register for Event Card */}
+              <button
+                onClick={() => setActiveTab("register")}
+                className="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all duration-200 text-left group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
+                    <Home className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-cyan-600 transition-colors">
+                      Register for Event
+                    </h3>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Sign up for workshops and trips
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Loyalty Vendors Card */}
+              <button
+                onClick={() => setActiveTab("vendors")}
+                className="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all duration-200 text-left group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
+                    <Store className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-cyan-600 transition-colors">
+                      Loyalty Vendors
+                    </h3>
+                    <p className="text-sm text-slate-600 mt-1">
+                      View exclusive discounts and offers
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Gym Schedule Card */}
+              <button
+                onClick={() => setActiveTab("gym")}
+                className="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all duration-200 text-left group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-orange-500 to-red-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
+                    <Dumbbell className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-cyan-600 transition-colors">
+                      Gym Schedule
+                    </h3>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Book your fitness sessions
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Vendor Polls Section */}
+          <VendorPolls />
+        </div>
+      )}
+
+      {/* UPCOMING EVENTS - Only shown when clicking from sidebar */}
       {activeTab === "events" && (
         <div className="mt-6">
           <UpcomingEvents
@@ -229,9 +364,6 @@ const StudentDashboard = () => {
             onToggleFavorite={handleToggleFavorite}
             userRole="student"
           />
-
-          {/* ⭐ ADDED FROM FIRST CODE */}
-          <Voting />
         </div>
       )}
 
@@ -283,7 +415,7 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      {/* COURTS TAB */}
+      {/* COURTS */}
       {activeTab === "courts" && (
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-center mb-4">
@@ -367,19 +499,119 @@ const StudentDashboard = () => {
       {/* GYM TAB */}
       {activeTab === "gym" && (
         <div className="mt-6">
-          <GymSchedule />
+          <h2 className="mb-6 text-center">Gym Schedule</h2>
+          {loadingGym ? (
+            <p className="text-center">Loading sessions...</p>
+          ) : gymSessions.length === 0 ? (
+            <p className="text-center text-slate-600">No gym sessions available.</p>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {gymSessions.map((session) => {
+                const participantsCount = session.participants?.length || 0;
+                const isFull = participantsCount >= session.maxParticipants;
+                const userId = user?.id || user?._id;
+                const isRegistered = session.participants?.some(
+                  (p) => String(p._id || p) === String(userId)
+                );
+
+                // Format time
+                const timeDisplay = session.time || `${session.startTime || "—"} - ${session.endTime || "—"}`;
+
+                return (
+                  <Card key={session._id}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <Dumbbell className="size-8 text-blue-600" />
+                        <Badge
+                          variant={isFull ? "destructive" : "secondary"}
+                          className={isFull ? "bg-red-100 text-red-700" : ""}
+                        >
+                          {participantsCount}/{session.maxParticipants}
+                        </Badge>
+                      </div>
+                      <h3 className="text-slate-900 mb-2 font-semibold">
+                        {session.title || session.sessionType || "Gym Session"}
+                      </h3>
+                      <div className="flex items-center gap-2 text-slate-600 mb-4">
+                        <Clock className="size-4" />
+                        <span className="text-sm">{timeDisplay}</span>
+                      </div>
+                      <Button
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        disabled={isFull || isRegistered || registeringId === session._id}
+                        onClick={() => handleGymRegister(session._id)}
+                      >
+                        {isRegistered
+                          ? "Registered"
+                          : isFull
+                          ? "Full"
+                          : registeringId === session._id
+                          ? "Registering..."
+                          : "Register"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {/* LOYALTY VENDORS TAB */}
       {activeTab === "vendors" && (
         <div className="mt-6">
-          <Link
-            to="/loyalty-vendors"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-          >
-            View Loyalty Vendors
-          </Link>
+          <h2 className="mb-4 text-center">Loyalty Program Vendors</h2>
+          
+          {/* Wallet Balance Card */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-600 mb-1">Your Wallet Balance</p>
+                <p className="text-slate-900 text-2xl font-semibold">
+                  ${loadingWallet ? "Loading..." : walletBalance.toFixed(2)}
+                </p>
+              </div>
+              <Wallet className="size-12 text-blue-600" />
+            </div>
+          </div>
+
+          {/* Vendor Cards */}
+          {loadingVendors ? (
+            <p className="text-center">Loading vendors...</p>
+          ) : loyaltyVendors.length === 0 ? (
+            <p className="text-center text-slate-600">No vendors available at the moment.</p>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loyaltyVendors.map((vendor) => {
+                // Calculate points (mock calculation - adjust based on your backend)
+                const points = Math.floor((vendor.loyaltyDiscountPercent || 0) * 10) || 0;
+                
+                return (
+                  <Card key={vendor._id}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <Store className="size-8 text-blue-600" />
+                        <Badge className="bg-green-100 text-green-700">
+                          {vendor.loyaltyDiscountPercent || 0}% OFF
+                        </Badge>
+                      </div>
+                      <h3 className="text-slate-900 mb-2 font-semibold">
+                        {vendor.name || vendor.companyName}
+                      </h3>
+                      <div className="flex items-center gap-2 text-slate-600 mb-4">
+                        <TrophyIcon className="size-4" />
+                        <span className="text-sm">{points} points earned</span>
+                      </div>
+                      <Button variant="outline" className="w-full">
+                        View Offers
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </DashboardLayout>

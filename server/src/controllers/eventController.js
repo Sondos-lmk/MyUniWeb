@@ -296,9 +296,9 @@ export const getUpcomingEvents = async (req, res) => {
       ...workshops.map((e) => formatEvent(e, "workshop")),
       ...trips.map((e) => formatEvent(e, "trip")),
       ...bazaars.map((e) => formatEvent(e, "bazaar")),
-      ...booths.map((e) => formatEvent(e, "booth")),
+     // ...booths.map((e) => formatEvent(e, "booth")),
       ...conferences.map((e) => formatEvent(e, "conference")),
-      ...gymSessions.map((e) => ({
+     /* ...gymSessions.map((e) => ({
         id: e._id,
         type: "gym",
         title: e.title,
@@ -308,7 +308,7 @@ export const getUpcomingEvents = async (req, res) => {
         duration: e.duration,
         maxParticipants: e.maxParticipants,
         participants: e.participants?.length || 0,
-      })),
+      })),*/
     ];
 
     // Sort by startDate (earliest first)
