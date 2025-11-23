@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import CreateWorkshop from "./CreateWorkshop";
+// import CreateWorkshop from "./CreateWorkshop";
 import { getMyWorkshops } from "../services/workshop";
 import RegisterForEvent from "./RegisterForEvent";
 import UpcomingEvents from "../components/UpcomingEvents";
@@ -18,7 +18,7 @@ function ProfessorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [showCreate, setShowCreate] = useState(false);
+  // const [showCreate, setShowCreate] = useState(false);
   const [myList, setMyList] = useState([]);
   const [listErr, setListErr] = useState(null);
 
@@ -27,7 +27,7 @@ function ProfessorDashboard() {
   const [favSet, setFavSet] = useState(new Set());
 
   // Tabs
-  const [activeTab, setActiveTab] = useState("events");
+  const [activeTab] = useState("events");
 
   const token = localStorage.getItem("token");
 
@@ -78,23 +78,24 @@ function ProfessorDashboard() {
       activeKey={activeTab}
     >
       <div className="p-6">
-        <h2 className="text-xl font-semibold mb-6">Welcome Professor {user?.name || "User"} 👋</h2>
+               <h2 className="text-xl font-semibold mb-6">
+          Welcome Professor {user?.name || "User"} 👋
+        </h2>
 
-        <div style={{ marginTop: 24 }}>
-          <button
-            className="btn bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            onClick={() => setShowCreate((v) => !v)}
-            style={{ marginBottom: 16 }}
-          >
-            {showCreate ? "Hide Create Workshop" : "Create Workshop"}
-          </button>
+       {/* 🔹 Quick Actions */}
+        <section className="mt-6">
+          <div className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center">
+            <h3 className="text-lg font-semibold mb-4 text-center">Quick Actions</h3>
+            <button
+              className="w-64 h-32 bg-blue-100 text-blue-700 text-2xl font-bold rounded-xl flex items-center justify-center shadow hover:bg-blue-200 transition"
+              onClick={() => navigate("/professor/workshops/new")}
+            >
+              Create Workshop
+            </button>
+          </div>
+        </section>
 
-          {showCreate && (
-            <div style={{ marginTop: 12 }}>
-              <CreateWorkshop />
-            </div>
-          )}
-        </div>
+
 
         {/* Workshops and rest of content (kept unchanged) */}
         <div style={{ marginTop: 24, textAlign: "left" }}>
