@@ -29,11 +29,9 @@ export default function GymSchedule() {
         setLoading(false);
       }
     };
-
     fetchSessions();
   }, []);
 
-  // ⭐ Added registration logic from first code
   const handleRegister = async (sessionId) => {
     try {
       setRegisteringId(sessionId);
@@ -54,7 +52,7 @@ export default function GymSchedule() {
         err.response?.data?.error ||
         "Failed to register for this session.";
       setError(msg);
-      
+
       // Refresh sessions even on error to update UI
       try {
         const updated = await api.get("/gym");
@@ -72,7 +70,6 @@ export default function GymSchedule() {
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-6 text-center">Gym Schedule</h1>
-
       {/* ⭐ Success + error messages */}
       {message && (
         <p className="mb-4 text-center text-green-700 font-medium">{message}</p>
@@ -80,7 +77,6 @@ export default function GymSchedule() {
       {error && (
         <p className="mb-4 text-center text-red-600 font-medium">{error}</p>
       )}
-
       {sessions.length === 0 ? (
         <p className="text-center">No gym sessions found.</p>
       ) : (
@@ -93,10 +89,8 @@ export default function GymSchedule() {
                 <th className="border p-2">Date</th>
                 <th className="border p-2">Time</th>
                 <th className="border p-2">Duration</th>
-
                 {/* ⭐ Combined participants column */}
                 <th className="border p-2">Participants</th>
-
                 {/* ⭐ Added Action column */}
                 <th className="border p-2">Action</th>
               </tr>
@@ -105,7 +99,6 @@ export default function GymSchedule() {
               {sessions.map((s) => {
                 const participantsCount = s.participants?.length || 0;
                 const isFull = participantsCount >= s.maxParticipants;
-
                 return (
                   <tr key={s._id} className="text-center">
                     <td className="border p-2 font-semibold">
@@ -119,10 +112,8 @@ export default function GymSchedule() {
                     </td>
                     <td className="border p-2">{s.time}</td>
                     <td className="border p-2">{s.duration} min</td>
-
                     {/* ⭐ Show current/max participants */}
                     <td className="border p-2">{participantsCount} / {s.maxParticipants}</td>
-
                     {/* ⭐ Register button */}
                     <td className="border p-2">
                       {(() => {
@@ -130,7 +121,6 @@ export default function GymSchedule() {
                         const isRegistered = s.participants?.some(
                           (p) => String(p._id || p) === String(userId)
                         );
-                        
                         if (isRegistered) {
                           return (
                             <span className="text-sm px-3 py-1 rounded bg-green-100 text-green-700">
@@ -138,7 +128,6 @@ export default function GymSchedule() {
                             </span>
                           );
                         }
-                        
                         if (isFull) {
                           return (
                             <span className="text-sm px-3 py-1 rounded bg-gray-300 text-gray-700">
@@ -146,7 +135,6 @@ export default function GymSchedule() {
                             </span>
                           );
                         }
-                        
                         return (
                           <button
                             onClick={() => handleRegister(s._id)}

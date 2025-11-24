@@ -50,6 +50,8 @@ import ManageAllComments from "./pages/ManageAllComments";
 import CreateAdminOfficer from "./pages/CreateAdminOfficer";
 import ManageAdminsOfficers from "./pages/ManageAdminsOfficers";
 import ManagePendingUsers from "./pages/ManagePendingUsers";
+import AttendeesReport from "./components/AttendeesReport";
+import RevenueReport from "./components/RevenueReport";
 import EventOfficerOverview from "./pages/EventOfficerOverview.jsx";
 import EventOfficerAllEvents from "./pages/EventOfficerAllEvents.jsx";
 import EventOfficerApproveVendors from "./pages/EventOfficerApproveVendors.jsx";
@@ -65,9 +67,6 @@ import ProfessorMyWorkshopsPage from "./pages/ProfessorMyWorkshopsPage.jsx";
 import ProfessorUpcomingEventsPage from "./pages/ProfessorUpcomingEventsPage";
 import ProfessorRegisterEventPage from "./pages/ProfessorRegisterEventPage";
 import ProfessorGymSchedulePage from "./pages/ProfessorGymSchedulePage";
-
-
-
 // Removed incorrect import - using StudentDashboard directly
 
 
@@ -95,15 +94,18 @@ function App() {
         <Route path="/register-event" element={<RegisterForEvent />} />
         <Route path="/my-registered-events" element={<MyRegisteredEvents />} />
 
-        {/* Admin */}
+        {/* Admin - Only admin dashboard and subpages use DashboardLayout */}
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/upcoming-events" element={<UpcomingEvents />} />
+          <Route path="/admin/all-users" element={<ManageAllUsers />} />
+          <Route path="/admin/attendees-report" element={<AttendeesReport />} />
+          <Route path="/admin/revenue-report" element={<RevenueReport />} />
           <Route path="/admin/create-admin-officer" element={<CreateAdminOfficer />} />
           <Route path="/admin/manage-admins-officers" element={<ManageAdminsOfficers />} />
           <Route path="/admin/pending-users" element={<ManagePendingUsers />} />
           <Route path="/admin/vendor-requests" element={<ManageVendorRequests />} />
           <Route path="/admin/all-events" element={<ManageAllEvents />} />
-          <Route path="/admin/all-users" element={<ManageAllUsers />} />
           <Route path="/admin/all-comments" element={<ManageAllComments />} />
           <Route path="/admin/documents" element={<ViewDocuments />} />
         </Route>

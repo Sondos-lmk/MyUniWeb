@@ -2,56 +2,37 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
-import { 
-  LogOut, 
-  Wallet
-} from 'lucide-react';
+import { LogOut, Wallet, ChevronDown, ChevronRight } from 'lucide-react';
 
-/**
- * DashboardLayout - Reusable layout component for all roles
- * @param {Object} props
- * @param {React.ReactNode} props.children - Main content to render
- * @param {Array} props.sidebarItems - Array of sidebar navigation items
- * @param {string} props.dashboardTitle - Title to display in the header (e.g., "Student Dashboard")
- * @param {string} props.roleLabel - Label for the user's role (e.g., "Verified Student")
- * @param {string} props.roleColor - Color class for the role badge (e.g., "bg-green-500")
- * @param {string} props.activeKey - Key to identify which sidebar item is active (for onClick items)
- */
 export default function DashboardLayout({ 
   children, 
   sidebarItems = [], 
   dashboardTitle = "Dashboard",
   roleLabel = null,
   roleColor = "bg-green-500",
-  activeKey = null
+  activeKey = null,
+  extraSidebarProps = {} // For Reports dropdown state
 }) {
   const location = useLocation();
   const { user, logout } = useAuth();
 
   const active = (path) =>
-    location.pathname === path || location.pathname.startsWith(path)
+    location.pathname === path || location.pathname.startsWith(path + '/')
       ? "text-cyan-600 font-semibold bg-cyan-50"
       : "text-slate-700 hover:text-cyan-600 hover:bg-cyan-50";
 
-  const handleLogout = () => {
-    logout();
-  };
+  const handleLogout = () => logout();
 
-  // Get user's initials for avatar
   const getInitials = (name) => {
     if (!name) return 'U';
     const parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
     return name[0].toUpperCase();
   };
 
-  // Get user's full name or fallback
   const userName = user?.name || user?.email?.split('@')[0] || 'User';
   const userRole = user?.role || localStorage.getItem('role') || '';
   
-  // Default role labels if not provided
   const defaultRoleLabels = {
     student: 'Verified Student',
     staff: 'Staff Member',
@@ -66,17 +47,15 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-blue-50 to-indigo-100">
-      {/* Sidebar - Always Visible */}
+      {/* Sidebar */}
       <aside className="fixed top-0 left-0 h-screen w-72 bg-white shadow-lg z-30 border-r border-slate-200">
         <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-200">
             <span className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
               Innovex
             </span>
           </div>
 
-          {/* Navigation Links */}
           <nav className="flex-1 overflow-y-auto p-4">
             <div className="space-y-2">
               {/* 🔹 Static Upcoming Events button for professors */}
@@ -91,7 +70,57 @@ export default function DashboardLayout({
     </Link>
   )}
               {sidebarItems.map((item, index) => {
-                // Support both Link components and regular buttons
+                // SPECIAL CASE: Reports with dropdown
+                if (item.key === "reports" && item.isCollapsible) {
+                  const isReportsActive = activeKey === "reports";
+                  const isOpen = extraSidebarProps.isReportsOpen || false;
+
+                  return (
+                    <div key={index} className="space-y-1">
+                      {/* Main "Reports" button with arrow */}
+                      <button
+                        onClick={item.onToggle}
+                        className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-all w-full text-left ${
+                          isReportsActive
+                            ? "text-cyan-600 font-semibold bg-cyan-50"
+                            : "text-slate-700 hover:text-cyan-600 hover:bg-cyan-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <item.icon className="w-5 h-5" />
+                          <span>{item.label}</span>
+                        </div>
+                        {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      </button>
+
+                      {/* Dropdown items */}
+                      {isOpen && (
+                        <div className="ml-8 space-y-1 border-l-2 border-cyan-200">
+                          {item.subItems?.map((sub, i) => {
+                            const isSubActive = extraSidebarProps.selectedReport === 
+                              (sub.label.includes("Attendees") ? "attendees" : "revenue");
+
+                            return (
+                              <button
+                                key={i}
+                                onClick={sub.onClick}
+                                className={`block w-full text-left px-4 py-2 rounded-lg text-sm transition-all ${
+                                  isSubActive
+                                    ? "text-cyan-600 font-medium bg-cyan-50"
+                                    : "text-slate-600 hover:text-cyan-600 hover:bg-cyan-50"
+                                }`}
+                              >
+                                {sub.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // ALL OTHER ITEMS (Overview, Users, Statistics, etc.) — unchanged
                 if (item.to) {
                   return (
                     <Link
@@ -127,28 +156,21 @@ export default function DashboardLayout({
         </div>
       </aside>
 
-      {/* Main Content Area - Offset by sidebar width */}
+      {/* Main Content Area */}
       <div className="ml-72 min-h-screen flex flex-col">
-        {/* Top Header Bar */}
         <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
           <div className="px-6 h-16 flex items-center justify-between">
-            {/* Left: Logo (optional, since sidebar has it) */}
             <div className="flex items-center gap-3">
               <span className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent select-none">
                 {dashboardTitle}
               </span>
             </div>
 
-            {/* Right: Notifications + Wallet (if applicable) + Logout */}
             <div className="flex items-center gap-3">
               {user && userRole !== "vendor" && <NotificationBell />}
               
-              {/* Wallet button - can be conditionally shown based on role */}
-              {user && (['student', 'staff', 'ta', 'professor'].includes(userRole)) && (
-                <button
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 text-white text-sm font-medium hover:from-cyan-700 hover:to-blue-800 transition-colors"
-                  title="Wallet"
-                >
+              {user && ['student', 'staff', 'ta', 'professor'].includes(userRole) && (
+                <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 text-white text-sm font-medium hover:from-cyan-700 hover:to-blue-800 transition-colors">
                   <Wallet className="w-4 h-4" />
                   <span className="hidden sm:inline">$150.50</span>
                 </button>
@@ -165,48 +187,31 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        {/* Content Area */}
         <div className="flex-1 w-full">
           <div className="max-w-full px-6 py-8">
-            {/* Welcome Header Section - Left Aligned */}
             <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
               <div className="flex items-center gap-4">
-                {/* Profile Picture/Avatar */}
-                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-cyan-600 to-blue-700 flex items-center justify-center text-white text-2xl font-bold shadow-md flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-cyan-600 to-blue-700 flex items-center justify-center text-white text-2xl font-bold shadow-md">
                   {user?.profilePicture ? (
-                    <img
-                      src={user.profilePicture}
-                      alt={userName}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    getInitials(userName)
-                  )}
+                    <img src={user.profilePicture} alt={userName} className="w-full h-full rounded-full object-cover" />
+                  ) : getInitials(userName)}
                 </div>
-
-                {/* Welcome Message and User Info - Left Aligned */}
                 <div>
-                  <p className="text-gray-600 text-lg mb-1">
-                    Welcome to your dashboard!
-                  </p>
-                  <h1 className="text-2xl font-bold text-slate-800 mb-2">
-                    {userName}
-                  </h1>
+                  <p className="text-gray-600 text-lg mb-1">Welcome back!</p>
+                  <h1 className="text-2xl font-bold text-slate-800 mb-2">{userName}</h1>
                   <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium text-white ${roleColor}`}>
-                    {displayRoleLabel} ✓
+                    {displayRoleLabel}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Dashboard Title */}
             <div className="mb-6">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
                 {dashboardTitle}
               </h2>
             </div>
 
-            {/* Main Content */}
             <div className="w-full">
               {children}
             </div>
@@ -216,4 +221,3 @@ export default function DashboardLayout({
     </div>
   );
 }
-

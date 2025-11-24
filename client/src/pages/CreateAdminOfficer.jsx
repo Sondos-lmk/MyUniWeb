@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 
@@ -67,14 +67,6 @@ export default function CreateAdminOfficer() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span>Back</span>
-      </button>
-
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl">Create Admin/Event Officer Account</CardTitle>

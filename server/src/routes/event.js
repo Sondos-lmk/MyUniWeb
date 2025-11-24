@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Event } from "../models/Events/Event.js"; // Added missing import for archived/debug queries
 import {
   createEvent,
   getAllEvents,

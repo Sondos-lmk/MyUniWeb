@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Info } from "lucide-react";
+import { Info } from "lucide-react";
 
 export default function ApproveWorkshops() {
   const navigate = useNavigate();
