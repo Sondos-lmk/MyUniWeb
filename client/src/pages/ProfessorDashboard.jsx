@@ -63,8 +63,10 @@ function ProfessorDashboard() {
       dashboardTitle="Professor Dashboard"
       roleLabel="Professor"
       roleColor="bg-green-500"
-      sidebarItems={[]}
-      activeKey={activeTab}
+ sidebarItems={[
+      { label: "Gym Schedule", to: "/professor/gym-schedule" }, // ✅ new button
+      { label: "Register for Event", to: "/professor/register-event" },
+  ]}      activeKey={activeTab}
     >
       <div className="p-6">
         <h2 className="text-xl font-semibold mb-6">
@@ -109,12 +111,7 @@ function ProfessorDashboard() {
         {/* Loyalty vendors + events + gym */}
         <div style={{ marginTop: 40 }}>
           
-<h2 className="text-2xl font-bold mb-4 text-blue-700">
-            Register for Event
-          </h2>
-          <div className="bg-gray-50 border p-4 rounded-lg shadow-md mb-8">
-            <RegisterForEvent />
-          </div>
+
 
          
           {activeTab === "favorites" && (
@@ -145,12 +142,7 @@ function ProfessorDashboard() {
             </div>
           )}
 
-          <h2 className="text-2xl font-bold mb-4 text-blue-700">
-            Gym Schedule
-          </h2>
-          <div className="bg-gray-50 border p-4 rounded-lg shadow-md">
-            <GymSchedule />
-          </div>
+          
         </div>
 
         <Voting />
