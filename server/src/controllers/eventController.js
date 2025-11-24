@@ -2678,19 +2678,37 @@ export const getAllComments = async (req, res) => {
   try {
     const events = await Event.find({})
       .populate("comments.user", "name email role")
-      .select("title comments");
+      .select("title comments ratings type __t");
+
+    const normalizeId = (value) => {
+      if (!value) return null;
+      if (typeof value === "string") return value;
+      if (value._id) return value._id.toString();
+      if (typeof value.toString === "function") return value.toString();
+      return null;
+    };
 
     let allComments = [];
 
     events.forEach((event) => {
+      const eventObj = event.toObject({ virtuals: false });
+      const eventType = eventObj?.type || eventObj?.__t || null;
+
       event.comments.forEach((c) => {
+        const commentUserId = normalizeId(c.user);
+        const ratingEntry = Array.isArray(event.ratings)
+          ? event.ratings.find((r) => normalizeId(r.user) === commentUserId)
+          : null;
+
         allComments.push({
           eventId: event._id,
           eventTitle: event.title,
+          eventType: eventType ? String(eventType) : null,
           commentId: c._id,
           text: c.text,
           createdAt: c.createdAt,
           user: c.user,
+          rating: ratingEntry ? Number(ratingEntry.value) : null,
         });
       });
     });

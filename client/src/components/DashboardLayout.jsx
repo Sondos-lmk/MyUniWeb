@@ -205,13 +205,6 @@ export default function DashboardLayout({
                 </div>
               </div>
             </div>
-
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
-                {dashboardTitle}
-              </h2>
-            </div>
-
             <div className="w-full">
               {children}
             </div>

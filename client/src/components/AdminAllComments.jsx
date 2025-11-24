@@ -38,7 +38,7 @@ const AdminAllComments = () => {
 
   return (
     <div className="mt-10">
-      <h2 className="text-xl font-semibold mb-4">All Event Comments</h2>
+      <h2 className="text-xl font-semibold mb-4">Events Reviews</h2>
 
       {comments.length === 0 ? (
         <p>No comments found.</p>
@@ -48,8 +48,10 @@ const AdminAllComments = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-2 border">Event</th>
+                <th className="p-2 border">Type</th>
                 <th className="p-2 border">User</th>
                 <th className="p-2 border">Comment</th>
+                <th className="p-2 border">Rating</th>
                 <th className="p-2 border">Date</th>
                 <th className="p-2 border">Actions</th>
               </tr>
@@ -59,9 +61,17 @@ const AdminAllComments = () => {
                 <tr key={c.commentId} className="text-center">
                   <td className="p-2 border">{c.eventTitle}</td>
                   <td className="p-2 border">
+                    {c.eventType
+                      ? c.eventType.charAt(0).toUpperCase() + c.eventType.slice(1)
+                      : "—"}
+                  </td>
+                  <td className="p-2 border">
                     {c.user?.name || "Unknown"} ({c.user?.email})
                   </td>
-                  <td className="p-2 border">{c.text}</td>
+                  <td className="p-2 border text-left">{c.text}</td>
+                  <td className="p-2 border">
+                    {typeof c.rating === "number" ? `${c.rating} / 5` : "—"}
+                  </td>
                   <td className="p-2 border">
                     {new Date(c.createdAt).toLocaleString()}
                   </td>
@@ -70,7 +80,7 @@ const AdminAllComments = () => {
                       onClick={() => handleDelete(c.eventId, c.commentId)}
                       className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
                     >
-                      Delete
+                      Delete Comment
                     </button>
                   </td>
                 </tr>

@@ -7,6 +7,7 @@ import CreateAdminOfficer from "./CreateAdminOfficer";
 import ManageVendorRequests from "./ManageVendorRequests";
 import ManageAllComments from "./ManageAllComments";
 import ViewDocuments from "./ViewDocuments";
+import LoyaltyVendors from "./LoyaltyVendors";
 import AttendeesReport from "../components/AttendeesReport";
 import RevenueReport from "../components/RevenueReport";
 import DashboardLayout from "../components/DashboardLayout";
@@ -24,6 +25,7 @@ import {
   ChevronRight,
   Package,
   MessageSquare,
+  Store,
   Folder
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -107,7 +109,8 @@ const AdminDashboard = () => {
     { key: "upcoming", label: "Upcoming Events", icon: BarChart3, onClick: () => setActiveTab("upcoming") },
     { key: "users", label: "All Users", icon: Users, onClick: () => setActiveTab("users") },
     { key: "vendorRequests", label: "Vendor Requests", icon: Package, onClick: () => setActiveTab("vendorRequests") },
-    { key: "allComments", label: "All Comments", icon: MessageSquare, onClick: () => setActiveTab("allComments") },
+    { key: "allComments", label: "Events Reviews", icon: MessageSquare, onClick: () => setActiveTab("allComments") },
+      { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveTab("loyaltyVendors") },
     { key: "documents", label: "View Documents", icon: Folder, onClick: () => setActiveTab("documents") },
 
     {
@@ -156,7 +159,7 @@ const AdminDashboard = () => {
                     onClick={() => setActiveQuickAction('manage-admins')}
                   >
                     <Users className="w-8 h-8 mr-3" />
-                    Manage Admins
+                    Manage Admins/Officers
                   </Button>
                   <Button
                     className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'pending-users' ? 'ring-2 ring-cyan-500' : ''}`}
@@ -203,6 +206,7 @@ const AdminDashboard = () => {
         {activeTab === "users" && <div className="mt-8"><AllUsers /></div>}
         {activeTab === "vendorRequests" && <div className="mt-8"><ManageVendorRequests /></div>}
         {activeTab === "allComments" && <div className="mt-8"><ManageAllComments /></div>}
+          {activeTab === "loyaltyVendors" && <div className="mt-8"><LoyaltyVendors /></div>}
         {activeTab === "documents" && <div className="mt-8"><ViewDocuments /></div>}
         {activeTab === "reports" && (
           <div className="mt-8 space-y-6">
