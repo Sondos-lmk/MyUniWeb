@@ -10,7 +10,6 @@ import EventCard from "../components/EventCard";
 import AttendedEvents from "./AttendedEvents";
 import Voting from "../components/Voting";
 import DashboardLayout from "../components/DashboardLayout";
-//import { Calendar, Dumbbell, Store } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Calendar, CheckCircle, Star, Clock, Dumbbell, Store, Heart } from "lucide-react";
 
