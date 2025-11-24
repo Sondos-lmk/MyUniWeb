@@ -4,6 +4,9 @@ import UpcomingEvents from "../components/UpcomingEvents";
 import ManageAdminsOfficers from "./ManageAdminsOfficers";
 import ManagePendingUsers from "./ManagePendingUsers";
 import CreateAdminOfficer from "./CreateAdminOfficer";
+import ManageVendorRequests from "./ManageVendorRequests";
+import ManageAllComments from "./ManageAllComments";
+import ViewDocuments from "./ViewDocuments";
 import AttendeesReport from "../components/AttendeesReport";
 import RevenueReport from "../components/RevenueReport";
 import DashboardLayout from "../components/DashboardLayout";
@@ -18,7 +21,10 @@ import {
   BarChart3, 
   FileText,
   ChevronDown,
-  ChevronRight 
+  ChevronRight,
+  Package,
+  MessageSquare,
+  Folder
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import API from "../services/api";
@@ -100,6 +106,9 @@ const AdminDashboard = () => {
     { key: "overview", label: "Overview", icon: GraduationCap, onClick: () => setActiveTab("overview") },
     { key: "upcoming", label: "Upcoming Events", icon: BarChart3, onClick: () => setActiveTab("upcoming") },
     { key: "users", label: "All Users", icon: Users, onClick: () => setActiveTab("users") },
+    { key: "vendorRequests", label: "Vendor Requests", icon: Package, onClick: () => setActiveTab("vendorRequests") },
+    { key: "allComments", label: "All Comments", icon: MessageSquare, onClick: () => setActiveTab("allComments") },
+    { key: "documents", label: "View Documents", icon: Folder, onClick: () => setActiveTab("documents") },
 
     {
       key: "reports",
@@ -192,6 +201,9 @@ const AdminDashboard = () => {
 
         {activeTab === "upcoming" && <UpcomingEvents userRole="admin" />}
         {activeTab === "users" && <div className="mt-8"><AllUsers /></div>}
+        {activeTab === "vendorRequests" && <div className="mt-8"><ManageVendorRequests /></div>}
+        {activeTab === "allComments" && <div className="mt-8"><ManageAllComments /></div>}
+        {activeTab === "documents" && <div className="mt-8"><ViewDocuments /></div>}
         {activeTab === "reports" && (
           <div className="mt-8 space-y-6">
             {selectedReport === "attendees" ? <AttendeesReport /> : <RevenueReport />}
