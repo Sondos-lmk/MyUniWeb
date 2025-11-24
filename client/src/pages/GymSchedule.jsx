@@ -93,53 +93,63 @@ export default function GymSchedule() {
     );
 
     return (
-      <div
-        key={s._id}
-        className="bg-white rounded-xl shadow-md border p-5 flex flex-col gap-3"
-      >
-        
-        {/* ICON */}
-        <div className="flex justify-between items-center">
+    <div
+      key={s._id}
+      className="bg-white rounded-xl shadow-md border p-5 flex flex-col gap-3"
+    >
+      {/* ICON + PARTICIPANTS */}
+      <div className="flex justify-between items-center">
         <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
-           <Dumbbell className="w-5 h-5" />
-            </div>
-
-          {/* PARTICIPANTS */}
-          <span className="text-sm font-semibold bg-gray-100 px-3 py-1 rounded-full">
-            {participants} / {s.maxParticipants}
-          </span>
+          <Dumbbell className="w-5 h-5" />
         </div>
 
-        {/* TITLE */}
-        <h3 className="font-bold text-lg text-slate-800">{s.title}</h3>
-
-        {/* TIME */}
-        <p className="text-sm text-gray-600 flex items-center gap-2">
-        <Clock3 className="w-4 h-4" />
-          {s.time}
-        </p>
-
-        {/* REGISTER BUTTON */}
-        <div className="mt-3">
-          {isRegistered ? (
-            <span className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm block text-center">
-              Registered
-            </span>
-          ) : isFull ? (
-            <span className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm block text-center">
-              Full
-            </span>
-          ) : (
-            <button
-              onClick={() => handleRegister(s._id)}
-              disabled={registeringId === s._id}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg w-full transition"
-            >
-              {registeringId === s._id ? "Registering..." : "Register"}
-            </button>
-          )}
-        </div>
+        <span className="text-sm font-semibold bg-gray-100 px-3 py-1 rounded-full">
+          {participants} / {s.maxParticipants}
+        </span>
       </div>
+
+      {/* TITLE */}
+      <h3 className="font-bold text-lg text-slate-800">{s.title}</h3>
+
+      {/* DATE */}
+      <p className="text-sm text-gray-600 flex items-center gap-2">
+        <Clock3 className="w-4 h-4" />
+        <span>{new Date(s.date).toLocaleDateString()}</span>
+      </p>
+
+      {/* TIME */}
+      <p className="text-sm text-gray-600 flex items-center gap-2">
+        <Clock3 className="w-4 h-4" />
+        <span>{s.time}</span>
+      </p>
+
+      {/* DURATION */}
+      <p className="text-sm text-gray-600 flex items-center gap-2">
+        <Clock3 className="w-4 h-4" />
+        <span>{s.duration} minutes</span>
+      </p>
+
+      {/* REGISTER BUTTON */}
+      <div className="mt-3">
+        {isRegistered ? (
+          <span className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm block text-center">
+            Registered
+          </span>
+        ) : isFull ? (
+          <span className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm block text-center">
+            Full
+          </span>
+        ) : (
+          <button
+            onClick={() => handleRegister(s._id)}
+            disabled={registeringId === s._id}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg w-full transition"
+          >
+            {registeringId === s._id ? "Registering..." : "Register"}
+          </button>
+        )}
+      </div>
+    </div>
     );
   })}
 
