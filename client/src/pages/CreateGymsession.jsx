@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import  api  from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+// ArrowLeft removed — back button removed from this view
 
 export default function CreateGymSession() {
   const navigate = useNavigate();
@@ -39,13 +39,6 @@ export default function CreateGymSession() {
 
   return (
     <div className="p-8 max-w-xl mx-auto">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span>Back</span>
-      </button>
       <h1 className="text-3xl font-bold mb-6 text-center">Create Gym Session</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

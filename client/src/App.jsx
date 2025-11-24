@@ -36,6 +36,7 @@ import GenerateVisitorQR from "./pages/GenerateVisitorQR.jsx";
 import CreatePoll from './pages/CreatePoll.jsx';
 import Voting from './components/Voting.jsx';
 import ViewDocuments from './pages/ViewDocuments.jsx';
+import EventOfficerDocuments from "./pages/EventOfficerDocuments.jsx";
 import LoyaltyVendors from "./pages/LoyaltyVendors";
 import ArchivedEvents from "./pages/ArchivedEvents";
 
@@ -56,9 +57,6 @@ import EventOfficerOverview from "./pages/EventOfficerOverview.jsx";
 import EventOfficerAllEvents from "./pages/EventOfficerAllEvents.jsx";
 import EventOfficerApproveVendors from "./pages/EventOfficerApproveVendors.jsx";
 import EventOfficerWorkshops from "./pages/EventOfficerWorkshops.jsx";
-import EventOfficerUpcoming from "./pages/EventOfficerUpcoming.jsx";
-import EventOfficerComments from "./pages/EventOfficerComments.jsx";
-import EventOfficerArchived from "./pages/EventOfficerArchived.jsx";
 import EventOfficerLoyalty from "./pages/EventOfficerLoyalty.jsx";
 import EventOfficerReportsAttendees from "./pages/EventOfficerReportsAttendees.jsx";
 import EventOfficerReportsRevenue from "./pages/EventOfficerReportsRevenue.jsx";
@@ -67,6 +65,7 @@ import ProfessorMyWorkshopsPage from "./pages/ProfessorMyWorkshopsPage.jsx";
 import ProfessorUpcomingEventsPage from "./pages/ProfessorUpcomingEventsPage";
 import ProfessorRegisterEventPage from "./pages/ProfessorRegisterEventPage";
 import ProfessorGymSchedulePage from "./pages/ProfessorGymSchedulePage";
+import EventDetailsPage from "./pages/EventDetailsPage";
 // Removed incorrect import - using StudentDashboard directly
 
 
@@ -106,6 +105,7 @@ function App() {
           <Route path="/admin/pending-users" element={<ManagePendingUsers />} />
           <Route path="/admin/vendor-requests" element={<ManageVendorRequests />} />
           <Route path="/admin/all-events" element={<ManageAllEvents />} />
+          <Route path="/admin/all-users" element={<ManageAllUsers />} />
           <Route path="/admin/all-comments" element={<ManageAllComments />} />
           <Route path="/admin/documents" element={<ViewDocuments />} />
         </Route>
@@ -117,11 +117,11 @@ function App() {
           <Route path="/gym-schedule" element={<EventOfficerGymSchedule />} />
           <Route path="/approved-events" element={<EventOfficerApproveVendors />} />
           <Route path="/events" element={<EventOfficerAllEvents />} />
+          <Route path="/eventOfficer/all-events" element={<EventOfficerAllEvents />} />
           <Route path="/create-event" element={<EventOfficerCreateEvent />} />
-          <Route path="/eventOfficer/documents" element={<ViewDocuments />} />
+          <Route path="/eventOfficer/documents" element={<EventOfficerDocuments />} />
           <Route path="/events/:id/edit" element={<EventFormPage />} />
           <Route path="/workshops/:id/request-edit" element={<RequestEditForm />} />
-          <Route path="/events/upcoming" element={<EventOfficerUpcoming />} />
           <Route path="/eventOfficer/approveWorkshops" element={<EventOfficerWorkshops />} />
           <Route path="/polls/create" element={<CreatePoll />} />
           {/* Edit route removed - polls are create-only in this build */}
@@ -129,11 +129,10 @@ function App() {
 
           {/* NEW PAGES */}
           <Route path="/events/:id/generate-visitor-qr" element={<GenerateVisitorQR />} />
-          <Route path="/eventOfficer/archived-events" element={<EventOfficerArchived />} />
-          <Route path="/eventOfficer/all-comments" element={<EventOfficerComments />} />
           <Route path="/loyalty-vendors" element={<EventOfficerLoyalty />} />
           <Route path="/eventOfficer/attendees-report" element={<EventOfficerReportsAttendees />} />
           <Route path="/eventOfficer/revenue-report" element={<EventOfficerReportsRevenue />} />
+          <Route path="/eventOfficer/events/:id/details" element={<EventDetailsPage />}/>
         </Route>
 
         {/* Professor */}

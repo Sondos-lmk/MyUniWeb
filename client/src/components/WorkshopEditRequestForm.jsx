@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function RequestEditForm() {
   const { id } = useParams(); // workshop id from URL
@@ -66,6 +67,14 @@ export default function RequestEditForm() {
 
   return (
     <div className="p-10 max-w-3xl mx-auto">
+      <button
+        onClick={() => navigate('/eventOfficer/approveWorkshops')}
+        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
+
       <h1 className="text-3xl font-bold mb-6">Request Workshop Edit</h1>
 
       {/* Workshop details */}
@@ -142,7 +151,7 @@ export default function RequestEditForm() {
         </div>
       )}
 
-      {/* Back button */}
+      
     </div>
   );
 }
