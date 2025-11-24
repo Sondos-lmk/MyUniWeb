@@ -63,6 +63,10 @@ import EventOfficerReportsRevenue from "./pages/EventOfficerReportsRevenue.jsx";
 import EventOfficerCreateEvent from "./pages/EventOfficerCreateEvent.jsx";
 import ProfessorMyWorkshopsPage from "./pages/ProfessorMyWorkshopsPage.jsx";
 import ProfessorUpcomingEventsPage from "./pages/ProfessorUpcomingEventsPage";
+import ProfessorRegisterEventPage from "./pages/ProfessorRegisterEventPage";
+import ProfessorGymSchedulePage from "./pages/ProfessorGymSchedulePage";
+
+
 
 // Removed incorrect import - using StudentDashboard directly
 
@@ -137,7 +141,8 @@ function App() {
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
           <Route path ="/voting" element={<Voting />} />
           <Route path="/professor/upcoming-events" element={<ProfessorUpcomingEventsPage />} />
-
+          <Route path="/professor/register-event" element={<ProfessorRegisterEventPage />} />
+          <Route path="/professor/gym-schedule" element={<ProfessorGymSchedulePage />} />
           <Route path="/professor/workshops/:id/participants" element={<ProfessorWorkshopParticipants />} />
           <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
         </Route>
