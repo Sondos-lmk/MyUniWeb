@@ -30,6 +30,7 @@ import {
   getMyRegisteredEventsFromUser,
   sendCertificate,
   generateVisitorQR,
+  getExternalVisitors,
   exportEventRegistrations,
   getAllBoothConflicts,
   addEventToFavorites,
@@ -246,6 +247,9 @@ router.post(
   requireEventOfficer,
   generateVisitorQR
 );
+
+router.get("/:id/external-visitors", getExternalVisitors);
+
 
 // -----------------------------------------------------
 // 🔹 DEBUG LIST ALL EVENTS

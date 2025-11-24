@@ -7,74 +7,100 @@ import RevenueReport from "../components/RevenueReport";
 import DashboardLayout from "../components/DashboardLayout";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Calendar, Dumbbell, Store, Archive, GraduationCap, ArrowLeft } from "lucide-react";
-
-import { ChevronDown, Users, ClipboardList, MessageSquare, ListChecks } from "lucide-react";
+import { Calendar, Dumbbell, Store, Archive, GraduationCap, ArrowLeft, ChevronDown, Users, ClipboardList, MessageSquare, ListChecks, FileText, Folder } from "lucide-react";
+import EventFormPage from "../components/EventFormPage";
+import ApprovedEvents from "../components/ApprovingEvents";
+import CreateGymSession from "./CreateGymSession";
 
 function EventOfficerDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [activeQuickAction, setActiveQuickAction] = React.useState(null);
 
   // Collapsible Reports state
   const [reportsOpen, setReportsOpen] = React.useState(false);
+  const [selectedReport, setSelectedReport] = React.useState('attendees');
 
   const sidebarItems = [
     { to: "/eventOfficer/dashboard", label: "Overview", icon: GraduationCap },
     { to: "/eventOfficer/approveWorkshops", label: "Workshops", icon: ListChecks },
     { to: "/eventOfficer/all-events", label: "All Events", icon: ClipboardList },
     { to: "/gym-schedule", label: "Gym Schedule", icon: Dumbbell },
-    { to: "/events/upcoming", label: "Upcoming Events", icon: Calendar },
-    { to: "/eventOfficer/all-comments", label: "View All Comments", icon: MessageSquare },
-    { to: "/eventOfficer/archived-events", label: "Archived Events", icon: Archive },
     { to: "/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
-    // Collapsible Reports group
+    { to: "/eventOfficer/documents", label: "View Documents", icon: Folder },
+    // Collapsible Reports group (Admin-style shape)
     {
-      label: "Reports",
-      icon: ChevronDown,
       key: "reports",
+      label: "Reports",
+      icon: FileText,
       isCollapsible: true,
-      open: reportsOpen,
-      onClick: () => setReportsOpen((v) => !v),
-      children: [
-        { to: "/eventOfficer/attendees-report", label: "Attendees", icon: Users },
-        { to: "/eventOfficer/revenue-report", label: "Revenue", icon: ClipboardList },
+      isOpen: reportsOpen,
+      onToggle: () => setReportsOpen((v) => !v),
+      subItems: [
+        { label: "Attendees Report", onClick: () => { setSelectedReport('attendees'); navigate('/eventOfficer/attendees-report'); setReportsOpen(true); } },
+        { label: "Revenue Report", onClick: () => { setSelectedReport('revenue'); navigate('/eventOfficer/revenue-report'); setReportsOpen(true); } },
       ],
     },
   ];
 
   return (
-    <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={sidebarItems}>
+    <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={sidebarItems} extraSidebarProps={{ isReportsOpen: reportsOpen, selectedReport }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Quick Actions Only (Overview) */}
 
         {/* Quick Actions */}
         <Card className="mb-8 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl">Quick Actions</CardTitle>
+            <CardTitle className="text-2xl">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link to="/create-event">
-                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white">
-                  <Calendar className="w-6 h-6" />
-                  <span>Create Event</span>
-                </Button>
-              </Link>
-              <Link to="/approved-events">
-                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white">
-                  <Store className="w-6 h-6" />
-                  <span>Approve Vendors</span>
-                </Button>
-              </Link>
-              <Link to="/create-gym-session">
-                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white">
-                  <Dumbbell className="w-6 h-6" />
-                  <span>Create Gym Session</span>
-                </Button>
-              </Link>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <button
+                onClick={() => setActiveQuickAction((v) => (v === 'create-event' ? null : 'create-event'))}
+                className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-3 text-white rounded-lg ${activeQuickAction === 'create-event' ? 'ring-2 ring-cyan-500' : ''}`}
+              >
+                <Calendar className="w-8 h-8 mr-3" />
+                Create Event
+              </button>
+
+              <button
+                onClick={() => setActiveQuickAction((v) => (v === 'approve-vendors' ? null : 'approve-vendors'))}
+                className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-3 text-white rounded-lg ${activeQuickAction === 'approve-vendors' ? 'ring-2 ring-cyan-500' : ''}`}
+              >
+                <Store className="w-8 h-8 mr-3" />
+                Approve Vendors
+              </button>
+
+              <button
+                onClick={() => setActiveQuickAction((v) => (v === 'create-gym-session' ? null : 'create-gym-session'))}
+                className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-3 text-white rounded-lg ${activeQuickAction === 'create-gym-session' ? 'ring-2 ring-cyan-500' : ''}`}
+              >
+                <Dumbbell className="w-8 h-8 mr-3" />
+                Create Gym Session
+              </button>
             </div>
           </CardContent>
         </Card>
+        {/* Conditional quick-action content */}
+        <div className="max-w-7xl mx-auto px-6 py-2">
+          {activeQuickAction === 'create-event' && (
+            <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+              <EventFormPage />
+            </div>
+          )}
+
+          {activeQuickAction === 'approve-vendors' && (
+            <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+              <ApprovedEvents />
+            </div>
+          )}
+
+          {activeQuickAction === 'create-gym-session' && (
+            <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+              <CreateGymSession />
+            </div>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );

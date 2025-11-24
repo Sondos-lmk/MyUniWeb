@@ -181,38 +181,47 @@ export const getAllEvents = async (req, res) => {
   try {
     const { type, title, location, date } = req.query;
 
-    // Pick correct model (based on type or default Event)
+    // Pick correct model
     const Model = type ? getEventModel(type) : Event;
 
-    //  Build flexible query
+    // Build query
     const query = {};
-    if (type) query.type = type;
-    if (title) query.title = { $regex: title, $options: "i" }; // case-insensitive
+
+    // If user selected a type, we filter by it
+    if (type) {
+      query.type = type;
+    } else {
+      // Otherwise EXCLUDE booths & gym sessions
+      query.type = { $nin: ["booth", "gym"] };
+    }
+
+    if (title) query.title = { $regex: title, $options: "i" };
     if (location) query.location = { $regex: location, $options: "i" };
+
     if (date) {
       const targetDate = new Date(date);
       query.$or = [
         { startDate: { $lte: targetDate }, endDate: { $gte: targetDate } },
-        { date: targetDate }, // gym sessions, etc.
+        { date: targetDate }
       ];
     }
-    let sortOrder = 1; // default ascending (oldest → newest)
-    if (req.query.sort === "desc") sortOrder = -1;
 
-    //  Fetch events
+    let sortOrder = req.query.sort === "desc" ? -1 : 1;
+
     const events = await Model.find(query).sort({ startDate: sortOrder });
 
-    // Return response
     res.status(200).json({
       message: "Filtered events fetched successfully",
       count: events.length,
       events,
     });
+
   } catch (err) {
     console.error("Error filtering events:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 
@@ -2534,6 +2543,29 @@ export const generateVisitorQR = async (req, res) => {
     });
   }
 };
+
+export const getExternalVisitors = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Look in both Bazaar and Booth
+    let event = await Bazaar.findById(id) || await Booth.findById(id);
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    return res.json({
+      visitors: event.externalVisitors || []
+    });
+  } catch (err) {
+    console.error("Error fetching QR visitors:", err);
+    return res.status(500).json({
+      message: "Failed to fetch visitor QR codes"
+    });
+  }
+};
+
 
 export const cancelVendorApplication = async (req, res) => {
   try {
