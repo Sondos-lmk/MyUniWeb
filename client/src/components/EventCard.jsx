@@ -41,6 +41,7 @@ export default function EventCard({
   event,
   onPrimary,
   primaryLabel,
+  primaryClass, // new: custom class for primary button
   secondary,
   disabled,
   userRole,
@@ -331,18 +332,20 @@ export default function EventCard({
     <div
       className="group relative rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all hover:-translate-y-0.5 overflow-hidden"
     >
-      {/* ❤️ Heart: only for non-gym events */}
-      <button
-        onClick={toggleFavorite}
-        disabled={busyFav}
-        className={`absolute top-3 right-3 p-1 rounded-full ${
-          busyFav ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"
-        }`}
-        aria-label={fav ? "Remove from favorites" : "Add to favorites"}
-        title={fav ? "Remove from favorites" : "Add to favorites"}
-      >
-        <Heart active={fav} />
-      </button>
+      {/* ❤️ Heart: only for non-gym events - hidden for students in upcoming events */}
+      {userRole !== "student" && (
+        <button
+          onClick={toggleFavorite}
+          disabled={busyFav}
+          className={`absolute top-3 right-3 p-1 rounded-full ${
+            busyFav ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"
+          }`}
+          aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+          title={fav ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Heart active={fav} />
+        </button>
+      )}
 
       <div className="p-5">
         <div className="flex items-center justify-between gap-3">
@@ -400,13 +403,13 @@ export default function EventCard({
             <button
               onClick={onPrimary}
               disabled={disabled}
-              className="rounded-xl px-4 py-2 bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-50"
+              className={`rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50 ${primaryClass || 'bg-slate-900 text-white hover:bg-slate-800'}`}
             >
               {primaryLabel || "Action"}
-            </button> 
+            </button>
           )}
           {secondary}
-          {userRole !== "vendor" && (
+          {userRole !== "vendor" && userRole !== "student" && (
           <button
           onClick={handleViewFeedback}
           className="rounded-xl px-4 py-2 bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"

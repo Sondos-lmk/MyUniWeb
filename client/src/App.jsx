@@ -17,10 +17,12 @@ import EventOfficerDashboard from "./pages/EventOfficerDashboard";
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import ProfessorDashboard from './pages/ProfessorDashboard';
+import ProfessorCreateWorkshopPage from "./pages/ProfessorCreateWorkshopPage";
 import ProfessorWorkshopParticipants from "./pages/ProfessorWorkshopParticipants";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateGymSession from "./pages/CreateGymSession";
 import GymSchedule from "./pages/GymSchedule";
+import EventOfficerGymSchedule from "./pages/EventOfficerGymSchedule.jsx";
 import ApprovedEvents from "./components/ApprovingEvents";
 import Events from "./components/Events";
 import EventFormPage from "./components/EventFormPage";
@@ -36,6 +38,11 @@ import Voting from './components/Voting.jsx';
 import ViewDocuments from './pages/ViewDocuments.jsx';
 import LoyaltyVendors from "./pages/LoyaltyVendors";
 import ArchivedEvents from "./pages/ArchivedEvents";
+
+import AttendedEvents from "./pages/AttendedEvents.jsx";
+
+
+
 import ManageVendorRequests from "./pages/ManageVendorRequests";
 import ManageAllEvents from "./pages/ManageAllEvents";
 import ManageAllUsers from "./pages/ManageAllUsers";
@@ -45,7 +52,23 @@ import ManageAdminsOfficers from "./pages/ManageAdminsOfficers";
 import ManagePendingUsers from "./pages/ManagePendingUsers";
 import AttendeesReport from "./components/AttendeesReport";
 import RevenueReport from "./components/RevenueReport";
+import EventOfficerOverview from "./pages/EventOfficerOverview.jsx";
+import EventOfficerAllEvents from "./pages/EventOfficerAllEvents.jsx";
+import EventOfficerApproveVendors from "./pages/EventOfficerApproveVendors.jsx";
+import EventOfficerWorkshops from "./pages/EventOfficerWorkshops.jsx";
+import EventOfficerUpcoming from "./pages/EventOfficerUpcoming.jsx";
+import EventOfficerComments from "./pages/EventOfficerComments.jsx";
+import EventOfficerArchived from "./pages/EventOfficerArchived.jsx";
+import EventOfficerLoyalty from "./pages/EventOfficerLoyalty.jsx";
+import EventOfficerReportsAttendees from "./pages/EventOfficerReportsAttendees.jsx";
+import EventOfficerReportsRevenue from "./pages/EventOfficerReportsRevenue.jsx";
+import EventOfficerCreateEvent from "./pages/EventOfficerCreateEvent.jsx";
+import ProfessorMyWorkshopsPage from "./pages/ProfessorMyWorkshopsPage.jsx";
+import ProfessorUpcomingEventsPage from "./pages/ProfessorUpcomingEventsPage";
+import ProfessorRegisterEventPage from "./pages/ProfessorRegisterEventPage";
+import ProfessorGymSchedulePage from "./pages/ProfessorGymSchedulePage";
 // Removed incorrect import - using StudentDashboard directly
+
 
 
 import "./App.css";
@@ -91,29 +114,37 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["eventOfficer"]} />}>
           <Route path="/eventOfficer/dashboard" element={<EventOfficerDashboard />} />
           <Route path="/create-gym-session" element={<CreateGymSession />} />
-          <Route path="/gym-schedule" element={<GymSchedule />} />
-          <Route path="/approved-events" element={<ApprovedEvents />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/create-event" element={<EventFormPage />} />
+          <Route path="/gym-schedule" element={<EventOfficerGymSchedule />} />
+          <Route path="/approved-events" element={<EventOfficerApproveVendors />} />
+          <Route path="/events" element={<EventOfficerAllEvents />} />
+          <Route path="/create-event" element={<EventOfficerCreateEvent />} />
           <Route path="/eventOfficer/documents" element={<ViewDocuments />} />
           <Route path="/events/:id/edit" element={<EventFormPage />} />
           <Route path="/workshops/:id/request-edit" element={<RequestEditForm />} />
-          <Route path="/events/upcoming" element={<UpcomingEvents />} />
-          <Route path="/eventOfficer/approveWorkshops" element={<ApproveWorkshops />} />
+          <Route path="/events/upcoming" element={<EventOfficerUpcoming />} />
+          <Route path="/eventOfficer/approveWorkshops" element={<EventOfficerWorkshops />} />
           <Route path="/polls/create" element={<CreatePoll />} />
           {/* Edit route removed - polls are create-only in this build */}
 
 
           {/* NEW PAGES */}
           <Route path="/events/:id/generate-visitor-qr" element={<GenerateVisitorQR />} />
-          <Route path="/eventOfficer/archived-events" element={<ArchivedEvents />} />
+          <Route path="/eventOfficer/archived-events" element={<EventOfficerArchived />} />
+          <Route path="/eventOfficer/all-comments" element={<EventOfficerComments />} />
+          <Route path="/loyalty-vendors" element={<EventOfficerLoyalty />} />
+          <Route path="/eventOfficer/attendees-report" element={<EventOfficerReportsAttendees />} />
+          <Route path="/eventOfficer/revenue-report" element={<EventOfficerReportsRevenue />} />
         </Route>
 
         {/* Professor */}
         <Route element={<ProtectedRoute allowedRoles={["professor"]} />}>
-          <Route path="/professor/workshops/new" element={<CreateWorkshop />} />
+          <Route path="/professor/workshops/new" element={<ProfessorCreateWorkshopPage />} />
+           <Route path="/professor/my-workshops" element={<ProfessorMyWorkshopsPage />} />
           <Route path="/professor/workshops/:id/edit" element={<EditWorkshop />} />
           <Route path ="/voting" element={<Voting />} />
+          <Route path="/professor/upcoming-events" element={<ProfessorUpcomingEventsPage />} />
+          <Route path="/professor/register-event" element={<ProfessorRegisterEventPage />} />
+          <Route path="/professor/gym-schedule" element={<ProfessorGymSchedulePage />} />
           <Route path="/professor/workshops/:id/participants" element={<ProfessorWorkshopParticipants />} />
           <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
         </Route>
