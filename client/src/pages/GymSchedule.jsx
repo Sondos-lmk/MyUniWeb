@@ -3,6 +3,8 @@ import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { Dumbbell, Clock3 } from "lucide-react";
+
 
 export default function GymSchedule() {
   const navigate = useNavigate();
@@ -69,7 +71,7 @@ export default function GymSchedule() {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6 text-center">Gym Schedule</h1>
+      <h1 className="text-2xl font-bold mb-8 text-center text-slate-700">Gym Schedule</h1>
       {/* ⭐ Success + error messages */}
       {message && (
         <p className="mb-4 text-center text-green-700 font-medium">{message}</p>
@@ -80,84 +82,69 @@ export default function GymSchedule() {
       {sessions.length === 0 ? (
         <p className="text-center">No gym sessions found.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-300 rounded-lg shadow-md">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border p-2">Session Title</th>
-                <th className="border p-2">Session Type</th>
-                <th className="border p-2">Date</th>
-                <th className="border p-2">Time</th>
-                <th className="border p-2">Duration</th>
-                {/* ⭐ Combined participants column */}
-                <th className="border p-2">Participants</th>
-                {/* ⭐ Added Action column */}
-                <th className="border p-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map((s) => {
-                const participantsCount = s.participants?.length || 0;
-                const isFull = participantsCount >= s.maxParticipants;
-                return (
-                  <tr key={s._id} className="text-center">
-                    <td className="border p-2 font-semibold">
-                      {s.title || "Gym Session"}
-                    </td>
-                    <td className="border p-2 capitalize">
-                      {s.sessionType || "N/A"}
-                    </td>
-                    <td className="border p-2">
-                      {s.date ? new Date(s.date).toDateString() : "N/A"}
-                    </td>
-                    <td className="border p-2">{s.time}</td>
-                    <td className="border p-2">{s.duration} min</td>
-                    {/* ⭐ Show current/max participants */}
-                    <td className="border p-2">{participantsCount} / {s.maxParticipants}</td>
-                    {/* ⭐ Register button */}
-                    <td className="border p-2">
-                      {(() => {
-                        const userId = user?.id || user?._id;
-                        const isRegistered = s.participants?.some(
-                          (p) => String(p._id || p) === String(userId)
-                        );
-                        if (isRegistered) {
-                          return (
-                            <span className="text-sm px-3 py-1 rounded bg-green-100 text-green-700">
-                              Registered
-                            </span>
-                          );
-                        }
-                        if (isFull) {
-                          return (
-                            <span className="text-sm px-3 py-1 rounded bg-gray-300 text-gray-700">
-                              Full
-                            </span>
-                          );
-                        }
-                        return (
-                          <button
-                            onClick={() => handleRegister(s._id)}
-                            disabled={registeringId === s._id}
-                            className={`px-3 py-1 rounded text-white text-sm ${
-                              registeringId === s._id
-                                ? "bg-gray-500 cursor-not-allowed"
-                                : "bg-blue-600 hover:bg-blue-700"
-                            }`}
-                          >
-                            {registeringId === s._id
-                              ? "Registering..."
-                              : "Register"}
-                          </button>
-                        );
-                      })()}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+
+  {sessions.map((s) => {
+    const participants = s.participants?.length || 0;
+    const isFull = participants >= s.maxParticipants;
+    const userId = user?.id || user?._id;
+    const isRegistered = s.participants?.some(
+      (p) => String(p._id || p) === String(userId)
+    );
+
+    return (
+      <div
+        key={s._id}
+        className="bg-white rounded-xl shadow-md border p-5 flex flex-col gap-3"
+      >
+        
+        {/* ICON */}
+        <div className="flex justify-between items-center">
+        <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
+           <Dumbbell className="w-5 h-5" />
+            </div>
+
+          {/* PARTICIPANTS */}
+          <span className="text-sm font-semibold bg-gray-100 px-3 py-1 rounded-full">
+            {participants} / {s.maxParticipants}
+          </span>
         </div>
+
+        {/* TITLE */}
+        <h3 className="font-bold text-lg text-slate-800">{s.title}</h3>
+
+        {/* TIME */}
+        <p className="text-sm text-gray-600 flex items-center gap-2">
+        <Clock3 className="w-4 h-4" />
+          {s.time}
+        </p>
+
+        {/* REGISTER BUTTON */}
+        <div className="mt-3">
+          {isRegistered ? (
+            <span className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm block text-center">
+              Registered
+            </span>
+          ) : isFull ? (
+            <span className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm block text-center">
+              Full
+            </span>
+          ) : (
+            <button
+              onClick={() => handleRegister(s._id)}
+              disabled={registeringId === s._id}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg w-full transition"
+            >
+              {registeringId === s._id ? "Registering..." : "Register"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  })}
+
+</div>
+
       )}
     </div>
   );
