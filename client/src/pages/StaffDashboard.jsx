@@ -10,10 +10,9 @@ import EventCard from "../components/EventCard";
 import AttendedEvents from "./AttendedEvents";
 import Voting from "../components/Voting";
 import DashboardLayout from "../components/DashboardLayout";
-//import { Calendar, Dumbbell, Store } from "lucide-react";
+import { Calendar, Dumbbell, Store } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
-import { Calendar, CheckCircle, Star, Clock, Dumbbell, Store, Heart } from "lucide-react";
-
+//import { Calendar, Dumbbell, Store } from "lucide-react";
 
 
 
@@ -73,15 +72,14 @@ const StaffDashboard = () => {
 	};
 
 	const sidebarItems = [
-		{ key: "events", label: "Upcoming Events", icon: Calendar, onClick: () => setActiveTab("events") },
-		{ key: "registered", label: "My Registered Events", icon: CheckCircle, onClick: () => setActiveTab("registered") },
-		{ key: "favorites", label: "Favorites", icon: Star, onClick: () => setActiveTab("favorites") },
-		{ key: "attended", label: "Attended Events", icon: Clock, onClick: () => setActiveTab("attended") },
-		{ key: "register", label: "Register for Event", icon: Calendar, onClick: () => setActiveTab("register") },
-		{ key: "gym", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveTab("gym") },
-		{ key: "vendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveTab("vendors") },
-	  ];
-	  
+		{ key: "events", label: "Upcoming Events", icon: null, onClick: () => setActiveTab("events") },
+		{ key: "registered", label: "My Registered Events", icon: null, onClick: () => setActiveTab("registered") },
+		{ key: "favorites", label: "Favorites", icon: null, onClick: () => setActiveTab("favorites") },
+		{ key: "attended", label: "Attended Events", icon: null, onClick: () => setActiveTab("attended") },
+		{ key: "register", label: "Register for Event", icon: null, onClick: () => setActiveTab("register") },
+		{ key: "gym", label: "Gym Schedule", icon: null, onClick: () => setActiveTab("gym") },
+		{ key: "vendors", label: "Loyalty Vendors", icon: null, onClick: () => setActiveTab("vendors") },
+	];
 
 	return (
 		<DashboardLayout
