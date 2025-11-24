@@ -1,85 +1,202 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import UpcomingEvents from "../components/UpcomingEvents";
+import ManageAdminsOfficers from "./ManageAdminsOfficers";
+import ManagePendingUsers from "./ManagePendingUsers";
+import CreateAdminOfficer from "./CreateAdminOfficer";
 import AttendeesReport from "../components/AttendeesReport";
 import RevenueReport from "../components/RevenueReport";
 import DashboardLayout from "../components/DashboardLayout";
+import AllUsers from "./AllUsers";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { UserPlus, Users, UserCheck, GraduationCap } from "lucide-react";
+import { 
+  UserPlus, 
+  Users, 
+  UserCheck, 
+  GraduationCap, 
+  BarChart3, 
+  FileText,
+  ChevronDown,
+  ChevronRight 
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-
+import API from "../services/api";
+import { startOfDay, endOfDay, isAfter, format } from "date-fns";
 const AdminDashboard = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
 
+  const [activeQuickAction, setActiveQuickAction] = React.useState(null);
+  const [activeTab, setActiveTab] = React.useState("overview");
+  const [isReportsOpen, setIsReportsOpen] = React.useState(false);
+  const [selectedReport, setSelectedReport] = React.useState("attendees");
+
+  // LIVE STATS — same look as your old hardcoded one
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    pendingUsers: 0,
+    eventsToday: 0,
+    activeEvents: 0,
+    loading: true
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const today = new Date();
+        const todayStart = startOfDay(today);
+        const todayEnd = endOfDay(today);
+
+        const [usersRes, eventsRes] = await Promise.all([
+          API.get("/admin/users"),
+          API.get("/events")
+        ]);
+
+        const users = Array.isArray(usersRes.data)
+          ? usersRes.data
+          : usersRes.data?.data || usersRes.data?.users || [];
+
+        // Support both { events: [...] } and direct array
+        let events = Array.isArray(eventsRes.data)
+          ? eventsRes.data
+          : eventsRes.data?.events || eventsRes.data?.data || [];
+
+        // Normalize event dates
+        events = events.map(event => {
+          // Some events use 'date' for single-day, some use 'startDate'/'endDate'
+          let start = event.startDate || event.date;
+          let end = event.endDate || event.date;
+          return {
+            ...event,
+            _start: start ? new Date(start) : null,
+            _end: end ? new Date(end) : null
+          };
+        });
+
+        const totalUsers = users.filter(u => u.isVerified && u.isActive).length;
+        const pendingUsers = users.filter(u => !u.isVerified).length;
+
+        const eventsToday = events.filter(event => {
+          if (event.status !== "approved" || event.isArchived) return false;
+          if (!event._start || !event._end) return false;
+          return event._start <= todayEnd && event._end >= todayStart;
+        }).length;
+
+        const activeEvents = events.filter(event => {
+          if (event.status !== "approved" || event.isArchived) return false;
+          if (!event._end) return false;
+          return isAfter(event._end, today) || format(event._end, "yyyy-MM-dd") === format(today, "yyyy-MM-dd");
+        }).length;
+
+        setStats({ totalUsers, pendingUsers, eventsToday, activeEvents, loading: false });
+      } catch (err) {
+        setStats({ totalUsers: 0, pendingUsers: 0, eventsToday: 0, activeEvents: 0, loading: false });
+      }
+    };
+    fetchStats();
+  }, []);
+
   const sidebarItems = [
-    { to: "/admin", label: "Overview", icon: GraduationCap },
-    { to: "/admin/all-users", label: "All Users", icon: Users },
-    { to: "/admin/create-admin-officer", label: "Create Admin/Officer", icon: UserPlus },
-    { to: "/admin/manage-admins-officers", label: "Manage Admins/Officers", icon: Users },
-    { to: "/admin/pending-users", label: "Pending Users", icon: UserCheck },
+    { key: "overview", label: "Overview", icon: GraduationCap, onClick: () => setActiveTab("overview") },
+    { key: "upcoming", label: "Upcoming Events", icon: BarChart3, onClick: () => setActiveTab("upcoming") },
+    { key: "users", label: "All Users", icon: Users, onClick: () => setActiveTab("users") },
+
+    {
+      key: "reports",
+      label: "Reports",
+      icon: FileText,
+      isCollapsible: true,
+      isOpen: isReportsOpen,
+      onToggle: () => setIsReportsOpen(!isReportsOpen),
+      subItems: [
+        { label: "Attendees Report", onClick: () => { setSelectedReport("attendees"); setActiveTab("reports"); setIsReportsOpen(true); } },
+        { label: "Revenue Report",   onClick: () => { setSelectedReport("revenue");   setActiveTab("reports"); setIsReportsOpen(true); } },
+      ]
+    },
   ];
 
   return (
-    <DashboardLayout dashboardTitle="Admin Dashboard" roleLabel="Administrator" roleColor="bg-indigo-600" sidebarItems={sidebarItems}>
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Welcome Header */}
+    <DashboardLayout
+      dashboardTitle="Admin Dashboard"
+      roleLabel="Administrator"
+      roleColor="bg-indigo-600"
+      sidebarItems={sidebarItems}
+      activeKey={activeTab}
+      extraSidebarProps={{ isReportsOpen, selectedReport }}
+    >
+      <div className="max-w-7xl mx-auto">
 
-        {/* Quick Actions */}
-        <Card className="mb-8 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link to="/admin/create-admin-officer">
-                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800">
-                  <UserPlus className="w-6 h-6" />
-                  <span>Create Admin/Officer</span>
-                </Button>
-              </Link>
+        {/* Overview — EXACT SAME LOOK AS YOU HAD */}
+        {activeTab === "overview" && (
+          <div className="space-y-8">
+            <Card className="shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-2xl">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Button
+                    className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'create-admin-officer' ? 'ring-2 ring-cyan-500' : ''}`}
+                    onClick={() => setActiveQuickAction('create-admin-officer')}
+                  >
+                    <UserPlus className="w-8 h-8 mr-3" />
+                    Create Admin/Officer
+                  </Button>
+                  <Button
+                    className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'manage-admins' ? 'ring-2 ring-cyan-500' : ''}`}
+                    onClick={() => setActiveQuickAction('manage-admins')}
+                  >
+                    <Users className="w-8 h-8 mr-3" />
+                    Manage Admins
+                  </Button>
+                  <Button
+                    className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'pending-users' ? 'ring-2 ring-cyan-500' : ''}`}
+                    onClick={() => setActiveQuickAction('pending-users')}
+                  >
+                    <UserCheck className="w-8 h-8 mr-3" />
+                    Pending Users
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Link to="/admin/manage-admins-officers">
-                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800">
-                  <Users className="w-6 h-6" />
-                  <span>Manage Admins/Officers</span>
-                </Button>
-              </Link>
-
-              <Link to="/admin/pending-users">
-                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800">
-                  <UserCheck className="w-6 h-6" />
-                  <span>Pending Users</span>
-                </Button>
-              </Link>
+            {/* Your quick action components */}
+            <div className="mt-8">
+              {activeQuickAction === 'create-admin-officer' && <CreateAdminOfficer />}
+              {activeQuickAction === 'manage-admins' && <ManageAdminsOfficers />}
+              {activeQuickAction === 'pending-users' && <ManagePendingUsers />}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Reports Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Attendees Report */}
-          <Card className="shadow-lg">
-            <CardContent className="p-6">
-              <AttendeesReport />
-            </CardContent>
-          </Card>
+            {/* SAME EXACT STATISTICS CARD YOU HAD — now with real numbers */}
+            <Card className="max-w-2xl mx-auto shadow-xl mt-8">
+              <CardHeader>
+                <CardTitle className="text-3xl text-center">Platform Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {stats.loading ? (
+                  <p className="text-center py-8 text-gray-500">Loading...</p>
+                ) : (
+                  <table className="w-full text-left">
+                    <tbody className="text-lg">
+                      <tr className="border-b"><td className="py-4 font-semibold">Total Users</td><td className="text-right font-bold text-cyan-600">{stats.totalUsers.toLocaleString()}</td></tr>
+                      <tr className="border-b"><td className="py-4 font-semibold">Pending Users</td><td className="text-right font-bold text-orange-600">{stats.pendingUsers}</td></tr>
+                      <tr className="border-b"><td className="py-4 font-semibold">Events Today</td><td className="text-right font-bold text-green-600">{stats.eventsToday}</td></tr>
+                      <tr className="border-b"><td className="py-4 font-semibold">Active Events</td><td className="text-right font-bold text-indigo-600">{stats.activeEvents}</td></tr>
+                    </tbody>
+                  </table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-          {/* Revenue Report */}
-          <Card className="shadow-lg">
-            <CardContent className="p-6">
-              <RevenueReport />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Upcoming Events Section */}
-        <Card className="shadow-lg mb-8">
-          <CardContent className="p-6">
-            <UpcomingEvents />
-          </CardContent>
-        </Card>
+        {activeTab === "upcoming" && <UpcomingEvents userRole="admin" />}
+        {activeTab === "users" && <div className="mt-8"><AllUsers /></div>}
+        {activeTab === "reports" && (
+          <div className="mt-8 space-y-6">
+            {selectedReport === "attendees" ? <AttendeesReport /> : <RevenueReport />}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

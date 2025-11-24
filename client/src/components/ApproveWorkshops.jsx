@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Info } from "lucide-react";
+import { Info } from "lucide-react";
 
 export default function ApproveWorkshops() {
   const navigate = useNavigate();
@@ -65,13 +65,7 @@ export default function ApproveWorkshops() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-blue-50 to-indigo-100 p-6">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span>Back</span>
-      </button>
+
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
         Approve or Reject Workshops
       </h1>

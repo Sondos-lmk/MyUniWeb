@@ -143,12 +143,6 @@ export default function RequestEditForm() {
       )}
 
       {/* Back button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="mt-6 text-sm text-blue-600 hover:underline"
-      >
-        ← Back
-      </button>
     </div>
   );
 }

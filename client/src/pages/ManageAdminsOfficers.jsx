@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 
 export default function ManageAdminsOfficers() {
@@ -67,13 +66,6 @@ export default function ManageAdminsOfficers() {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span>Back</span>
-      </button>
 
       <Card className="shadow-lg">
         <CardHeader>
