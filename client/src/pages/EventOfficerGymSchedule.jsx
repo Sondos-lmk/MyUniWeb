@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
-import GymSchedule from './GymSchedule';
+import EventOfficeGymSchedule from './GymScheduleEOPage';
 import { ListChecks, GraduationCap, ClipboardList, Dumbbell, Calendar, Archive, Store, Users, Clipboard, FileText, Folder } from 'lucide-react';
 
 export default function EventOfficerGymSchedule() {
@@ -33,7 +33,7 @@ export default function EventOfficerGymSchedule() {
   return (
     <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={sidebarItems} extraSidebarProps={{ isReportsOpen, selectedReport }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <GymSchedule />
+        <EventOfficeGymSchedule />
       </div>
     </DashboardLayout>
   );
