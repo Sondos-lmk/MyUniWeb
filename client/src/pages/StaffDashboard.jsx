@@ -10,6 +10,11 @@ import EventCard from "../components/EventCard";
 import AttendedEvents from "./AttendedEvents";
 import Voting from "../components/Voting";
 import DashboardLayout from "../components/DashboardLayout";
+import { Calendar, Dumbbell, Store } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+//import { Calendar, Dumbbell, Store } from "lucide-react";
+
+
 
 const StaffDashboard = () => {
 	const [activeTab, setActiveTab] = useState("events");
@@ -85,6 +90,49 @@ const StaffDashboard = () => {
 			activeKey={activeTab}
 		>
 			<div className="mt-6">
+
+            {/* ⭐ QUICK ACTIONS (Styled like Event Officer) */}
+<Card className="mb-8 shadow-lg">
+  <CardHeader>
+    <CardTitle className="text-xl">Quick Actions</CardTitle>
+  </CardHeader>
+
+  <CardContent>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+{/* Register for Event */}
+<button
+      onClick={() => setActiveTab("register")}
+      className="p-6 rounded-xl shadow-md bg-blue-400 hover:bg-blue-500 transition flex flex-col items-center gap-3 text-white"
+    >
+      <Calendar className="w-10 h-10 text-white" />
+      <span className="text-lg font-semibold">Register for Event</span>
+    </button>
+
+    {/* Gym Sessions */}
+    <button
+      onClick={() => setActiveTab("gym")}
+      className="p-6 rounded-xl shadow-md bg-blue-400 hover:bg-blue-500 transition flex flex-col items-center gap-3 text-white"
+    >
+      <Dumbbell className="w-10 h-10 text-white" />
+      <span className="text-lg font-semibold">Gym Sessions</span>
+    </button>
+
+    {/* Loyalty Vendors */}
+    <button
+      onClick={() => setActiveTab("vendors")}
+      className="p-6 rounded-xl shadow-md bg-blue-400 hover:bg-blue-500 transition flex flex-col items-center gap-3 text-white"
+    >
+      <Store className="w-10 h-10 text-white" />
+      <span className="text-lg font-semibold">Loyalty Vendors</span>
+    </button>
+
+    </div>
+  </CardContent>
+</Card>
+
+
+
 				{activeTab === "events" && (
 					<>
 						<UpcomingEvents favoritesSet={favSet} onToggleFavorite={handleToggleFavorite} userRole="student" />
