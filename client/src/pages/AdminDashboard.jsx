@@ -156,26 +156,26 @@ const AdminDashboard = () => {
                 <CardTitle className="text-2xl">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button
-                    className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'create-admin-officer' ? 'ring-2 ring-cyan-500' : ''}`}
+                    className={`w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'create-admin-officer' ? 'ring-2 ring-cyan-500' : ''}`}
                     onClick={() => setActiveQuickAction('create-admin-officer')}
                   >
-                    <UserPlus className="w-8 h-8 mr-3" />
+                    <UserPlus className="w-5 h-5 mr-2" />
                     Create Admin/Officer
                   </Button>
                   <Button
-                    className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'manage-admins' ? 'ring-2 ring-cyan-500' : ''}`}
+                    className={`w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'manage-admins' ? 'ring-2 ring-cyan-500' : ''}`}
                     onClick={() => setActiveQuickAction('manage-admins')}
                   >
-                    <Users className="w-8 h-8 mr-3" />
+                    <Users className="w-5 h-5 mr-2" />
                     Manage Admins/Officers
                   </Button>
                   <Button
-                    className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'pending-users' ? 'ring-2 ring-cyan-500' : ''}`}
+                    className={`w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 ${activeQuickAction === 'pending-users' ? 'ring-2 ring-cyan-500' : ''}`}
                     onClick={() => setActiveQuickAction('pending-users')}
                   >
-                    <UserCheck className="w-8 h-8 mr-3" />
+                    <UserCheck className="w-5 h-5 mr-2" />
                     Pending Users
                   </Button>
                 </div>

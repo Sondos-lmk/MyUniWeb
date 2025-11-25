@@ -54,28 +54,28 @@ function EventOfficerDashboard() {
             <CardTitle className="text-2xl">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
                 onClick={() => setActiveQuickAction((v) => (v === 'create-event' ? null : 'create-event'))}
-                className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-3 text-white rounded-lg ${activeQuickAction === 'create-event' ? 'ring-2 ring-cyan-500' : ''}`}
+                className={`w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg ${activeQuickAction === 'create-event' ? 'ring-2 ring-cyan-500' : ''}`}
               >
-                <Calendar className="w-8 h-8 mr-3" />
+                <Calendar className="w-5 h-5" />
                 Create Event
               </button>
 
               <button
                 onClick={() => setActiveQuickAction((v) => (v === 'approve-vendors' ? null : 'approve-vendors'))}
-                className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-3 text-white rounded-lg ${activeQuickAction === 'approve-vendors' ? 'ring-2 ring-cyan-500' : ''}`}
+                className={`w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg ${activeQuickAction === 'approve-vendors' ? 'ring-2 ring-cyan-500' : ''}`}
               >
-                <Store className="w-8 h-8 mr-3" />
+                <Store className="w-5 h-5" />
                 Approve Vendors
               </button>
 
               <button
                 onClick={() => setActiveQuickAction((v) => (v === 'create-gym-session' ? null : 'create-gym-session'))}
-                className={`w-full h-24 text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-3 text-white rounded-lg ${activeQuickAction === 'create-gym-session' ? 'ring-2 ring-cyan-500' : ''}`}
+                className={`w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg ${activeQuickAction === 'create-gym-session' ? 'ring-2 ring-cyan-500' : ''}`}
               >
-                <Dumbbell className="w-8 h-8 mr-3" />
+                <Dumbbell className="w-5 h-5" />
                 Create Gym Session
               </button>
             </div>
