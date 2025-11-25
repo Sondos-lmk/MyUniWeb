@@ -18,7 +18,7 @@ const badgeColor = (type) => {
 
 export default function EventOfficerEventCard({ event, onEdit, onGenerateQr }) {
   const navigate = useNavigate();
-  const eventId = event?._id;
+  const eventId = event?._id || event?.id;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -26,11 +26,23 @@ export default function EventOfficerEventCard({ event, onEdit, onGenerateQr }) {
   const [loadingFeedback, setLoadingFeedback] = useState(false);
 
   const fmt = (d) => (d ? new Date(d).toLocaleString() : "—");
+  const eventStart = event?.startDate || event?.date;
+  const isUpcoming = eventStart ? new Date(eventStart) > new Date() : false;
+  const userLabel = (user) => user?.name || user?.email || "User";
 
   const handleViewFeedback = async () => {
+    if (showFeedback) {
+      setShowFeedback(false);
+      return;
+    }
+
     setShowFeedback(true);
     setLoadingFeedback(true);
     try {
+      if (!eventId) {
+        setFeedback({ ratings: [], comments: [] });
+        return;
+      }
       const data = await fetchEventFeedback(eventId);
       setFeedback(data);
     } catch (err) {
@@ -132,7 +144,7 @@ export default function EventOfficerEventCard({ event, onEdit, onGenerateQr }) {
       )}
 
       <div className="p-5 flex flex-col h-full">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 pr-8">
           <h3 className="text-lg font-semibold">{event.title}</h3>
           <span className={`px-2 py-0.5 rounded-full text-xs font-medium mr-8 ${badgeColor(event.type)}`}>
             {event.type}
@@ -170,12 +182,14 @@ export default function EventOfficerEventCard({ event, onEdit, onGenerateQr }) {
 
         {/* MAIN BUTTONS */}
         <div className="mt-auto pt-5 flex items-center gap-3">
-          <button
-            onClick={handleViewFeedback}
-            className="rounded-xl px-4 py-2 bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"
-          >
-            View Feedback
-          </button>
+          {!isUpcoming && (
+            <button
+              onClick={handleViewFeedback}
+              className="rounded-xl px-4 py-2 bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"
+            >
+              {showFeedback ? "Hide Feedback" : "View Feedback"}
+            </button>
+          )}
 
             <button
             onClick={() => navigate(`/eventOfficer/events/${eventId}/details`)}
@@ -197,14 +211,22 @@ export default function EventOfficerEventCard({ event, onEdit, onGenerateQr }) {
                 {feedback.ratings.length === 0 ? (
                   <p>No ratings yet</p>
                 ) : (
-                  feedback.ratings.map((r, i) => <p key={i}>⭐ {r.value}</p>)
+                  feedback.ratings.map((r, i) => (
+                    <p key={i}>
+                      {userLabel(r.user)} rated {r.value} / 5
+                    </p>
+                  ))
                 )}
 
                 <h4 className="font-semibold mt-4">Comments:</h4>
                 {feedback.comments.length === 0 ? (
                   <p>No comments yet</p>
                 ) : (
-                  feedback.comments.map((c, i) => <p key={i}>• {c.text}</p>)
+                  feedback.comments.map((c, i) => (
+                    <p key={i}>
+                      {userLabel(c.user)} commented: "{c.text}"
+                    </p>
+                  ))
                 )}
               </>
             )}
