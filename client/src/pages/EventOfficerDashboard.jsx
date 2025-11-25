@@ -26,7 +26,7 @@ function EventOfficerDashboard() {
     { to: "/eventOfficer/approveWorkshops", label: "Workshops", icon: ListChecks },
     { to: "/eventOfficer/all-events", label: "All Events", icon: ClipboardList },
     { to: "/gym-schedule", label: "Gym Schedule", icon: Dumbbell },
-    { to: "/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
+    { to: "/eventOfficer/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
     { to: "/eventOfficer/documents", label: "View Documents", icon: Folder },
     // Collapsible Reports group (Admin-style shape)
     {

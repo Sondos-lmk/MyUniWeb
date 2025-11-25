@@ -10,6 +10,8 @@ import EventCard from "../components/EventCard";
 import AttendedEvents from "./AttendedEvents";
 import DashboardLayout from "../components/DashboardLayout";
 import Voting from "../components/Voting";
+import LoyaltyVendors from "./LoyaltyVendors";
+import { Store, Home } from "lucide-react";
 
 function ProfessorDashboard() {
   const { user } = useAuth();
@@ -18,11 +20,19 @@ function ProfessorDashboard() {
   // Favorites
   const [favorites, setFavorites] = useState([]);
   const [favSet, setFavSet] = useState(new Set());
+  const [activeSection, setActiveSection] = useState("overview");
 
   // Tabs
   const [activeTab] = useState("events");
 
   const token = localStorage.getItem("token");
+
+  const sidebarItems = [
+    { key: "overview", label: "Overview", icon: Home, onClick: () => setActiveSection("overview") },
+    { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveSection("loyaltyVendors") },
+    { key: "gymSchedule", label: "Gym Schedule", to: "/professor/gym-schedule" },
+    { key: "registerEvent", label: "Register for Event", to: "/professor/register-event" },
+  ];
 
   // Load favorites
   useEffect(() => {
@@ -63,10 +73,8 @@ function ProfessorDashboard() {
       dashboardTitle="Professor Dashboard"
       roleLabel="Professor"
       roleColor="bg-green-500"
- sidebarItems={[
-      { label: "Gym Schedule", to: "/professor/gym-schedule" }, // ✅ new button
-      { label: "Register for Event", to: "/professor/register-event" },
-  ]}      activeKey={activeTab}
+      sidebarItems={sidebarItems}
+      activeKey={activeSection}
     >
       <div className="p-6">
         <h2 className="text-xl font-semibold mb-6">
@@ -91,61 +99,55 @@ function ProfessorDashboard() {
             >
               My Workshops
             </button>
-            {/*Loyaity Vendors*/}
-            <button
-              className="flex-1 min-h-[8rem] bg-purple-100 text-purple-700 text-2xl font-bold rounded-xl flex items-center justify-center shadow hover:bg-purple-200 transition"
-              onClick={() => navigate("/loyalty-vendors")}
-            >
-              Loyality Vendors
-            </button>
           </div>
         </section>
 
-        {/* (Optional) Attended tab – unchanged */}
-        {activeTab === "attended" && (
-          <div className="mt-6">
-            <AttendedEvents />
+        {activeSection === "loyaltyVendors" ? (
+          <div className="mt-10">
+            <LoyaltyVendors />
           </div>
-        )}
+        ) : (
+          <>
+            {/* (Optional) Attended tab – unchanged */}
+            {activeTab === "attended" && (
+              <div className="mt-6">
+                <AttendedEvents />
+              </div>
+            )}
 
-        {/* Loyalty vendors + events + gym */}
-        <div style={{ marginTop: 40 }}>
-          
-
-
-         
-          {activeTab === "favorites" && (
-            <div className="mt-6">
-              <h2 className="text-2xl font-bold text-center mb-4">
-                My Favorites
-              </h2>
-              {favorites.length === 0 ? (
-                <p className="text-center text-gray-600">
-                  No favorite events yet.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {favorites.map((ev) => {
-                    const id = ev._id || ev.id;
-                    return (
-                      <EventCard
-                        key={id}
-                        event={ev}
-                        userRole="professor"
-                        isFavorite={favSet.has(id)}
-                        onToggleFavorite={handleToggleFavorite}
-                      />
-                    );
-                  })}
+            <div style={{ marginTop: 40 }}>
+              {activeTab === "favorites" && (
+                <div className="mt-6">
+                  <h2 className="text-2xl font-bold text-center mb-4">
+                    My Favorites
+                  </h2>
+                  {favorites.length === 0 ? (
+                    <p className="text-center text-gray-600">
+                      No favorite events yet.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {favorites.map((ev) => {
+                        const id = ev._id || ev.id;
+                        return (
+                          <EventCard
+                            key={id}
+                            event={ev}
+                            userRole="professor"
+                            isFavorite={favSet.has(id)}
+                            onToggleFavorite={handleToggleFavorite}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
 
-          
-        </div>
-
-        <Voting />
+            <Voting />
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

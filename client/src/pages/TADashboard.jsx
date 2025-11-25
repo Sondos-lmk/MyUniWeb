@@ -9,6 +9,8 @@ import DashboardLayout from "../components/DashboardLayout";
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
 import AttendedEvents from "./AttendedEvents";
+import { Store } from "lucide-react";
+import LoyaltyVendors from "./LoyaltyVendors";
 
 // ⭐ ADD THIS (missing in second code)
 import Voting from "../components/Voting";
@@ -76,7 +78,7 @@ const TADashboard = () => {
     { key: "attended", label: "Attended Events", icon: null, onClick: () => setActiveTab("attended") },
     { key: "register", label: "Register for Event", icon: null, onClick: () => setActiveTab("register") },
     { key: "gym", label: "Gym Schedule", icon: null, onClick: () => setActiveTab("gym") },
-    { key: "vendors", label: "Loyalty Vendors", icon: null, onClick: () => setActiveTab("vendors") },
+    { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveTab("loyaltyVendors") },
   ];
 
   return (
@@ -87,7 +89,6 @@ const TADashboard = () => {
       sidebarItems={sidebarItems}
       activeKey={activeTab}
     >
-
       {/* Tabs */}
       <div className="flex justify-center gap-4 mb-8">
         <button
@@ -154,17 +155,6 @@ const TADashboard = () => {
           }`}
         >
           Gym Schedule
-        </button>
-
-        <button
-          onClick={() => setActiveTab("vendors")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "vendors"
-              ? "bg-purple-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          Loyalty Vendors
         </button>
       </div>
 
@@ -240,15 +230,10 @@ const TADashboard = () => {
         </div>
       )}
 
-      {/* Vendors */}
-      {activeTab === "vendors" && (
+      {/* Loyalty Vendors */}
+      {activeTab === "loyaltyVendors" && (
         <div className="mt-6">
-          <a
-            href="/loyalty-vendors"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-          >
-            View Loyalty Vendors
-          </a>
+          <LoyaltyVendors />
         </div>
       )}
     </DashboardLayout>

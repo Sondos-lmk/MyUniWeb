@@ -130,7 +130,7 @@ function App() {
 
           {/* NEW PAGES */}
           <Route path="/events/:id/generate-visitor-qr" element={<GenerateVisitorQR />} />
-          <Route path="/loyalty-vendors" element={<EventOfficerLoyalty />} />
+          <Route path="/eventOfficer/loyalty-vendors" element={<EventOfficerLoyalty />} />
           <Route path="/eventOfficer/attendees-report" element={<EventOfficerReportsAttendees />} />
           <Route path="/eventOfficer/revenue-report" element={<EventOfficerReportsRevenue />} />
           <Route path="/eventOfficer/events/:id/details" element={<EventDetailsPage />}/>
