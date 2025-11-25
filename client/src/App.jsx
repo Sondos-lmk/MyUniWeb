@@ -108,6 +108,7 @@ function App() {
           <Route path="/admin/all-users" element={<ManageAllUsers />} />
           <Route path="/admin/all-comments" element={<ManageAllComments />} />
           <Route path="/admin/documents" element={<ViewDocuments />} />
+          <Route path="/admin/events/:id/details" element={<EventDetailsPage />} />
         </Route>
 
         {/* Event Officer */}

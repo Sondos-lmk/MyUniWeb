@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import UpcomingEvents from "../components/UpcomingEvents";
+import { useLocation, useNavigate } from "react-router-dom";
+import AdminUpcomingEventsGrid from "../components/AdminUpcomingEventsGrid";
 import ManageAdminsOfficers from "./ManageAdminsOfficers";
 import ManagePendingUsers from "./ManagePendingUsers";
 import CreateAdminOfficer from "./CreateAdminOfficer";
@@ -33,9 +33,12 @@ import API from "../services/api";
 import { startOfDay, endOfDay, isAfter, format } from "date-fns";
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialTabFromLocation = location.state?.initialTab;
 
   const [activeQuickAction, setActiveQuickAction] = React.useState(null);
-  const [activeTab, setActiveTab] = React.useState("overview");
+  const [activeTab, setActiveTab] = React.useState(initialTabFromLocation || "overview");
   const [isReportsOpen, setIsReportsOpen] = React.useState(false);
   const [selectedReport, setSelectedReport] = React.useState("attendees");
 
@@ -47,6 +50,13 @@ const AdminDashboard = () => {
     activeEvents: 0,
     loading: true
   });
+
+  useEffect(() => {
+    if (initialTabFromLocation) {
+      setActiveTab(initialTabFromLocation);
+      navigate(location.pathname, { replace: true });
+    }
+  }, [initialTabFromLocation, navigate, location.pathname]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -190,10 +200,10 @@ const AdminDashboard = () => {
                 ) : (
                   <table className="w-full text-left">
                     <tbody className="text-lg">
-                      <tr className="border-b"><td className="py-4 font-semibold">Total Users</td><td className="text-right font-bold text-cyan-600">{stats.totalUsers.toLocaleString()}</td></tr>
-                      <tr className="border-b"><td className="py-4 font-semibold">Pending Users</td><td className="text-right font-bold text-orange-600">{stats.pendingUsers}</td></tr>
-                      <tr className="border-b"><td className="py-4 font-semibold">Events Today</td><td className="text-right font-bold text-green-600">{stats.eventsToday}</td></tr>
-                      <tr className="border-b"><td className="py-4 font-semibold">Active Events</td><td className="text-right font-bold text-indigo-600">{stats.activeEvents}</td></tr>
+                      <tr className="border-b"><td className="py-4 font-semibold">Total Users</td><td className="text-right font-bold bg-gradient-to-r from-cyan-600 to-blue-700 text-transparent bg-clip-text">{stats.totalUsers.toLocaleString()}</td></tr>
+                      <tr className="border-b"><td className="py-4 font-semibold">Pending Users</td><td className="text-right font-bold bg-gradient-to-r from-cyan-600 to-blue-700 text-transparent bg-clip-text">{stats.pendingUsers}</td></tr>
+                      <tr className="border-b"><td className="py-4 font-semibold">Events Today</td><td className="text-right font-bold bg-gradient-to-r from-cyan-600 to-blue-700 text-transparent bg-clip-text">{stats.eventsToday}</td></tr>
+                      <tr className="border-b"><td className="py-4 font-semibold">Active Events</td><td className="text-right font-bold bg-gradient-to-r from-cyan-600 to-blue-700 text-transparent bg-clip-text">{stats.activeEvents}</td></tr>
                     </tbody>
                   </table>
                 )}
@@ -202,7 +212,7 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {activeTab === "upcoming" && <UpcomingEvents userRole="admin" />}
+        {activeTab === "upcoming" && <AdminUpcomingEventsGrid />}
         {activeTab === "users" && <div className="mt-8"><AllUsers /></div>}
         {activeTab === "vendorRequests" && <div className="mt-8"><ManageVendorRequests /></div>}
         {activeTab === "allComments" && <div className="mt-8"><ManageAllComments /></div>}

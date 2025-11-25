@@ -51,22 +51,33 @@ export const applyToLoyaltyProgram = async (req, res) => {
     });
 
     await newEntry.save();
+
+    await Vendor.findByIdAndUpdate(
+      vendorId,
+      {
+        isLoyaltyPartner: true,
+        loyaltyDiscountPercent: discountRate,
+        loyaltyPromoCode: promoCode,
+        loyaltyTerms: termsAndConditions || '',
+      },
+      { new: false }
+    );
     const msg = `New Loyalty Partner Added: Vendor ${req.user.companyName || req.user.name} is now in GUC Loyalty Program with promo code ${promoCode}.`;
 
     await Student.updateMany({}, {
-      $push: { notifications: { message: msg } }
+      $push: { notifications: msg }
     });
 
     await Staff.updateMany({}, {
-      $push: { notifications: { message: msg } }
+      $push: { notifications: msg }
     });
 
     await TA.updateMany({}, {
-      $push: { notifications: { message: msg } }
+      $push: { notifications: msg }
     });
 
     await Professor.updateMany({}, {
-      $push: { notifications: { message: msg } }
+      $push: { notifications: msg }
     });
 
 
@@ -100,6 +111,17 @@ export const cancelLoyaltyProgram = async (req, res) => {
 
     // Remove the entry
     await LoyaltyProgram.deleteOne({ _id: entry._id });
+
+    await Vendor.findByIdAndUpdate(
+      vendorId,
+      {
+        isLoyaltyPartner: false,
+        loyaltyDiscountPercent: 0,
+        loyaltyPromoCode: '',
+        loyaltyTerms: '',
+      },
+      { new: false }
+    );
 
     res.status(200).json({ message: 'You have successfully cancelled your participation.' });
 
@@ -135,18 +157,35 @@ export const getMyLoyaltyStatus = async (req, res) => {
 
 export const getLoyaltyVendors = async (req, res) => {
   try {
-    const vendors = await Vendor.find({ isLoyaltyPartner: true })
-      .select("name loyaltyDiscountPercent loyaltyPromoCode loyaltyTerms");
+    const entries = await LoyaltyProgram.find()
+      .populate({
+        path: 'vendor',
+        select: 'email name companyName role isVerified',
+      })
+      .lean();
+
+    const vendors = entries
+      .filter((entry) => entry.vendor && entry.vendor.role === 'vendor')
+      .map((entry) => ({
+        id: entry._id?.toString() || null,
+        vendorId: entry.vendor._id?.toString() || null,
+        companyName: entry.vendor.companyName || '',
+        contactName: entry.vendor.name || '',
+        email: entry.vendor.email,
+        isVerified: entry.vendor.isVerified,
+        discountRate: entry.discountRate,
+        promoCode: entry.promoCode,
+        termsAndConditions: entry.termsAndConditions || '',
+      }));
 
     res.status(200).json({
-      message: "Loyalty vendors fetched successfully",
+      message: 'Loyalty vendors fetched successfully',
       count: vendors.length,
-      vendors
+      vendors,
     });
-    
   } catch (err) {
-    console.error("Error fetching loyalty vendors:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error('Error fetching loyalty vendors:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 

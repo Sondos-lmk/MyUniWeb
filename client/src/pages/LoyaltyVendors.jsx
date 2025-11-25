@@ -17,7 +17,28 @@ export default function LoyaltyVendors() {
           : Array.isArray(res.data)
           ? res.data
           : [];
-        setVendors(payload);
+
+        const normalized = payload.map((item, index) => ({
+          id:
+            item.id ||
+            item._id ||
+            item.vendorId ||
+            item.loyaltyProgramId ||
+            (item.promoCode ? `promo-${item.promoCode}` : `loyalty-${index}`),
+          companyName: item.companyName || item.name || "",
+          contactName: item.contactName || item.contactPerson || item.name || "",
+          email: item.email || item.contactEmail || "",
+          discountRate:
+            typeof item.discountRate === "number"
+              ? item.discountRate
+              : typeof item.loyaltyDiscountPercent === "number"
+              ? item.loyaltyDiscountPercent
+              : null,
+          promoCode: item.promoCode || item.loyaltyPromoCode || "",
+          termsAndConditions: item.termsAndConditions || item.loyaltyTerms || "",
+        }));
+
+        setVendors(normalized);
       } catch (err) {
         console.error("Error fetching loyalty vendors:", err);
         setError(err.response?.data?.message || "Failed to load loyalty partners. Please try again later.");
@@ -45,23 +66,43 @@ export default function LoyaltyVendors() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {vendors.map((v) => (
           <div
-            key={v._id}
+            key={v.id}
             className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
           >
-            <h2 className="text-xl font-semibold text-slate-800 mb-2">{v.name}</h2>
-            {v.loyaltyDiscountPercent !== undefined && (
+            <h2 className="text-xl font-semibold text-slate-800 mb-2">
+              Company: {v.companyName || v.contactName || "Loyalty Partner"}
+            </h2>
+            
+            {v.contactName && v.contactName !== v.companyName && (
               <p className="text-sm text-gray-700">
-                <strong className="text-gray-900">Discount:</strong> {v.loyaltyDiscountPercent}%
+                <span className="font-semibold text-gray-900">Contact:</span>{" "}
+                {v.contactName}
               </p>
             )}
-            {v.loyaltyPromoCode && (
+            {v.email && (
               <p className="text-sm text-gray-700">
-                <strong className="text-gray-900">Promo Code:</strong> {v.loyaltyPromoCode}
+                <span className="font-semibold text-gray-900">Email:</span>{" "}
+                <a href={`mailto:${v.email}`} className="text-indigo-600 hover:underline">
+                  {v.email}
+                </a>
               </p>
             )}
-            {v.loyaltyTerms && (
+            {typeof v.discountRate === "number" && (
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold text-gray-900">Discount:</span>{" "}
+                {v.discountRate}% off
+              </p>
+            )}
+            {v.promoCode && (
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold text-gray-900">Promo Code:</span>{" "}
+                {v.promoCode}
+              </p>
+            )}
+            {v.termsAndConditions && (
               <p className="mt-3 text-sm text-gray-600">
-                <strong className="text-gray-900">Terms & Conditions:</strong> {v.loyaltyTerms}
+                <span className="font-semibold text-gray-900">Terms & Conditions:</span>{" "}
+                {v.termsAndConditions}
               </p>
             )}
           </div>

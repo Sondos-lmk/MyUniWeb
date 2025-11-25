@@ -69,7 +69,33 @@ const StudentDashboard = () => {
     try {
       setLoadingVendors(true);
       const res = await api.get("/loyalty/vendors");
-      setLoyaltyVendors(res.data.vendors || []);
+      const payload = Array.isArray(res.data?.vendors)
+        ? res.data.vendors
+        : Array.isArray(res.data)
+        ? res.data
+        : [];
+
+      const normalized = payload.map((item, index) => ({
+        id:
+          item.id ||
+          item._id ||
+          item.vendorId ||
+          item.loyaltyProgramId ||
+          (item.promoCode ? `promo-${item.promoCode}` : `loyalty-${index}`),
+        companyName: item.companyName || item.name || "",
+        contactName: item.contactName || item.contactPerson || item.name || "",
+        email: item.email || item.contactEmail || "",
+        discountRate:
+          typeof item.discountRate === "number"
+            ? item.discountRate
+            : typeof item.loyaltyDiscountPercent === "number"
+            ? item.loyaltyDiscountPercent
+            : 0,
+        promoCode: item.promoCode || item.loyaltyPromoCode || "",
+        termsAndConditions: item.termsAndConditions || item.loyaltyTerms || "",
+      }));
+
+      setLoyaltyVendors(normalized);
     } catch (err) {
       console.error("Error fetching loyalty vendors:", err);
     } finally {
@@ -584,25 +610,30 @@ const StudentDashboard = () => {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {loyaltyVendors.map((vendor) => {
-                // Calculate points (mock calculation - adjust based on your backend)
-                const points = Math.floor((vendor.loyaltyDiscountPercent || 0) * 10) || 0;
+                // Rough points conversion scaled from discount rate
+                const points = Math.floor((vendor.discountRate || 0) * 10) || 0;
                 
                 return (
-                  <Card key={vendor._id}>
+                  <Card key={vendor.id}>
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <Store className="size-8 text-blue-600" />
                         <Badge className="bg-green-100 text-green-700">
-                          {vendor.loyaltyDiscountPercent || 0}% OFF
+                          {vendor.discountRate || 0}% OFF
                         </Badge>
                       </div>
                       <h3 className="text-slate-900 mb-2 font-semibold">
-                        {vendor.name || vendor.companyName}
+                        Company: {vendor.companyName || vendor.contactName || "Loyalty Partner"}
                       </h3>
                       <div className="flex items-center gap-2 text-slate-600 mb-4">
                         <TrophyIcon className="size-4" />
                         <span className="text-sm">{points} points earned</span>
                       </div>
+                      {vendor.promoCode && (
+                        <p className="text-xs text-slate-600 mb-4">
+                          Use code <span className="font-semibold text-slate-800">{vendor.promoCode}</span> to redeem.
+                        </p>
+                      )}
                       <Button variant="outline" className="w-full">
                         View Offers
                       </Button>

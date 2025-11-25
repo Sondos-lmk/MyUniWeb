@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import API from "../services/api";
 import EditEventForm from "../components/EditEventForm";
 import GenerateVisitorQRModal from "../components/GenerateVisitorQRModal";
@@ -9,6 +9,16 @@ const fmtDateTime = (d) => (d ? new Date(d).toLocaleString() : "—");
 export default function EventDetailsPage() {
   const { id } = useParams();             // event id
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const fromAdminUpcoming = location.state?.from === "admin-upcoming";
+  const isAdminView = fromAdminUpcoming || location.pathname.startsWith("/admin/");
+  const backDestination = isAdminView ? "/admin" : "/eventOfficer/all-events";
+  const backState = isAdminView ? { initialTab: "upcoming" } : undefined;
+  const backLabel = isAdminView ? "← Back to Upcoming Events" : "← Back to All Events";
+  const headerSubLabel = isAdminView
+    ? "Administrator · Event Details"
+    : "Event Officer · More Information";
 
   const [event, setEvent] = useState(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
@@ -23,6 +33,22 @@ export default function EventDetailsPage() {
   const [showQRModal, setShowQRModal] = useState(false);
 
   const [coverPreview, setCoverPreview] = useState(null); // local-only image
+
+  const showQrFeatures = !isAdminView;
+
+  useEffect(() => {
+    if (!showQrFeatures && activeTab !== "info") {
+      setActiveTab("info");
+    }
+  }, [showQrFeatures, activeTab]);
+
+  const handleBack = () => {
+    if (isAdminView) {
+      navigate(backDestination, { state: backState });
+    } else {
+      navigate(backDestination);
+    }
+  };
 
   // ───────────────── Event Details ─────────────────
   useEffect(() => {
@@ -104,10 +130,10 @@ export default function EventDetailsPage() {
       <div className="max-w-5xl mx-auto px-6 py-10">
         <p className="text-red-600">{error || "Event not found."}</p>
         <button
-          onClick={() => navigate("/eventOfficer/all-events")}
+          onClick={handleBack}
           className="mt-4 px-4 py-2 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 text-sm font-semibold"
         >
-          ← Back to All Events
+          {backLabel}
         </button>
       </div>
     );
@@ -118,10 +144,10 @@ export default function EventDetailsPage() {
       {/* Top header row: Back + Title + Tag */}
       <div className="flex items-center justify-between mb-6">
         <button
-          onClick={() => navigate("/eventOfficer/all-events")}
+          onClick={handleBack}
           className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200"
         >
-          ← Back to All Events
+          {backLabel}
         </button>
 
         <div className="flex-1 text-center">
@@ -129,7 +155,7 @@ export default function EventDetailsPage() {
             {event.title}
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Event Officer · More Information
+            {headerSubLabel}
           </p>
         </div>
 
@@ -157,21 +183,23 @@ export default function EventDetailsPage() {
           >
             Information
           </button>
-          <button
-            className={`pb-3 text-sm font-semibold ${
-              activeTab === "qr"
-                ? "text-indigo-600 border-b-2 border-indigo-600"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
-            onClick={() => setActiveTab("qr")}
-          >
-            QR Codes
-          </button>
+          {showQrFeatures && (
+            <button
+              className={`pb-3 text-sm font-semibold ${
+                activeTab === "qr"
+                  ? "text-indigo-600 border-b-2 border-indigo-600"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+              onClick={() => setActiveTab("qr")}
+            >
+              QR Codes
+            </button>
+          )}
         </div>
 
         {/* Tab Content */}
         <div className="px-6 py-6">
-          {activeTab === "info" ? (
+          {activeTab === "info" || !showQrFeatures ? (
             <>
               {/* Information Tab */}
               <div className="grid md:grid-cols-[2fr,1fr] gap-6">
@@ -284,14 +312,16 @@ export default function EventDetailsPage() {
                     </div>
                   </div>
 
-                  <div className="pt-2">
-                    <button
-                      onClick={() => setShowEditModal(true)}
-                      className="w-full rounded-xl px-4 py-2 bg-red-500 text-white text-sm font-semibold hover:bg-red-600"
-                    >
-                      Edit Event
-                    </button>
-                  </div>
+                  {!isAdminView && (
+                    <div className="pt-2">
+                      <button
+                        onClick={() => setShowEditModal(true)}
+                        className="w-full rounded-xl px-4 py-2 bg-red-500 text-white text-sm font-semibold hover:bg-red-600"
+                      >
+                        Edit Event
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
@@ -300,12 +330,14 @@ export default function EventDetailsPage() {
               {/* QR Codes Tab */}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Visitor QR Codes</h2>
-                <button
-                  onClick={() => setShowQRModal(true)}
-                  className="rounded-xl px-4 py-2 bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"
-                >
-                  Generate New QR
-                </button>
+                {showQrFeatures && (
+                  <button
+                    onClick={() => setShowQRModal(true)}
+                    className="rounded-xl px-4 py-2 bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"
+                  >
+                    Generate New QR
+                  </button>
+                )}
               </div>
 
               {loadingVisitors ? (
@@ -369,14 +401,14 @@ export default function EventDetailsPage() {
       </div>
 
       {/* Modals */}
-      {showEditModal && (
+      {!isAdminView && showEditModal && (
         <EditEventForm
           eventId={event._id}
           onClose={() => setShowEditModal(false)}
         />
       )}
 
-      {showQRModal && (
+      {showQrFeatures && showQRModal && (
         <GenerateVisitorQRModal
           eventId={event._id}
           onClose={() => setShowQRModal(false)}

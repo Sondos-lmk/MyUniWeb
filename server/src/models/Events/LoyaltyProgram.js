@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const loyaltyProgramSchema = new mongoose.Schema({
   vendor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Users', // Refers to the base 'User' model
+    ref: 'User', // Refer to the base discriminator model so populate works
     required: true,
     unique: true, // A vendor can only have one entry
   },
