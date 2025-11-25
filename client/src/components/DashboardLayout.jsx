@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import { LogOut, Wallet, ChevronDown, ChevronRight } from 'lucide-react';
+import api from '../services/api';
 
 export default function DashboardLayout({ 
   children, 
@@ -11,10 +12,12 @@ export default function DashboardLayout({
   roleLabel = null,
   roleColor = "bg-green-500",
   activeKey = null,
-  extraSidebarProps = {} // For Reports dropdown state
+  extraSidebarProps = {} 
 }) {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [walletBalance, setWalletBalance] = useState(null);
+  const [walletLoading, setWalletLoading] = useState(false);
 
   const active = (path) =>
     location.pathname === path || location.pathname.startsWith(path + '/')
@@ -44,6 +47,33 @@ export default function DashboardLayout({
   };
   
   const displayRoleLabel = roleLabel || defaultRoleLabels[userRole] || 'User';
+  const shouldShowWallet = user && ['student', 'staff', 'ta', 'professor'].includes(userRole);
+
+  useEffect(() => {
+    if (!shouldShowWallet) return;
+
+    let isActive = true;
+    setWalletLoading(true);
+
+    api
+      .get('/payment/wallet')
+      .then((res) => {
+        if (!isActive) return;
+        const balanceValue = Number(res.data?.balance);
+        setWalletBalance(Number.isFinite(balanceValue) ? balanceValue : 0);
+      })
+      .catch((err) => {
+        console.error('Failed to load wallet balance:', err);
+        if (isActive) setWalletBalance(null);
+      })
+      .finally(() => {
+        if (isActive) setWalletLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [shouldShowWallet]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-blue-50 to-indigo-100">
@@ -169,10 +199,16 @@ export default function DashboardLayout({
             <div className="flex items-center gap-3">
               {user && userRole !== "vendor" && <NotificationBell />}
               
-              {user && ['student', 'staff', 'ta', 'professor'].includes(userRole) && (
+              {shouldShowWallet && (
                 <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 text-white text-sm font-medium hover:from-cyan-700 hover:to-blue-800 transition-colors">
                   <Wallet className="w-4 h-4" />
-                  <span className="hidden sm:inline">$150.50</span>
+                  <span className="hidden sm:inline">
+                    {walletLoading
+                      ? '...'
+                      : walletBalance === null
+                        ? 'N/A'
+                        : `${walletBalance.toFixed(2)} EGP`}
+                  </span>
                 </button>
               )}
 
