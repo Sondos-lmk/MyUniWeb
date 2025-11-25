@@ -14,10 +14,11 @@ import VendorPolls from "../components/VendorPolls";
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
 import { useAuth } from "../context/AuthContext";
-import { Calendar, CheckCircle, Star, Home, Trophy, Dumbbell, Store, Heart, Wallet, Clock, Trophy as TrophyIcon } from "lucide-react";
+import { Calendar, CheckCircle, Star, Home, Trophy, Dumbbell, Store, Heart, Clock } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import LoyaltyVendors from "./LoyaltyVendors";
 
 const StudentDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -34,14 +35,6 @@ const StudentDashboard = () => {
   const [favorites, setFavorites] = useState([]);
   const [favSet, setFavSet] = useState(new Set());
 
-  // Wallet balance
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [loadingWallet, setLoadingWallet] = useState(true);
-
-  // Loyalty vendors
-  const [loyaltyVendors, setLoyaltyVendors] = useState([]);
-  const [loadingVendors, setLoadingVendors] = useState(true);
-
   // Gym sessions
   const [gymSessions, setGymSessions] = useState([]);
   const [loadingGym, setLoadingGym] = useState(true);
@@ -49,59 +42,6 @@ const StudentDashboard = () => {
 
   const navigate = useNavigate();
   const { user } = useAuth();
-
-  // Fetch wallet balance
-  const fetchWalletBalance = async () => {
-    try {
-      setLoadingWallet(true);
-      const res = await api.get("/payment/wallet");
-      setWalletBalance(res.data.balance || 0);
-    } catch (err) {
-      console.error("Error fetching wallet:", err);
-      setWalletBalance(150.5); // Fallback to default
-    } finally {
-      setLoadingWallet(false);
-    }
-  };
-
-  // Fetch loyalty vendors
-  const fetchLoyaltyVendors = async () => {
-    try {
-      setLoadingVendors(true);
-      const res = await api.get("/loyalty/vendors");
-      const payload = Array.isArray(res.data?.vendors)
-        ? res.data.vendors
-        : Array.isArray(res.data)
-        ? res.data
-        : [];
-
-      const normalized = payload.map((item, index) => ({
-        id:
-          item.id ||
-          item._id ||
-          item.vendorId ||
-          item.loyaltyProgramId ||
-          (item.promoCode ? `promo-${item.promoCode}` : `loyalty-${index}`),
-        companyName: item.companyName || item.name || "",
-        contactName: item.contactName || item.contactPerson || item.name || "",
-        email: item.email || item.contactEmail || "",
-        discountRate:
-          typeof item.discountRate === "number"
-            ? item.discountRate
-            : typeof item.loyaltyDiscountPercent === "number"
-            ? item.loyaltyDiscountPercent
-            : 0,
-        promoCode: item.promoCode || item.loyaltyPromoCode || "",
-        termsAndConditions: item.termsAndConditions || item.loyaltyTerms || "",
-      }));
-
-      setLoyaltyVendors(normalized);
-    } catch (err) {
-      console.error("Error fetching loyalty vendors:", err);
-    } finally {
-      setLoadingVendors(false);
-    }
-  };
 
   // Fetch gym sessions
   const fetchGymSessions = async () => {
@@ -158,8 +98,6 @@ const StudentDashboard = () => {
         setFavorites(favs);
         setFavSet(new Set(favs.map((e) => e._id || e.id)));
 
-        // Fetch wallet balance
-        fetchWalletBalance();
       } catch (err) {
         console.error("Error fetching student dashboard data:", err);
         if (err.response?.status === 401) {
@@ -174,9 +112,7 @@ const StudentDashboard = () => {
 
   // Fetch data when tab changes
   useEffect(() => {
-    if (activeTab === "vendors") {
-      fetchLoyaltyVendors();
-    } else if (activeTab === "gym") {
+    if (activeTab === "gym") {
       fetchGymSessions();
     }
   }, [activeTab]);
@@ -238,6 +174,13 @@ const StudentDashboard = () => {
         setActiveTab("courts");
         fetchCourts();
       },
+      path: "/student/dashboard"
+    },
+    {
+      key: "loyaltyVendors",
+      label: "Loyalty Vendors",
+      icon: Store,
+      onClick: () => setActiveTab("loyaltyVendors"),
       path: "/student/dashboard"
     },
   ];
@@ -334,27 +277,6 @@ const StudentDashboard = () => {
                   </div>
                 </div>
               </button>
-
-              {/* Loyalty Vendors Card */}
-              <button
-                onClick={() => setActiveTab("vendors")}
-                className="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all duration-200 text-left group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <Store className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-cyan-600 transition-colors">
-                      Loyalty Vendors
-                    </h3>
-                    <p className="text-sm text-slate-600 mt-1">
-                      View exclusive discounts and offers
-                    </p>
-                  </div>
-                </div>
-              </button>
-
               {/* Gym Schedule Card */}
               <button
                 onClick={() => setActiveTab("gym")}
@@ -584,65 +506,10 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      {/* LOYALTY VENDORS TAB */}
-      {activeTab === "vendors" && (
+      {/* LOYALTY VENDORS */}
+      {activeTab === "loyaltyVendors" && (
         <div className="mt-6">
-          <h2 className="mb-4 text-center">Loyalty Program Vendors</h2>
-          
-          {/* Wallet Balance Card */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-600 mb-1">Your Wallet Balance</p>
-                <p className="text-slate-900 text-2xl font-semibold">
-                  ${loadingWallet ? "Loading..." : walletBalance.toFixed(2)}
-                </p>
-              </div>
-              <Wallet className="size-12 text-blue-600" />
-            </div>
-          </div>
-
-          {/* Vendor Cards */}
-          {loadingVendors ? (
-            <p className="text-center">Loading vendors...</p>
-          ) : loyaltyVendors.length === 0 ? (
-            <p className="text-center text-slate-600">No vendors available at the moment.</p>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {loyaltyVendors.map((vendor) => {
-                // Rough points conversion scaled from discount rate
-                const points = Math.floor((vendor.discountRate || 0) * 10) || 0;
-                
-                return (
-                  <Card key={vendor.id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <Store className="size-8 text-blue-600" />
-                        <Badge className="bg-green-100 text-green-700">
-                          {vendor.discountRate || 0}% OFF
-                        </Badge>
-                      </div>
-                      <h3 className="text-slate-900 mb-2 font-semibold">
-                        Company: {vendor.companyName || vendor.contactName || "Loyalty Partner"}
-                      </h3>
-                      <div className="flex items-center gap-2 text-slate-600 mb-4">
-                        <TrophyIcon className="size-4" />
-                        <span className="text-sm">{points} points earned</span>
-                      </div>
-                      {vendor.promoCode && (
-                        <p className="text-xs text-slate-600 mb-4">
-                          Use code <span className="font-semibold text-slate-800">{vendor.promoCode}</span> to redeem.
-                        </p>
-                      )}
-                      <Button variant="outline" className="w-full">
-                        View Offers
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+          <LoyaltyVendors />
         </div>
       )}
     </DashboardLayout>

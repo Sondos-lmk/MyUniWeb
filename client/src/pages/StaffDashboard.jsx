@@ -12,6 +12,7 @@ import Voting from "../components/Voting";
 import DashboardLayout from "../components/DashboardLayout";
 import { Calendar, Dumbbell, Store } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import LoyaltyVendors from "./LoyaltyVendors";
 //import { Calendar, Dumbbell, Store } from "lucide-react";
 
 
@@ -78,7 +79,7 @@ const StaffDashboard = () => {
 		{ key: "attended", label: "Attended Events", icon: null, onClick: () => setActiveTab("attended") },
 		{ key: "register", label: "Register for Event", icon: null, onClick: () => setActiveTab("register") },
 		{ key: "gym", label: "Gym Schedule", icon: null, onClick: () => setActiveTab("gym") },
-		{ key: "vendors", label: "Loyalty Vendors", icon: null, onClick: () => setActiveTab("vendors") },
+		{ key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveTab("loyaltyVendors") },
 	];
 
 	return (
@@ -117,16 +118,6 @@ const StaffDashboard = () => {
       <Dumbbell className="w-10 h-10 text-white" />
       <span className="text-lg font-semibold">Gym Sessions</span>
     </button>
-
-    {/* Loyalty Vendors */}
-    <button
-      onClick={() => setActiveTab("vendors")}
-      className="p-6 rounded-xl shadow-md bg-blue-400 hover:bg-blue-500 transition flex flex-col items-center gap-3 text-white"
-    >
-      <Store className="w-10 h-10 text-white" />
-      <span className="text-lg font-semibold">Loyalty Vendors</span>
-    </button>
-
     </div>
   </CardContent>
 </Card>
@@ -172,9 +163,10 @@ const StaffDashboard = () => {
 					<div className="mt-6"><GymSchedule /></div>
 				)}
 
-				{activeTab === "vendors" && (
-					<div className="mt-6"><a href="/loyalty-vendors" className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">View Loyalty Vendors</a></div>
+				{activeTab === "loyaltyVendors" && (
+					<div className="mt-6"><LoyaltyVendors /></div>
 				)}
+
 			</div>
 		</DashboardLayout>
 	);
