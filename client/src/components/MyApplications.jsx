@@ -202,8 +202,8 @@ function MyApplications() {
 
   return (
     <>
-      <div className="p-6 bg-white shadow-md rounded-2xl mt-6">
-        <h2 className="text-xl font-bold mb-4">My Applications</h2>
+      <div className="p-6 bg-white  rounded-2xl mt-6">
+       
 
         {!applications.length ? (
           <div className="p-6 border rounded-2xl text-center">

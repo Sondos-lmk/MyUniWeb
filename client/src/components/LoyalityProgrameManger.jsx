@@ -101,13 +101,10 @@ const LoyaltyApplyForm = ({ onApplySuccess }) => {
 
       {error && <p className="text-red-600 mb-4">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 transition disabled:opacity-50"
-      >
-        {loading ? 'Submitting...' : 'Apply to Program'}
-      </button>
+      <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50">
+        {loading ? 'Submitting...' : 'Apply to Program'}</button>
+
+
     </form>
   );
 };

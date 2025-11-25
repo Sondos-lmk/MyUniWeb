@@ -8,7 +8,7 @@ export default function ApprovedEvents() {
   const [conflictCount, setConflictCount] = useState(0);
   const [conflicts, setConflicts] = useState([]);
   const [polls, setPolls] = useState([]);
-
+  const [loading, setLoading] = useState(false); // <-- Add loading state
   const [events, setEvents] = useState([]);
   const [vendorsMap, setVendorsMap] = useState({});
   
@@ -16,6 +16,7 @@ export default function ApprovedEvents() {
 
   useEffect(() => {
     const fetchEvents = async () => {
+      setLoading(true); 
       try {
         const [bazaarsRes, boothsRes,conflictsRes,pollsRes] = await Promise.all([
           API.get("/events", { params: { type: "bazaar" } }),
@@ -79,6 +80,9 @@ export default function ApprovedEvents() {
       } catch (err) {
         console.error("Error fetching events:", err);
       }
+        finally {
+      setLoading(false); // stop loading after fetch
+    }
     };
 
     //const fetchPolls = async () => {
@@ -95,8 +99,9 @@ export default function ApprovedEvents() {
     fetchEvents();
     //fetchPolls();
   }, []);
-
+  
   const handleVendorStatus = async (eventId, registrationId, newStatus) => {
+    setLoading(true);
   try {
     const response = await API.patch(
       `/events/${eventId}/vendors/${registrationId}`,
@@ -125,6 +130,8 @@ export default function ApprovedEvents() {
     alert(
       err.response?.data?.error || "Failed to update vendor status."
     );
+  } finally {
+    setLoading(false);
   }
 };
 
@@ -135,7 +142,17 @@ export default function ApprovedEvents() {
   };
 
   return (
-    <div className="p-6">
+    <div className=" relative p-6">
+      {/* ------------------ LOADING OVERLAY ------------------ */}
+      {loading && (
+  <div className="absolute inset-0 bg-gray-200/30 z-50 flex items-center justify-center">
+    <div className="flex flex-col items-center">
+      {/* Spinner circle */}
+      <div className="w-12 h-12 border-4 border-t-blue-500 border-b-blue-500 border-gray-200 rounded-full animate-spin"></div>
+    </div>
+  </div>
+)}
+
       <h2 className="text-2xl font-bold mb-4">Vendor Requests</h2>
 
       {/* ---------------------- TABS NAVIGATION ---------------------- */}
