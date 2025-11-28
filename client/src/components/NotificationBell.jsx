@@ -18,17 +18,34 @@ const NotificationBell = () => {
     try {
       const res = await API.get("/notifications");
       const fetchedNotifications = res.data.notifications || [];
-      // Transform API notifications to match the expected format
-      const formattedNotifications = fetchedNotifications.map((notif, index) => ({
-        id: notif._id || notif.id || String(index),
-        type: notif.type || "announcement",
-        title: notif.title || notif.message?.substring(0, 30) || "Notification",
-        message: notif.message || notif.content || "",
-        time: notif.createdAt 
-          ? new Date(notif.createdAt).toLocaleString()
-          : "Recently",
-        isRead: notif.isRead || false,
-      }));
+      
+      // Handle both string notifications and object notifications
+      const formattedNotifications = fetchedNotifications.map((notif, index) => {
+        // If notification is a string
+        if (typeof notif === 'string') {
+          return {
+            id: String(index),
+            type: "announcement",
+            title: "Notification",
+            message: notif,
+            time: "Recently",
+            isRead: false,
+          };
+        }
+        
+        // If notification is an object
+        return {
+          id: notif._id || notif.id || String(index),
+          type: notif.type || "announcement",
+          title: notif.title || "Notification",
+          message: notif.message || notif.content || "",
+          time: notif.createdAt 
+            ? new Date(notif.createdAt).toLocaleString()
+            : "Recently",
+          isRead: notif.isRead || false,
+        };
+      });
+      
       setNotifications(formattedNotifications);
     } catch (err) {
       console.error("Error fetching notifications:", err);

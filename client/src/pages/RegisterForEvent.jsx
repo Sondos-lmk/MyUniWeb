@@ -46,14 +46,12 @@ export default function RegisterForEvent() {
 
     setLoading(true);
     try {
-      // You can include name/email/uniID here just for record-keeping if you want,
-      // but backend only needs eventId (user is inferred from JWT).
       console.log("🔍 Submitting eventId:", selectedEvent);
       const res = await api.post(`/events/register/${selectedEvent}`, {
         eventId: selectedEvent,
         name,
         email,
-        uniID,
+        id: uniID,
       });
 
       setMessage(res.data.message || "✅ Successfully registered!");
@@ -77,7 +75,6 @@ export default function RegisterForEvent() {
         <h2 className="text-2xl font-bold mb-6 text-center">
           Register for Workshop / Trip
         </h2>
-
 
         {/* Name */}
         <input

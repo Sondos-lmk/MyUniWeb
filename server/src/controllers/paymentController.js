@@ -214,8 +214,9 @@ export const requestRefund = async (req, res) => {
       return res.status(404).json({ error: "Registration not found in user profile." });
     }
 
-    
+    const registration = user.registeredEvents[regIndex];
 
+    // 4. Process refund if paid
     if (registration.paymentStatus === 'paid') {
       if (typeof user.wallet !== 'number' || isNaN(user.wallet)) {
         user.wallet = 0;
@@ -224,7 +225,7 @@ export const requestRefund = async (req, res) => {
       const refundAmount = registration.priceAtRegistration;
       user.wallet += refundAmount;
 
-      // ⭐ NEW: store refund transaction
+      // ⭐ Store refund transaction
       user.walletTransactions.push({
         amount: refundAmount,
         type: "refund",
@@ -233,12 +234,22 @@ export const requestRefund = async (req, res) => {
       });
     }
 
-    // 5. Remove registration
-    user.registeredEvents.splice(regIndex, 1);
+    // 5. Remove user from event's registered users
+    const userId = user._id;
+    if (event.registeredUsers && event.registeredUsers.includes(userId)) {
+      event.registeredUsers = event.registeredUsers.filter(
+        (id) => !id.equals(userId)
+      );
+    }
+    if (event.registeredStudents && event.registeredStudents.includes(userId)) {
+      event.registeredStudents = event.registeredStudents.filter(
+        (id) => !id.equals(userId)
+      );
+    }
+    await event.save();
 
-    // 6. Save
+    // 6. Remove registration from user
     user.registeredEvents.splice(regIndex, 1);
-
     await user.save();
 
     res.status(200).json({

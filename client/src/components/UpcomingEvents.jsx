@@ -30,7 +30,10 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
       const res = await API.get("/events/upcoming", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setEvents(res.data.events || []);
+      // Filter out gym events
+      const allEvents = res.data.events || [];
+      const filteredEvents = allEvents.filter(event => event.type !== "gym");
+      setEvents(filteredEvents);
       setError(null);
     } catch (err) {
       console.error("Error fetching events:", err);
@@ -56,7 +59,10 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
         params: { name: searchName, type },
         headers: { Authorization: `Bearer ${token}` },
       });
-      setEvents(res.data.events || []);
+      // Filter out gym events
+      const allEvents = res.data.events || [];
+      const filteredEvents = allEvents.filter(event => event.type !== "gym");
+      setEvents(filteredEvents);
       setError(null);
     } catch (err) {
       console.error("Error searching events:", err);
@@ -93,7 +99,9 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
         ? res.data
         : res.data.events || [];
   
-      setEvents(payload);
+      // Filter out gym events
+      const filteredEvents = payload.filter(event => event.type !== "gym");
+      setEvents(filteredEvents);
     } catch (err) {
       console.error("Error filtering events:", err);
       setError("Failed to filter events.");
@@ -138,7 +146,6 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
               <SelectItem value="bazaar">Bazaar</SelectItem>
               <SelectItem value="booth">Booth</SelectItem>
               <SelectItem value="conference">Conference</SelectItem>
-              <SelectItem value="gym">Gym Session</SelectItem>
             </SelectContent>
           </Select>
 
@@ -198,7 +205,10 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
                 const payload = Array.isArray(res.data)
                   ? res.data
                   : res.data.events || [];
-                setEvents(payload);
+                
+                // Filter out gym events
+                const filteredEvents = payload.filter(event => event.type !== "gym");
+                setEvents(filteredEvents);
               } catch (err) {
                 console.error("Error sorting events:", err);
                 setError("Failed to sort events.");

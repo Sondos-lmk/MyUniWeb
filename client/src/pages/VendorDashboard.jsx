@@ -53,6 +53,9 @@ function Dashboard() {
     },
   ];
 
+  const quickActionClasses =
+    "w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg shadow";
+
   // Fetch vendor profile including logo
   useEffect(() => {
     if (role === 'vendor') {
@@ -220,15 +223,19 @@ function Dashboard() {
               <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
-                  className="min-h-[8rem] bg-teal-100 text-teal-700 text-xl font-bold rounded-xl flex items-center justify-center shadow hover:bg-teal-200 transition"
+                  type="button"
                   onClick={() => setActiveSection("bazaarEvents")}
+                  className={quickActionClasses}
                 >
+                  <Calendar className="w-5 h-5" />
                   Browse Bazaar Events
                 </button>
                 <button
-                  className="min-h-[8rem] bg-blue-100 text-blue-700 text-xl font-bold rounded-xl flex items-center justify-center shadow hover:bg-blue-200 transition"
+                  type="button"
                   onClick={() => setActiveSection("applications")}
+                  className={quickActionClasses}
                 >
+                  <FileText className="w-5 h-5" />
                   View My Applications
                 </button>
               </div>

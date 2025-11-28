@@ -55,6 +55,9 @@ export default function EventCard({
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedback, setFeedback] = useState({ ratings: [], comments: [] });
   const [loadingFeedback, setLoadingFeedback] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsTab, setDetailsTab] = useState("details"); // "details" or "vendors"
+  const [vendors, setVendors] = useState([]);
 
 
   /* =========================
@@ -72,6 +75,21 @@ export default function EventCard({
       console.error(err);
     } finally {
       setLoadingFeedback(false);
+    }
+  };
+
+  const handleViewDetails = async () => {
+    setShowDetailsModal(true);
+    setDetailsTab("details");
+    
+    // If it's a bazaar, fetch vendor details
+    if (event.type === "bazaar") {
+      try {
+        const response = await API.get(`/events/${eventId}`);
+        setVendors(response.data.registeredVendors || []);
+      } catch (err) {
+        console.error("Error fetching vendors:", err);
+      }
     }
   };
 
@@ -398,7 +416,7 @@ export default function EventCard({
           )}
         </div>
 
-        <div className="mt-5 flex items-center gap-3">
+        <div className="mt-5 flex items-center gap-3 flex-wrap">
           {onPrimary && (
             <button
               onClick={onPrimary}
@@ -409,6 +427,12 @@ export default function EventCard({
             </button>
           )}
           {secondary}
+          <button
+            onClick={handleViewDetails}
+            className="rounded-xl px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 text-white text-sm font-semibold"
+          >
+            More Details
+          </button>
           {userRole !== "vendor" && userRole !== "student" && (
           <button
           onClick={handleViewFeedback}
@@ -494,6 +518,156 @@ export default function EventCard({
     </button>
   </div>
 )}
+
+      {/* More Details Modal */}
+      {showDetailsModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowDetailsModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">{title}</h2>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-slate-500 hover:text-slate-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 border-b border-slate-200 mb-4">
+              <button
+                onClick={() => setDetailsTab("details")}
+                className={`px-4 py-2 font-medium transition-colors ${
+                  detailsTab === "details"
+                    ? "text-cyan-600 border-b-2 border-cyan-600"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                More Details
+              </button>
+              {event.type === "bazaar" && (
+                <button
+                  onClick={() => setDetailsTab("vendors")}
+                  className={`px-4 py-2 font-medium transition-colors ${
+                    detailsTab === "vendors"
+                      ? "text-cyan-600 border-b-2 border-cyan-600"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  Vendors Participating
+                </button>
+              )}
+            </div>
+
+            {/* Tab Content */}
+            {detailsTab === "details" && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${badgeColor(type)}`}>
+                    {type}
+                  </span>
+                  {status && (
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-700">
+                      {status}
+                    </span>
+                  )}
+                </div>
+
+                {desc && (
+                  <div>
+                    <h3 className="font-semibold text-slate-700 mb-1">Description</h3>
+                    <p className="text-slate-600">{desc}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  {location && (
+                    <div>
+                      <h3 className="font-semibold text-slate-700 mb-1">Location</h3>
+                      <p className="text-slate-600">{location}</p>
+                    </div>
+                  )}
+
+                  {price !== undefined && (
+                    <div>
+                      <h3 className="font-semibold text-slate-700 mb-1">Price</h3>
+                      <p className="text-slate-600">{price} EGP</p>
+                    </div>
+                  )}
+
+                  {capacity !== undefined && (
+                    <div>
+                      <h3 className="font-semibold text-slate-700 mb-1">Capacity</h3>
+                      <p className="text-slate-600">{capacity}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <h3 className="font-semibold text-slate-700 mb-1">Start Date</h3>
+                    <p className="text-slate-600">{fmt(startDate)}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-slate-700 mb-1">End Date</h3>
+                    <p className="text-slate-600">{fmt(endDate)}</p>
+                  </div>
+
+                  {registrationDeadline && (
+                    <div className="col-span-2">
+                      <h3 className="font-semibold text-slate-700 mb-1">Registration Deadline</h3>
+                      <p className="text-slate-600">{fmt(registrationDeadline)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {detailsTab === "vendors" && event.type === "bazaar" && (
+              <div className="space-y-3">
+                {vendors.length === 0 ? (
+                  <p className="text-slate-500 text-center py-8">No vendors registered yet</p>
+                ) : (
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-slate-700 mb-3">Participating Vendors</h3>
+                    <ul className="space-y-3">
+                      {vendors.map((vendorReg, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="w-2 h-2 bg-cyan-600 rounded-full mt-1.5 flex-shrink-0"></span>
+                          <div>
+                            <div className="text-slate-700 font-medium">
+                              {vendorReg.vendor?.companyName || vendorReg.companyName || "Company"}
+                            </div>
+                            {vendorReg.vendor?.email && (
+                              <div className="text-sm text-slate-500">
+                                {vendorReg.vendor.email}
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
     

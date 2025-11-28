@@ -79,181 +79,195 @@ export default function CreateWorkshop() {
   }
 
   return (
-    <div className="form-container">
-      <h1 className="form-title">New Workshop</h1>
+    <div className="min-h-screen bg-slate-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-xl shadow-md p-8">
+          <h1 className="text-3xl font-bold mb-6 text-slate-800">New Workshop</h1>
 
-      {error && <div className="alert alert--error">{error}</div>}
-      {ok && <div className="alert alert--ok">{ok}</div>}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{error}</div>}
+      {ok && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">{ok}</div>}
 
-      <form onSubmit={onSubmit} className="form-grid">
-        {/* Title (full width) */}
-        <div className="full">
-          <label className="form-label">Title</label>
+      <form onSubmit={onSubmit} className="space-y-4">
+        {/* Title */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Title</label>
           <input
-            className="form-input"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             value={form.title}
             onChange={(e) => update("title", e.target.value)}
             placeholder="e.g. Intro to Data Engineering"
           />
         </div>
 
-        {/* Location */}
-        <div>
-          <label className="form-label">Location (Campus)</label>
-          <select
-            className="form-select"
-            value={form.location}
-            onChange={(e) => update("location", e.target.value)}
-          >
-            <option>GUC Cairo</option>
-            <option>GUC Berlin</option>
-          </select>
+        {/* Location and Responsible Faculty - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Location (Campus)</label>
+            <select
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.location}
+              onChange={(e) => update("location", e.target.value)}
+            >
+              <option>GUC Cairo</option>
+              <option>GUC Berlin</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Responsible Faculty</label>
+            <select
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.responsibleFaculty}
+              onChange={(e) => update("responsibleFaculty", e.target.value)}
+            >
+              {[
+                "MET",
+                "IET",
+                "EMS",
+                "Pharma",
+                "Business Informatics",
+                "Management",
+                "Applied Arts",
+                "Architecture",
+                "",
+              ].map((f) => (
+                <option key={f} value={f}>
+                  {f || "(Unspecified)"}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Responsible Faculty */}
-        <div>
-          <label className="form-label">Responsible Faculty</label>
-          <select
-            className="form-select"
-            value={form.responsibleFaculty}
-            onChange={(e) => update("responsibleFaculty", e.target.value)}
-          >
-            {[
-              "MET",
-              "IET",
-              "EMS",
-              "Pharma",
-              "Business Informatics",
-              "Management",
-              "Applied Arts",
-              "Architecture",
-              "",
-            ].map((f) => (
-              <option key={f} value={f}>
-                {f || "(Unspecified)"}
-              </option>
-            ))}
-          </select>
+        {/* Start and End - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Start</label>
+            <input
+              type="datetime-local"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.startAt}
+              onChange={(e) => update("startAt", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">End</label>
+            <input
+              type="datetime-local"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.endAt}
+              onChange={(e) => update("endAt", e.target.value)}
+            />
+          </div>
         </div>
 
-        {/* Start / End */}
-        <div>
-          <label className="form-label">Start</label>
-          <input
-            type="datetime-local"
-            className="form-input"
-            value={form.startAt}
-            onChange={(e) => update("startAt", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="form-label">End</label>
-          <input
-            type="datetime-local"
-            className="form-input"
-            value={form.endAt}
-            onChange={(e) => update("endAt", e.target.value)}
-          />
-        </div>
-
-        {/* Capacity / Registration Deadline */}
-        <div>
-          <label className="form-label">Capacity</label>
-          <input
-            type="number"
-            min={1}
-            className="form-input"
-            value={form.capacity}
-            onChange={(e) => update("capacity", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="form-label">Registration Deadline</label>
-          <input
-            type="datetime-local"
-            className="form-input"
-            value={form.registrationDeadline}
-            onChange={(e) => update("registrationDeadline", e.target.value)}
-          />
+        {/* Capacity and Registration Deadline - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Capacity</label>
+            <input
+              type="number"
+              min={1}
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.capacity}
+              onChange={(e) => update("capacity", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Registration Deadline</label>
+            <input
+              type="datetime-local"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.registrationDeadline}
+              onChange={(e) => update("registrationDeadline", e.target.value)}
+            />
+          </div>
         </div>
 
-        {/* Required Budget / Funding Source */}
-        <div>
-          <label className="form-label">Required Budget</label>
-          <input
-            type="number"
-            min={0}
-            className="form-input"
-            value={form.requiredBudget}
-            onChange={(e) => update("requiredBudget", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="form-label">Funding Source</label>
-          <select
-            className="form-select"
-            value={form.fundraisingSource}
-            onChange={(e) => update("fundraisingSource", e.target.value)}
-          >
-            <option>GUC</option>
-            <option>External</option>
-          </select>
+        {/* Required Budget and Funding Source - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Required Budget</label>
+            <input
+              type="number"
+              min={0}
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.requiredBudget}
+              onChange={(e) => update("requiredBudget", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Funding Source</label>
+            <select
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.fundraisingSource}
+              onChange={(e) => update("fundraisingSource", e.target.value)}
+            >
+              <option>GUC</option>
+              <option>External</option>
+            </select>
+          </div>
         </div>
 
-        {/* Short Description (full) */}
-        <div className="full">
-          <label className="form-label">Short Description</label>
+        {/* Short Description */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Short Description</label>
           <textarea
             rows={3}
-            className="form-textarea"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             value={form.shortDescription}
             onChange={(e) => update("shortDescription", e.target.value)}
             placeholder="One-paragraph overview of the workshop"
           />
         </div>
 
-        {/* Full Agenda (full) */}
-        <div className="full">
-          <label className="form-label">Full Agenda</label>
+        {/* Full Agenda */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Full Agenda</label>
           <textarea
             rows={6}
-            className="form-textarea"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             value={form.agenda}
             onChange={(e) => update("agenda", e.target.value)}
             placeholder="Agenda, topics, timings, speakers..."
           />
         </div>
 
-        {/* Professors (full) */}
-        <div className="full">
-          <label className="form-label">Professor(s) Participating</label>
+        {/* Professors Participating */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Professor(s) Participating</label>
           <input
-            className="form-input"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             placeholder="e.g. Dr. Omar, Dr. Sameh"
             value={form.professors}
             onChange={(e) => update("professors", e.target.value)}
           />
-          <small>Separate names with commas.</small>
+          <small className="text-slate-500 text-xs">Separate names with commas.</small>
         </div>
 
-        {/* Extra Resources (full) */}
-        <div className="full">
-          <label className="form-label">Extra Required Resources (optional)</label>
+        {/* Extra Resources */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Extra Required Resources (optional)</label>
           <textarea
             rows={3}
-            className="form-textarea"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             value={form.extraResources}
             onChange={(e) => update("extraResources", e.target.value)}
           />
         </div>
 
-        {/* Submit */}
-        <div className="btn-row full">
-          <button className="btn" disabled={loading}>
+        {/* Submit Button */}
+        <div className="pt-4">
+          <button 
+            className="w-full bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 text-white font-semibold py-3 rounded-lg disabled:opacity-50"
+            disabled={loading}
+          >
             {loading ? "Creating..." : "Create Workshop"}
           </button>
         </div>
       </form>
+        </div>
+      </div>
     </div>
   );
 }

@@ -25,7 +25,9 @@ export default function EventOfficerEvents() {
     const fetchEvents = async () => {
       try {
         const res = await API.get("/events/");
-        setEvents(res.data.events || []);
+        // Filter out gym sessions since they have their own schedule section
+        const filteredEvents = (res.data.events || []).filter(event => event.type !== "gym");
+        setEvents(filteredEvents);
       } catch (err) {
         console.error("Error fetching events:", err);
       } finally {

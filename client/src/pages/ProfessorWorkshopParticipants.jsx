@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { getWorkshopParticipants } from "../services/workshop";
 
 export default function ProfessorWorkshopParticipants() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -25,20 +27,45 @@ export default function ProfessorWorkshopParticipants() {
 
   if (loading)
     return (
-      <div className="p-6 text-xl font-semibold text-gray-700">
-        Loading participants…
+      <div className="p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 flex items-center gap-2 text-slate-600 hover:text-cyan-600 font-medium"
+        >
+          <ArrowLeft size={20} />
+          Back
+        </button>
+        <div className="text-xl font-semibold text-gray-700">
+          Loading participants…
+        </div>
       </div>
     );
 
   if (err)
     return (
-      <div className="p-6 text-red-600 text-lg">
-        Error: {err}
+      <div className="p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 flex items-center gap-2 text-slate-600 hover:text-cyan-600 font-medium"
+        >
+          <ArrowLeft size={20} />
+          Back
+        </button>
+        <div className="text-red-600 text-lg">
+          Error: {err}
+        </div>
       </div>
     );
 
   return (
     <div className="p-10">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-4 flex items-center gap-2 text-slate-600 hover:text-cyan-600 font-medium"
+      >
+        <ArrowLeft size={20} />
+        Back
+      </button>
       <h1 className="text-2xl font-bold mb-4 text-blue-700">
         Participants for: {data.title}
       </h1>

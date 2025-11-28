@@ -16,7 +16,7 @@ export default function GymSchedule() {
   const [registeringId, setRegisteringId] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
+  
   // Fetch all gym sessions
   useEffect(() => {
     const fetchSessions = async () => {
@@ -33,6 +33,29 @@ export default function GymSchedule() {
     };
     fetchSessions();
   }, []);
+
+  // Group sessions by month
+  const sessionsByMonth = sessions.reduce((acc, session) => {
+    const sessionDate = new Date(session.date);
+    const monthKey = sessionDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    if (!acc[monthKey]) {
+      acc[monthKey] = {
+        sessions: [],
+        sortKey: sessionDate.getTime()
+      };
+    }
+    acc[monthKey].sessions.push(session);
+    return acc;
+  }, {});
+
+  // Sort months chronologically and sort sessions within each month
+  const sortedMonths = Object.entries(sessionsByMonth)
+    .sort(([, a], [, b]) => a.sortKey - b.sortKey)
+    .map(([monthName, data]) => ({
+      monthName,
+      sessions: data.sessions.sort((a, b) => new Date(a.date) - new Date(b.date))
+    }));
 
   const handleRegister = async (sessionId) => {
     try {
@@ -71,7 +94,8 @@ export default function GymSchedule() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-8 text-center text-slate-700">Gym Schedule</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center text-slate-700">Gym Schedule</h1>
+
       {/* ⭐ Success + error messages */}
       {message && (
         <p className="mb-4 text-center text-green-700 font-medium">{message}</p>
@@ -79,18 +103,36 @@ export default function GymSchedule() {
       {error && (
         <p className="mb-4 text-center text-red-600 font-medium">{error}</p>
       )}
-      {sessions.length === 0 ? (
-        <p className="text-center">No gym sessions found.</p>
+      
+      {sortedMonths.length === 0 ? (
+        <p className="text-center text-slate-600">No gym sessions found.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-
-  {sessions.map((s) => {
+        <div className="space-y-8">
+          {sortedMonths.map(({ monthName, sessions: monthlySessions }) => (
+            <div key={monthName}>
+              {/* Month Header */}
+              <h2 className="text-xl font-bold text-slate-800 mb-4 pb-2 border-b-2 border-cyan-500">
+                {monthName}
+              </h2>
+              
+              {/* Sessions Grid for this month */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {monthlySessions.map((s) => {
     const participants = s.participants?.length || 0;
     const isFull = participants >= s.maxParticipants;
     const userId = user?.id || user?._id;
     const isRegistered = s.participants?.some(
       (p) => String(p._id || p) === String(userId)
     );
+
+    // Check if session has passed (date + time)
+    const sessionDateTime = new Date(s.date);
+    if (s.time) {
+      const [hours, minutes] = s.time.split(':').map(Number);
+      sessionDateTime.setHours(hours, minutes, 0, 0);
+    }
+    const now = new Date();
+    const hasSessionPassed = sessionDateTime < now;
 
     return (
     <div
@@ -135,6 +177,10 @@ export default function GymSchedule() {
           <span className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm block text-center">
             Registered
           </span>
+        ) : hasSessionPassed ? (
+          <span className="bg-gray-200 text-gray-400 px-4 py-2 rounded-lg text-sm block text-center cursor-not-allowed">
+            Registration Deadline Passed
+          </span>
         ) : isFull ? (
           <span className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm block text-center">
             Full
@@ -152,9 +198,10 @@ export default function GymSchedule() {
     </div>
     );
   })}
-
-</div>
-
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

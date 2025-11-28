@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import UpcomingEvents from "../components/UpcomingEvents";
@@ -6,6 +6,7 @@ import MyRegisteredEvents from "./MyRegisteredEvents";
 import RegisterForEvent from "./RegisterForEvent";
 import GymSchedule from "./GymSchedule";
 import api from "../services/api";
+import API from "../services/api";
 import DashboardLayout from "../components/DashboardLayout";
 import AttendedEvents from "./AttendedEvents";
 import VendorPolls from "../components/VendorPolls";
@@ -13,17 +14,21 @@ import VendorPolls from "../components/VendorPolls";
 // Favorites imports
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
+import ProfessorEventCard from "../components/ProfessorEventCard";
 import { useAuth } from "../context/AuthContext";
-import { Calendar, CheckCircle, Star, Home, Trophy, Dumbbell, Store, Heart, Clock } from "lucide-react";
+import { Calendar, CheckCircle, Star, Home, Trophy, Dumbbell, Store, Heart, Clock, CalendarDays, MessageSquare, Vote } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import LoyaltyVendors from "./LoyaltyVendors";
+import EventsReviews from "./EventsReviews";
 
 const StudentDashboard = () => {
+  const { user } = useAuth();
+  const [activeSection, setActiveSection] = useState("events");
+  const [eventsTab, setEventsTab] = useState("upcoming"); // "upcoming", "registered", "favorites", "attended"
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
-  const [activeTab, setActiveTab] = useState("home"); 
   const [courts, setCourts] = useState([]);
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [availability, setAvailability] = useState([]);
@@ -40,8 +45,16 @@ const StudentDashboard = () => {
   const [loadingGym, setLoadingGym] = useState(true);
   const [registeringId, setRegisteringId] = useState(null);
 
+  // Events management
+  const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterLocation, setFilterLocation] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc");
+
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   // Fetch gym sessions
   const fetchGymSessions = async () => {
@@ -110,12 +123,95 @@ const StudentDashboard = () => {
     fetchData();
   }, [navigate]);
 
-  // Fetch data when tab changes
+  // Load events when Events tab is active
   useEffect(() => {
-    if (activeTab === "gym") {
-      fetchGymSessions();
+    if (activeSection === "events") {
+      fetchEvents();
     }
-  }, [activeTab]);
+  }, [activeSection]);
+
+  const fetchEvents = async () => {
+    setLoadingEvents(true);
+    try {
+      const res = await API.get("/events/");
+      const payload = Array.isArray(res.data) ? res.data : res.data?.events || [];
+      setEvents(payload);
+    } catch (err) {
+      console.error("Failed to load events", err);
+      setEvents([]);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  // Filter and sort events
+  const getEventStart = (event) => event.startDate || event.date;
+  const getEventEnd = (event) => event.endDate || event.date;
+
+  const filteredEvents = useMemo(() => {
+    const now = new Date();
+    let list = events.filter((event) => {
+      const start = getEventStart(event);
+      if (!start) return false;
+      const startDate = new Date(start);
+      if (Number.isNaN(startDate.getTime())) return false;
+      // Exclude gym events
+      if (event.type === "gym") return false;
+      return startDate > now;
+    });
+
+    if (searchValue.trim()) {
+      const query = searchValue.toLowerCase();
+      list = list.filter((event) => {
+        const titleMatch = event.title?.toLowerCase().includes(query);
+        const descMatch = event.desc?.toLowerCase().includes(query);
+        return titleMatch || descMatch;
+      });
+    }
+
+    if (filterType) {
+      list = list.filter((event) => event.type === filterType);
+    }
+
+    if (filterLocation.trim()) {
+      const normalized = filterLocation.toLowerCase();
+      list = list.filter((event) =>
+        (event.location || event.locationInPlatform || "")
+          .toLowerCase()
+          .includes(normalized)
+      );
+    }
+
+    if (filterDate) {
+      const target = new Date(filterDate).toDateString();
+      list = list.filter((event) => {
+        const start = getEventStart(event);
+        const end = getEventEnd(event);
+        const startString = start ? new Date(start).toDateString() : "";
+        const endString = end ? new Date(end).toDateString() : "";
+        return startString === target || endString === target;
+      });
+    }
+
+    list.sort((a, b) => {
+      const startA = new Date(getEventStart(a));
+      const startB = new Date(getEventStart(b));
+      return sortOrder === "asc" ? startA - startB : startB - startA;
+    });
+
+    return list;
+  }, [events, searchValue, filterType, filterLocation, filterDate, sortOrder]);
+
+  const handleResetFilters = () => {
+    setSearchValue("");
+    setFilterType("");
+    setFilterLocation("");
+    setFilterDate("");
+    setSortOrder("asc");
+  };
+
+  const quickActionClasses =
+    "w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg shadow";
 
   // Toggle Favorite
   const handleToggleFavorite = (eventId, willBeFav, eventObj) => {
@@ -138,51 +234,12 @@ const StudentDashboard = () => {
 
   // Sidebar items for student dashboard
   const sidebarItems = [
-    { 
-      key: "events",
-      label: "Upcoming Events", 
-      icon: Calendar,
-      onClick: () => setActiveTab("events"),
-      path: "/student/dashboard"
-    },
-    { 
-      key: "registered",
-      label: "My Registered Events", 
-      icon: CheckCircle,
-      onClick: () => setActiveTab("registered"),
-      path: "/student/dashboard"
-    },
-    { 
-      key: "favorites",
-      label: "Favorites", 
-      icon: Star,
-      onClick: () => setActiveTab("favorites"),
-      path: "/student/dashboard"
-    },
-    { 
-      key: "attended",
-      label: "Attended Events", 
-      icon: Heart,
-      onClick: () => setActiveTab("attended"),
-      path: "/student/dashboard"
-    },
-    { 
-      key: "courts",
-      label: "View Courts", 
-      icon: Trophy,
-      onClick: () => {
-        setActiveTab("courts");
-        fetchCourts();
-      },
-      path: "/student/dashboard"
-    },
-    {
-      key: "loyaltyVendors",
-      label: "Loyalty Vendors",
-      icon: Store,
-      onClick: () => setActiveTab("loyaltyVendors"),
-      path: "/student/dashboard"
-    },
+    { key: "events", label: "Events", icon: CalendarDays, onClick: () => setActiveSection("events") },
+    { key: "eventsReviews", label: "Events Reviews", icon: MessageSquare, onClick: () => setActiveSection("eventsReviews") },
+    { key: "boothPolls", label: "Booth Polls", icon: Vote, onClick: () => setActiveSection("boothPolls") },
+    { key: "courts", label: "View Courts", icon: Trophy, onClick: () => { setActiveSection("courts"); fetchCourts(); } },
+    { key: "gymSchedule", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveSection("gymSchedule") },
+    { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveSection("loyaltyVendors") },
   ];
 
   // Courts: fetch all courts
@@ -248,123 +305,172 @@ const StudentDashboard = () => {
       roleLabel="Verified Student"
       roleColor="bg-green-500"
       sidebarItems={sidebarItems}
-      activeKey={activeTab}
+      activeKey={activeSection}
     >
+      <div className="mt-6">
 
-      {/* DEFAULT HOME VIEW - Quick Actions and Vendor Polls */}
-      {activeTab === "home" && (
-        <div className="mt-6">
-          {/* Quick Actions Section */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4 text-center">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Register for Event Card */}
+        {/* Events Section with Tabs */}
+        {activeSection === "events" && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Events Management</h2>
+            
+            <div className="border-b border-slate-200 mb-6 flex gap-4 flex-wrap">
               <button
-                onClick={() => setActiveTab("register")}
-                className="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all duration-200 text-left group"
+                onClick={() => setEventsTab("upcoming")}
+                className={`pb-3 px-2 text-sm font-semibold ${eventsTab === "upcoming" ? "text-cyan-600 border-b-2 border-cyan-600" : "text-slate-600 hover:text-slate-900"}`}
               >
-                <div className="flex items-center gap-4">
-                  <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <Home className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-cyan-600 transition-colors">
-                      Register for Event
-                    </h3>
-                    <p className="text-sm text-slate-600 mt-1">
-                      Sign up for workshops and trips
-                    </p>
-                  </div>
-                </div>
+                Upcoming Events
               </button>
-              {/* Gym Schedule Card */}
               <button
-                onClick={() => setActiveTab("gym")}
-                className="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all duration-200 text-left group"
+                onClick={() => setEventsTab("registered")}
+                className={`pb-3 px-2 text-sm font-semibold ${eventsTab === "registered" ? "text-cyan-600 border-b-2 border-cyan-600" : "text-slate-600 hover:text-slate-900"}`}
               >
-                <div className="flex items-center gap-4">
-                  <div className="bg-gradient-to-br from-orange-500 to-red-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <Dumbbell className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-cyan-600 transition-colors">
-                      Gym Schedule
-                    </h3>
-                    <p className="text-sm text-slate-600 mt-1">
-                      Book your fitness sessions
-                    </p>
-                  </div>
-                </div>
+                My Registrations
+              </button>
+              <button
+                onClick={() => setEventsTab("favorites")}
+                className={`pb-3 px-2 text-sm font-semibold ${eventsTab === "favorites" ? "text-cyan-600 border-b-2 border-cyan-600" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Favorites
+              </button>
+              <button
+                onClick={() => setEventsTab("attended")}
+                className={`pb-3 px-2 text-sm font-semibold ${eventsTab === "attended" ? "text-cyan-600 border-b-2 border-cyan-600" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Attended Events
               </button>
             </div>
+
+            {eventsTab === "upcoming" && (
+              <div>
+                {/* Search and Filters */}
+                <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <input
+                      type="text"
+                      placeholder="Search by title..."
+                      value={searchValue}
+                      onChange={(e) => setSearchValue(e.target.value)}
+                      className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                    <select
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
+                      className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    >
+                      <option value="">All Types</option>
+                      <option value="workshop">Workshop</option>
+                      <option value="trip">Trip</option>
+                      <option value="bazaar">Bazaar</option>
+                      <option value="conference">Conference</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Filter by location..."
+                      value={filterLocation}
+                      onChange={(e) => setFilterLocation(e.target.value)}
+                      className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                    <input
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  </div>
+                  <div className="flex gap-4 mt-4">
+                    <select
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                      className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    >
+                      <option value="asc">Earliest First</option>
+                      <option value="desc">Latest First</option>
+                    </select>
+                    <button
+                      onClick={handleResetFilters}
+                      className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                </div>
+
+                {/* Events Grid */}
+                {loadingEvents ? (
+                  <p className="text-center text-slate-600">Loading events...</p>
+                ) : filteredEvents.length === 0 ? (
+                  <p className="text-center text-slate-600">No upcoming events found.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredEvents.map((ev) => {
+                      const id = ev._id || ev.id;
+                      return (
+                        <ProfessorEventCard
+                          key={id}
+                          event={ev}
+                          currentUser={user}
+                          userRole="student"
+                          isFavorite={favSet.has(id)}
+                          onToggleFavorite={handleToggleFavorite}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {eventsTab === "registered" && (
+              <MyRegisteredEvents />
+            )}
+
+            {eventsTab === "favorites" && (
+              <div>
+                <h2 className="text-2xl font-bold text-center mb-4">My Favorites</h2>
+                {favorites.length === 0 ? (
+                  <p className="text-center text-gray-600">No favorite events yet.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {favorites.map((ev) => {
+                      const id = ev._id || ev.id;
+                      return (
+                        <ProfessorEventCard
+                          key={id}
+                          event={ev}
+                          currentUser={user}
+                          userRole="student"
+                          isFavorite={favSet.has(id)}
+                          onToggleFavorite={handleToggleFavorite}
+                          isFavoritesView={true}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {eventsTab === "attended" && (
+              <AttendedEvents />
+            )}
           </div>
+        )}
 
-          {/* Vendor Polls Section */}
-          <VendorPolls />
-        </div>
-      )}
+        {/* Events Reviews Section */}
+        {activeSection === "eventsReviews" && (
+          <EventsReviews />
+        )}
 
-      {/* UPCOMING EVENTS - Only shown when clicking from sidebar */}
-      {activeTab === "events" && (
-        <div className="mt-6">
-          <UpcomingEvents
-            favoritesSet={favSet}
-            onToggleFavorite={handleToggleFavorite}
-            userRole="student"
-          />
-        </div>
-      )}
+        {/* Booth Polls Section */}
+        {activeSection === "boothPolls" && (
+          <div>
+            <VendorPolls />
+          </div>
+        )}
 
-      {/* MY REGISTERED EVENTS */}
-      {activeTab === "registered" && (
-        <div className="mt-6">
-          <MyRegisteredEvents />
-        </div>
-      )}
-
-      {/* FAVORITES TAB */}
-      {activeTab === "favorites" && (
-        <div className="mt-6">
-          <h2 className="text-2xl font-bold text-center mb-4">My Favorites</h2>
-          {favorites.length === 0 ? (
-            <p className="text-center text-gray-600">
-              No favorite events yet.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {favorites.map((ev) => {
-                const id = ev._id || ev.id;
-                return (
-                  <EventCard
-                    key={id}
-                    event={ev}
-                    userRole="student"
-                    isFavorite={favSet.has(id)}
-                    onToggleFavorite={handleToggleFavorite}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ATTENDED EVENTS */}
-      {activeTab === "attended" && (
-        <div className="mt-6">
-          <AttendedEvents />
-        </div>
-      )}
-
-      {/* REGISTER FOR EVENT */}
-      {activeTab === "register" && (
-        <div className="mt-6">
-          <RegisterForEvent />
-        </div>
-      )}
-
-      {/* COURTS */}
-      {activeTab === "courts" && (
+        {/* COURTS */}
+        {activeSection === "courts" && (
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-center mb-4">
             Campus Courts
@@ -442,76 +548,19 @@ const StudentDashboard = () => {
             </div>
           )}
         </div>
-      )}
+        )}
 
-      {/* GYM TAB */}
-      {activeTab === "gym" && (
-        <div className="mt-6">
-          <h2 className="mb-6 text-center">Gym Schedule</h2>
-          {loadingGym ? (
-            <p className="text-center">Loading sessions...</p>
-          ) : gymSessions.length === 0 ? (
-            <p className="text-center text-slate-600">No gym sessions available.</p>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {gymSessions.map((session) => {
-                const participantsCount = session.participants?.length || 0;
-                const isFull = participantsCount >= session.maxParticipants;
-                const userId = user?.id || user?._id;
-                const isRegistered = session.participants?.some(
-                  (p) => String(p._id || p) === String(userId)
-                );
+        {/* Gym Schedule Section */}
+        {activeSection === "gymSchedule" && (
+          <GymSchedule />
+        )}
 
-                // Format time
-                const timeDisplay = session.time || `${session.startTime || "—"} - ${session.endTime || "—"}`;
-
-                return (
-                  <Card key={session._id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <Dumbbell className="size-8 text-blue-600" />
-                        <Badge
-                          variant={isFull ? "destructive" : "secondary"}
-                          className={isFull ? "bg-red-100 text-red-700" : ""}
-                        >
-                          {participantsCount}/{session.maxParticipants}
-                        </Badge>
-                      </div>
-                      <h3 className="text-slate-900 mb-2 font-semibold">
-                        {session.title || session.sessionType || "Gym Session"}
-                      </h3>
-                      <div className="flex items-center gap-2 text-slate-600 mb-4">
-                        <Clock className="size-4" />
-                        <span className="text-sm">{timeDisplay}</span>
-                      </div>
-                      <Button
-                        className="w-full bg-blue-600 hover:bg-blue-700"
-                        disabled={isFull || isRegistered || registeringId === session._id}
-                        onClick={() => handleGymRegister(session._id)}
-                      >
-                        {isRegistered
-                          ? "Registered"
-                          : isFull
-                          ? "Full"
-                          : registeringId === session._id
-                          ? "Registering..."
-                          : "Register"}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* LOYALTY VENDORS */}
-      {activeTab === "loyaltyVendors" && (
-        <div className="mt-6">
+        {/* Loyalty Vendors Section */}
+        {activeSection === "loyaltyVendors" && (
           <LoyaltyVendors />
-        </div>
-      )}
+        )}
+
+      </div>
     </DashboardLayout>
   );
 };

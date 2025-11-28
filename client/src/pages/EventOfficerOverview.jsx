@@ -10,6 +10,9 @@ export default function EventOfficerOverview() {
   const [selectedReport, setSelectedReport] = useState("attendees");
   const navigate = useNavigate();
 
+  const quickActionClasses =
+    "w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg";
+
   const sidebarItems = [
     { to: '/eventOfficer/dashboard', label: 'Overview', icon: GraduationCap },
     { to: '/eventOfficer/approveWorkshops', label: 'Workshops', icon: ClipboardList },
@@ -41,21 +44,21 @@ export default function EventOfficerOverview() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Link to="/create-event">
-                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white">
-                  <Calendar className="w-6 h-6" />
-                  <span>Create Event</span>
+                <Button type="button" className={quickActionClasses}>
+                  <Calendar className="w-5 h-5" />
+                  Create Event
                 </Button>
               </Link>
               <Link to="/approved-events">
-                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white">
-                  <Store className="w-6 h-6" />
-                  <span>Approve Vendors</span>
+                <Button type="button" className={quickActionClasses}>
+                  <Store className="w-5 h-5" />
+                  Approve Vendors
                 </Button>
               </Link>
               <Link to="/create-gym-session">
-                <Button className="w-full h-auto py-6 flex flex-col items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white">
-                  <Dumbbell className="w-6 h-6" />
-                  <span>Create Gym Session</span>
+                <Button type="button" className={quickActionClasses}>
+                  <Dumbbell className="w-5 h-5" />
+                  Create Gym Session
                 </Button>
               </Link>
             </div>

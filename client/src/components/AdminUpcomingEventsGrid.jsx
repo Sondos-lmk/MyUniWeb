@@ -56,6 +56,8 @@ export default function AdminUpcomingEventsGrid() {
       if (!start) return false;
       const startDate = new Date(start);
       if (Number.isNaN(startDate.getTime())) return false;
+      // Exclude gym events
+      if (event.type === "gym") return false;
       return startDate > now;
     });
 
@@ -137,7 +139,6 @@ export default function AdminUpcomingEventsGrid() {
           <option value="conference">Conference</option>
           <option value="trip">Trip</option>
           <option value="workshop">Workshop</option>
-          <option value="gym">Gym</option>
         </select>
 
         <input

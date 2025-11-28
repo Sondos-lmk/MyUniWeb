@@ -88,17 +88,6 @@ export default function DashboardLayout({
 
           <nav className="flex-1 overflow-y-auto p-4">
             <div className="space-y-2">
-              {/* 🔹 Static Upcoming Events button for professors */}
-  {userRole === "professor" && (
-    <Link
-      to="/professor/upcoming-events"
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${active(
-        "/professor/upcoming-events"
-      )}`}
-    >
-      <span>Upcoming Events</span>
-    </Link>
-  )}
               {sidebarItems.map((item, index) => {
                 // SPECIAL CASE: Reports with dropdown
                 if (item.key === "reports" && item.isCollapsible) {
