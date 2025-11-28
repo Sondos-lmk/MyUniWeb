@@ -24,6 +24,9 @@ const StaffDashboard = () => {
 	const [favSet, setFavSet] = useState(new Set());
 	const navigate = useNavigate();
 
+	const quickActionClasses =
+		"w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg shadow";
+
 	useEffect(() => {
 		const fetchEvents = async () => {
 			try {
@@ -99,26 +102,25 @@ const StaffDashboard = () => {
   </CardHeader>
 
   <CardContent>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+	<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <button
+		type="button"
+		onClick={() => setActiveTab("register")}
+			className={`${quickActionClasses} ${activeTab === "register" ? "ring-2 ring-cyan-500" : ""}`}
+	>
+		<Calendar className="w-5 h-5" />
+		Register for Event
+	</button>
 
-{/* Register for Event */}
-<button
-      onClick={() => setActiveTab("register")}
-      className="p-6 rounded-xl shadow-md bg-blue-400 hover:bg-blue-500 transition flex flex-col items-center gap-3 text-white"
-    >
-      <Calendar className="w-10 h-10 text-white" />
-      <span className="text-lg font-semibold">Register for Event</span>
-    </button>
-
-    {/* Gym Sessions */}
-    <button
-      onClick={() => setActiveTab("gym")}
-      className="p-6 rounded-xl shadow-md bg-blue-400 hover:bg-blue-500 transition flex flex-col items-center gap-3 text-white"
-    >
-      <Dumbbell className="w-10 h-10 text-white" />
-      <span className="text-lg font-semibold">Gym Sessions</span>
-    </button>
-    </div>
+	<button
+		type="button"
+		onClick={() => setActiveTab("gym")}
+			className={`${quickActionClasses} ${activeTab === "gym" ? "ring-2 ring-cyan-500" : ""}`}
+	>
+		<Dumbbell className="w-5 h-5" />
+		Gym Sessions
+	</button>
+	</div>
   </CardContent>
 </Card>
 

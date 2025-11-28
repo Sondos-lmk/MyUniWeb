@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { getMyWorkshops, updateWorkshop } from "../services/workshop";
 
 /** Convert ISO string to value acceptable by <input type="datetime-local"> */
@@ -22,6 +23,7 @@ function isAfter(a, b) {
 
 export default function EditWorkshop() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -142,166 +144,205 @@ export default function EditWorkshop() {
   // UI
   if (loading) {
     return (
-      <div className="form-container">
-        <h1 className="form-title">Edit Workshop</h1>
-        <div>Loading…</div>
+      <div className="min-h-screen bg-slate-50 py-8 px-4">
+        <div className="max-w-2xl mx-auto">
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-4 flex items-center gap-2 text-slate-600 hover:text-cyan-600 font-medium"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </button>
+          <div className="bg-white rounded-xl shadow-md p-8">
+            <h1 className="text-3xl font-bold mb-6 text-slate-800">Edit Workshop</h1>
+            <div>Loading…</div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="form-container">
-      <h1 className="form-title">Edit Workshop</h1>
+    <div className="min-h-screen bg-slate-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 flex items-center gap-2 text-slate-600 hover:text-cyan-600 font-medium"
+        >
+          <ArrowLeft size={20} />
+          Back
+        </button>
+        <div className="bg-white rounded-xl shadow-md p-8">
+          <h1 className="text-3xl font-bold mb-6 text-slate-800">Edit Workshop</h1>
 
-      {ok && <div className="alert alert--ok">{ok}</div>}
-      {error && <div className="alert alert--error">{error}</div>}
+      {ok && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">{ok}</div>}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{error}</div>}
 
-      <form onSubmit={onSubmit} className="form-grid">
-        <div className="full">
-          <label className="form-label">Title</label>
+      <form onSubmit={onSubmit} className="space-y-4">
+        {/* Title */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Title</label>
           <input
-            className="form-input"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             value={form.title}
             onChange={(e) => update("title", e.target.value)}
           />
         </div>
 
-        <div>
-          <label className="form-label">Location (Campus)</label>
-          <select
-            className="form-select"
-            value={form.location}
-            onChange={(e) => update("location", e.target.value)}
-          >
-            <option>GUC Cairo</option>
-            <option>GUC Berlin</option>
-          </select>
+        {/* Location and Responsible Faculty - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Location (Campus)</label>
+            <select
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.location}
+              onChange={(e) => update("location", e.target.value)}
+            >
+              <option>GUC Cairo</option>
+              <option>GUC Berlin</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Responsible Faculty</label>
+            <select
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.responsibleFaculty}
+              onChange={(e) => update("responsibleFaculty", e.target.value)}
+            >
+              {[
+                "MET",
+                "IET",
+                "EMS",
+                "Pharma",
+                "Business Informatics",
+                "Management",
+                "Applied Arts",
+                "Architecture",
+              ].map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label className="form-label">Responsible Faculty</label>
-          <select
-            className="form-select"
-            value={form.responsibleFaculty}
-            onChange={(e) => update("responsibleFaculty", e.target.value)}
-          >
-            {[
-              "MET",
-              "IET",
-              "EMS",
-              "Pharma",
-              "Business Informatics",
-              "Management",
-              "Applied Arts",
-              "Architecture",
-            ].map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
+        {/* Start and End - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Start</label>
+            <input
+              type="datetime-local"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.startAt}
+              onChange={(e) => update("startAt", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">End</label>
+            <input
+              type="datetime-local"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.endAt}
+              onChange={(e) => update("endAt", e.target.value)}
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="form-label">Start</label>
-          <input
-            type="datetime-local"
-            className="form-input"
-            value={form.startAt}
-            onChange={(e) => update("startAt", e.target.value)}
-          />
+        {/* Capacity and Registration Deadline - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Capacity</label>
+            <input
+              type="number"
+              min={1}
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.capacity}
+              onChange={(e) => update("capacity", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Registration Deadline</label>
+            <input
+              type="datetime-local"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.registrationDeadline}
+              onChange={(e) => update("registrationDeadline", e.target.value)}
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="form-label">End</label>
-          <input
-            type="datetime-local"
-            className="form-input"
-            value={form.endAt}
-            onChange={(e) => update("endAt", e.target.value)}
-          />
+        {/* Required Budget and Funding Source - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Required Budget</label>
+            <input
+              type="number"
+              min={0}
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.requiredBudget}
+              onChange={(e) => update("requiredBudget", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Funding Source</label>
+            <select
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={form.fundraisingSource}
+              onChange={(e) => update("fundraisingSource", e.target.value)}
+            >
+              <option>GUC</option>
+              <option>External</option>
+            </select>
+          </div>
         </div>
 
+        {/* Short Description */}
         <div>
-          <label className="form-label">Capacity</label>
-          <input
-            type="number"
-            min={1}
-            className="form-input"
-            value={form.capacity}
-            onChange={(e) => update("capacity", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="form-label">Registration Deadline</label>
-          <input
-            type="datetime-local"
-            className="form-input"
-            value={form.registrationDeadline}
-            onChange={(e) => update("registrationDeadline", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="form-label">Required Budget</label>
-          <input
-            type="number"
-            min={0}
-            className="form-input"
-            value={form.requiredBudget}
-            onChange={(e) => update("requiredBudget", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="form-label">Funding Source</label>
-          <select
-            className="form-select"
-            value={form.fundraisingSource}
-            onChange={(e) => update("fundraisingSource", e.target.value)}
-          >
-            <option>GUC</option>
-            <option>External</option>
-          </select>
-        </div>
-
-        <div className="full">
-          <label className="form-label">Short Description</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Short Description</label>
           <textarea
-            className="form-textarea"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             rows={3}
             value={form.desc}
             onChange={(e) => update("desc", e.target.value)}
           />
         </div>
 
-        <div className="full">
-          <label className="form-label">Full Agenda</label>
+        {/* Full Agenda */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Full Agenda</label>
           <textarea
-            className="form-textarea"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             rows={6}
             value={form.fullAgenda}
             onChange={(e) => update("fullAgenda", e.target.value)}
           />
         </div>
 
-        <div className="full">
-          <label className="form-label">Extra Required Resource</label>
+        {/* Extra Resources */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Extra Required Resource</label>
           <textarea
-            className="form-textarea"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             rows={3}
             value={form.extraRequiredResource}
             onChange={(e) => update("extraRequiredResource", e.target.value)}
           />
         </div>
 
-        <div className="btn-row full">
-          <button className="btn" disabled={saving}>
+        {/* Submit Button */}
+        <div className="pt-4">
+          <button 
+            className="w-full bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 text-white font-semibold py-3 rounded-lg disabled:opacity-50"
+            disabled={saving}
+          >
             {saving ? "Saving..." : "Save changes"}
           </button>
         </div>
       </form>
+        </div>
+      </div>
     </div>
   );
 }

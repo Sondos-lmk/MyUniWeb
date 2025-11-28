@@ -155,13 +155,13 @@ export default function MyRegisteredEvents() {
     <>
       {/* --- PAYMENT MODAL --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Complete Your Payment</h2>
-            <p className="mb-2">
+        <div className="fixed inset-0 bg-white z-50 flex justify-center items-center">
+          <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-2 border-slate-200">
+            <h2 className="text-2xl font-bold mb-4 text-slate-800">Complete Your Payment</h2>
+            <p className="mb-2 text-slate-700">
               You are paying for: <strong>{selectedEvent.event.title}</strong>
             </p>
-            <p className="text-lg font-semibold mb-6">
+            <p className="text-lg font-semibold mb-6 text-slate-800">
               Amount: ${selectedEvent.priceAtRegistration}
             </p>
 
@@ -263,6 +263,12 @@ export default function MyRegisteredEvents() {
                         <p className="text-gray-700 mb-1">
                           <strong>End Date:</strong>{" "}
                           {new Date(reg.event.endDate).toLocaleDateString()}
+                        </p>
+                      )}
+                      {reg.event.registrationDeadline && (
+                        <p className="text-gray-700 mb-1">
+                          <strong>Registration Deadline:</strong>{" "}
+                          {new Date(reg.event.registrationDeadline).toLocaleDateString()}
                         </p>
                       )}
                     </>

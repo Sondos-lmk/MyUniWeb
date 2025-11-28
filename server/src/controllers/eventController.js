@@ -191,9 +191,12 @@ export const getAllEvents = async (req, res) => {
     if (type) {
       query.type = type;
     } else {
-      // Otherwise EXCLUDE booths & gym sessions
-      query.type = { $nin: ["booth", "gym"] };
+      // Otherwise EXCLUDE only booths (include gym sessions)
+      query.type = { $nin: ["booth"] };
     }
+
+    // ✅ Only show approved or completed events (exclude pending/rejected)
+    query.status = { $in: ["approved", "completed"] };
 
     if (title) query.title = { $regex: title, $options: "i" };
     if (location) query.location = { $regex: location, $options: "i" };
@@ -208,7 +211,10 @@ export const getAllEvents = async (req, res) => {
 
     let sortOrder = req.query.sort === "desc" ? -1 : 1;
 
-    const events = await Model.find(query).sort({ startDate: sortOrder });
+    const events = await Model.find(query)
+      .populate('ratings.user', 'name')
+      .populate('comments.user', 'name')
+      .sort({ startDate: sortOrder });
 
     res.status(200).json({
       message: "Filtered events fetched successfully",
@@ -236,6 +242,14 @@ export const getEventById = async (req, res) => {
         { path: 'createdBy', select: 'name email role' },
         { path: 'professorsParticipating', select: 'name email role' },
       ]);
+    }
+
+    // Populate vendor details for bazaar events
+    if (event.type === 'bazaar' && event.registeredVendors && event.registeredVendors.length > 0) {
+      event = await event.populate({
+        path: 'registeredVendors.vendor',
+        select: 'companyName email'
+      });
     }
 
     // Attach derived rating using helper (number or 'unrated')
@@ -555,7 +569,7 @@ export const getMyFavoriteEvents = async (req, res) => {
     }
 
     const fav = await Favorite.findOne({ user: userId })
-      .populate("events", "title type startDate endDate location desc status createdAt");
+      .populate("events", "title type startDate endDate location desc status createdAt date time duration sessionType maxParticipants");
 
     return res.status(200).json({
       message: "Favorites fetched successfully",
@@ -589,14 +603,16 @@ export const rateEvent = async (req, res) => {
     if (!allowed.includes((req.user.role || "").toLowerCase()))
       return res.status(403).json({ message: "Not allowed" });
 
-    // must be registered (either registeredUsers or registeredStudents)
+    // must be registered (either registeredUsers, registeredStudents, or participants for gym)
     const userIdStr = String(userId);
     const inRegisteredUsers = Array.isArray(event.registeredUsers) &&
       event.registeredUsers.some((u) => String(u) === userIdStr);
     const inRegisteredStudents = Array.isArray(event.registeredStudents) &&
       event.registeredStudents.some((u) => String(u) === userIdStr);
+    const inParticipants = Array.isArray(event.participants) &&
+      event.participants.some((u) => String(u) === userIdStr);
 
-    if (!inRegisteredUsers && !inRegisteredStudents) {
+    if (!inRegisteredUsers && !inRegisteredStudents && !inParticipants) {
       return res.status(403).json({ message: "You did not attend this event" });
     }
 
@@ -659,14 +675,16 @@ export const addComment = async (req, res) => {
     const event = await Event.findById(id);
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    // must be registered (either registeredUsers or registeredStudents)
+    // must be registered (either registeredUsers, registeredStudents, or participants for gym)
     const userIdStr = String(userId);
     const inRegisteredUsers = Array.isArray(event.registeredUsers) &&
       event.registeredUsers.some((u) => String(u) === userIdStr);
     const inRegisteredStudents = Array.isArray(event.registeredStudents) &&
       event.registeredStudents.some((u) => String(u) === userIdStr);
+    const inParticipants = Array.isArray(event.participants) &&
+      event.participants.some((u) => String(u) === userIdStr);
 
-    if (!inRegisteredUsers && !inRegisteredStudents) {
+    if (!inRegisteredUsers && !inRegisteredStudents && !inParticipants) {
       return res.status(403).json({ message: "You did not attend this event" });
     }
 
@@ -1493,18 +1511,34 @@ export const getAttendedEvents = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const now = new Date();
 
-    // Events this user registered for AND already ended
+    // Get the user with their registeredEvents to check payment status
+    const user = await req.user.constructor.findById(userId);
+    
+    if (!user || !user.registeredEvents) {
+      return res.status(200).json({ events: [] });
+    }
+
+    // Get event IDs where user has paid
+    const paidEventIds = user.registeredEvents
+      .filter(reg => reg.paymentStatus === 'paid')
+      .map(reg => reg.event);
+
+    if (paidEventIds.length === 0) {
+      return res.status(200).json({ events: [] });
+    }
+
+    // Find events that user paid for AND have ended
     const events = await Event.find({
-      $or: [
-        { registeredUsers: userId },
-        { registeredStudents: userId },
-      ],
+      _id: { $in: paidEventIds },
       $or: [
         { endDate: { $lt: now } },
-        { date: { $lt: now } }, // fallback if your model uses 'date'
+        { date: { $lt: now } },
       ],
       status: { $in: ["approved", "completed"] },
-    }).sort({ endDate: -1, date: -1 });
+    })
+    .populate('ratings.user', 'name')
+    .populate('comments.user', 'name')
+    .sort({ endDate: -1, date: -1 });
 
     const withRatings = events.map((e) => {
       const avgOrUnrated = ratingSummary(e);

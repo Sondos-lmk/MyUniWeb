@@ -117,6 +117,9 @@ const StudentDashboard = () => {
     }
   }, [activeTab]);
 
+  const quickActionClasses =
+    "w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg shadow";
+
   // Toggle Favorite
   const handleToggleFavorite = (eventId, willBeFav, eventObj) => {
     setFavSet((prev) => {
@@ -257,44 +260,23 @@ const StudentDashboard = () => {
           {/* Quick Actions Section */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-4 text-center">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Register for Event Card */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
+                type="button"
                 onClick={() => setActiveTab("register")}
-                className="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all duration-200 text-left group"
+                className={`${quickActionClasses} ${activeTab === "register" ? "ring-2 ring-cyan-500" : ""}`}
               >
-                <div className="flex items-center gap-4">
-                  <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <Home className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-cyan-600 transition-colors">
-                      Register for Event
-                    </h3>
-                    <p className="text-sm text-slate-600 mt-1">
-                      Sign up for workshops and trips
-                    </p>
-                  </div>
-                </div>
+                <Home className="w-5 h-5" />
+                Register for Event
               </button>
-              {/* Gym Schedule Card */}
+
               <button
+                type="button"
                 onClick={() => setActiveTab("gym")}
-                className="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all duration-200 text-left group"
+                className={`${quickActionClasses} ${activeTab === "gym" ? "ring-2 ring-cyan-500" : ""}`}
               >
-                <div className="flex items-center gap-4">
-                  <div className="bg-gradient-to-br from-orange-500 to-red-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <Dumbbell className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-cyan-600 transition-colors">
-                      Gym Schedule
-                    </h3>
-                    <p className="text-sm text-slate-600 mt-1">
-                      Book your fitness sessions
-                    </p>
-                  </div>
-                </div>
+                <Dumbbell className="w-5 h-5" />
+                Gym Schedule
               </button>
             </div>
           </div>
