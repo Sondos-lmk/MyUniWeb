@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Calendar } from "lucide-react";
+import { MessageSquare, Calendar, Heart } from "lucide-react";
 import API from "../services/api";
-
+import { addFavorite, removeFavorite } from "../services/favorites";
 
 const badgeColor = (type) => {
   switch (type) {
@@ -30,7 +30,15 @@ const fmt = (value) => {
 const normalizeLocation = (event) =>
   event.location || event.locationInPlatform || event.sessionType || "—";
 
-export default function ProfessorEventCard({ event, currentUser, onRegister, isFavoritesView }) {
+export default function ProfessorEventCard({
+  event,
+  currentUser,
+  onRegister,
+  isFavoritesView,
+  userRole,
+  isFavorite,
+  onToggleFavorite,
+}) {
   const navigate = useNavigate();
   const eventId = event?._id || event?.id;
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -41,15 +49,45 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
   const [vendors, setVendors] = useState([]);
   const [loadingVendors, setLoadingVendors] = useState(false);
   const [showVendorsModal, setShowVendorsModal] = useState(false);
-  
+
   // Registration form state
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regId, setRegId] = useState("");
-  
+
   // Feedback form state
   const [feedback, setFeedback] = useState("");
   const [rating, setRating] = useState(5);
+
+  // ⭐ Favorites state
+  const [isFav, setIsFav] = useState(!!isFavorite);
+  const [togglingFavorite, setTogglingFavorite] = useState(false);
+
+  useEffect(() => {
+    setIsFav(!!isFavorite);
+  }, [isFavorite]);
+
+  const handleToggleFavorite = async () => {
+    if (!eventId || togglingFavorite) return;
+
+    setTogglingFavorite(true);
+    try {
+      if (isFav) {
+        await removeFavorite(eventId);
+        setIsFav(false);
+        onToggleFavorite?.(eventId, false, event);
+      } else {
+        await addFavorite(eventId);
+        setIsFav(true);
+        onToggleFavorite?.(eventId, true, event);
+      }
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+      alert(err.response?.data?.message || "Failed to update favorites");
+    } finally {
+      setTogglingFavorite(false);
+    }
+  };
 
   // Fetch vendors for bazaar events when modal opens
   const handleShowVendors = async () => {
@@ -68,11 +106,17 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
   };
 
   // Check if user is already registered (check both attendees and registeredUsers)
-  const isRegistered = event?.attendees?.some(
-    (att) => String(att._id || att) === String(currentUser?.id || currentUser?._id)
-  ) || event?.registeredUsers?.some(
-    (userId) => String(userId._id || userId) === String(currentUser?.id || currentUser?._id)
-  );
+  const isRegistered =
+    event?.attendees?.some(
+      (att) =>
+        String(att._id || att) ===
+        String(currentUser?.id || currentUser?._id)
+    ) ||
+    event?.registeredUsers?.some(
+      (userId) =>
+        String(userId._id || userId) ===
+        String(currentUser?.id || currentUser?._id)
+    );
 
   // Only show register button for workshops and trips
   const canRegister = event.type === "workshop" || event.type === "trip";
@@ -85,23 +129,29 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
       time: event.time,
       duration: event.duration,
       sessionType: event.sessionType,
-      maxParticipants: event.maxParticipants
+      maxParticipants: event.maxParticipants,
     });
   }
 
   // Check if registration is still allowed
   const now = new Date();
-  const registrationDeadline = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
-  const eventStartDate = event.startDate ? new Date(event.startDate) : (event.date ? new Date(event.date) : null);
+  const registrationDeadline = event.registrationDeadline
+    ? new Date(event.registrationDeadline)
+    : null;
+  const eventStartDate = event.startDate
+    ? new Date(event.startDate)
+    : event.date
+    ? new Date(event.date)
+    : null;
   const eventEndDate = event.endDate ? new Date(event.endDate) : eventStartDate;
-  
+
   const isDeadlinePassed = registrationDeadline && now > registrationDeadline;
   const isEventPassed = eventStartDate && now > eventStartDate;
   const isEventEnded = eventEndDate && now > eventEndDate;
-  
+
   let registrationStatus = "available";
   let registrationMessage = "Register";
-  
+
   if (isRegistered) {
     registrationStatus = "registered";
     registrationMessage = "Registered";
@@ -125,7 +175,7 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
       await API.post(`/events/register/${eventId}`, {
         name: regName,
         email: regEmail,
-        id: regId
+        id: regId,
       });
       alert("Successfully registered for the event!");
       setShowRegisterModal(false);
@@ -151,7 +201,7 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
     try {
       await API.post(`/events/${eventId}/feedback`, {
         comment: feedback,
-        rating: rating
+        rating: rating,
       });
       alert("Feedback submitted successfully!");
       setShowFeedbackModal(false);
@@ -166,7 +216,7 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
   const handleViewDetails = async () => {
     setShowDetailsModal(true);
     setDetailsTab("details");
-    
+
     if (event.type === "bazaar") {
       try {
         const response = await API.get(`/events/${eventId}`);
@@ -181,15 +231,44 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
     <>
       <div className="relative rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all hover:-translate-y-0.5 overflow-hidden h-full flex flex-col">
         <div className="p-5 flex flex-col h-full">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-lg font-semibold break-words">{event.title}</h3>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${badgeColor(event.type)}`}>
-              {event.type || "event"}
-            </span>
+          {/* HEADER: title on left, type badge + heart on right */}
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-lg font-semibold break-words">
+              {event.title}
+            </h3>
+            <div className="flex flex-col items-end gap-1">
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${badgeColor(
+                  event.type
+                )}`}
+              >
+                {event.type || "event"}
+              </span>
+
+              {/* ❤️ Heart directly under type */}
+              <button
+                onClick={handleToggleFavorite}
+                disabled={togglingFavorite}
+                className="p-1 rounded-full bg-white hover:bg-slate-50 border border-slate-200 shadow-sm transition-all disabled:opacity-50"
+                title={isFav ? "Remove from favorites" : "Add to favorites"}
+                aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Heart
+                  size={18}
+                  className={`${
+                    isFav
+                      ? "fill-red-500 text-red-500"
+                      : "text-slate-400 hover:text-red-500"
+                  } transition-colors`}
+                />
+              </button>
+            </div>
           </div>
 
           {event.desc && (
-            <p className="mt-2 text-sm text-slate-600 line-clamp-2">{event.desc}</p>
+            <p className="mt-2 text-sm text-slate-600 line-clamp-2">
+              {event.desc}
+            </p>
           )}
 
           <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
@@ -199,7 +278,9 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
                 <div>
                   <div className="text-slate-500">Date</div>
                   <div className="font-medium text-xs">
-                    {event.date ? new Date(event.date).toLocaleDateString() : "N/A"}
+                    {event.date
+                      ? new Date(event.date).toLocaleDateString()
+                      : "N/A"}
                   </div>
                 </div>
 
@@ -210,10 +291,14 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
 
                 <div>
                   <div className="text-slate-500">Duration</div>
-                  <div className="font-medium">{event.duration ? `${event.duration} min` : "N/A"}</div>
+                  <div className="font-medium">
+                    {event.duration ? `${event.duration} min` : "N/A"}
+                  </div>
                 </div>
 
-                {(event.location || event.locationInPlatform || event.sessionType) && (
+                {(event.location ||
+                  event.locationInPlatform ||
+                  event.sessionType) && (
                   <div>
                     <div className="text-slate-500">Location</div>
                     <div className="font-medium">{normalizeLocation(event)}</div>
@@ -229,7 +314,9 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
               </>
             ) : (
               <>
-                {(event.location || event.locationInPlatform || event.sessionType) && (
+                {(event.location ||
+                  event.locationInPlatform ||
+                  event.sessionType) && (
                   <div>
                     <div className="text-slate-500">Location</div>
                     <div className="font-medium">{normalizeLocation(event)}</div>
@@ -248,14 +335,20 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
                 {event.endDate && (
                   <div>
                     <div className="text-slate-500">End</div>
-                    <div className="font-medium text-xs">{fmt(event.endDate)}</div>
+                    <div className="font-medium text-xs">
+                      {fmt(event.endDate)}
+                    </div>
                   </div>
                 )}
 
                 {event.registrationDeadline && (
                   <div>
-                    <div className="text-slate-500">Registration Deadline</div>
-                    <div className="font-medium text-xs">{fmt(event.registrationDeadline)}</div>
+                    <div className="text-slate-500">
+                      Registration Deadline
+                    </div>
+                    <div className="font-medium text-xs">
+                      {fmt(event.registrationDeadline)}
+                    </div>
                   </div>
                 )}
               </>
@@ -295,12 +388,16 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
             {/* Register button - show for workshops and trips, hide in favorites view */}
             {!isFavoritesView && canRegister && (
               <button
-                onClick={() => registrationStatus === "available" && setShowRegisterModal(true)}
+                onClick={() =>
+                  registrationStatus === "available" &&
+                  setShowRegisterModal(true)
+                }
                 disabled={registrationStatus !== "available"}
                 className={`flex-1 min-w-[140px] px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 ${
                   registrationStatus === "registered"
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : registrationStatus === "deadlinePassed" || registrationStatus === "eventPassed"
+                    : registrationStatus === "deadlinePassed" ||
+                      registrationStatus === "eventPassed"
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                     : "bg-green-600 hover:bg-green-700 text-white"
                 }`}
@@ -332,7 +429,9 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
             className="bg-white rounded-2xl p-6 max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-2xl font-bold mb-4">Register for {event.title}</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              Register for {event.title}
+            </h2>
             <form onSubmit={handleRegister}>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Name</label>
@@ -346,7 +445,9 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Email</label>
+                <label className="block text-sm font-medium mb-2">
+                  Email
+                </label>
                 <input
                   type="email"
                   value={regEmail}
@@ -401,7 +502,9 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
             <h2 className="text-2xl font-bold mb-4">Leave Feedback</h2>
             <form onSubmit={handleFeedback}>
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Rating</label>
+                <label className="block text-sm font-medium mb-2">
+                  Rating
+                </label>
                 <select
                   value={rating}
                   onChange={(e) => setRating(Number(e.target.value))}
@@ -415,7 +518,9 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
                 </select>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Comment</label>
+                <label className="block text-sm font-medium mb-2">
+                  Comment
+                </label>
                 <textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
@@ -494,7 +599,11 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
             {detailsTab === "details" && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${badgeColor(event.type)}`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${badgeColor(
+                      event.type
+                    )}`}
+                  >
                     {event.type}
                   </span>
                   {event.status && (
@@ -506,7 +615,9 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
 
                 {event.desc && (
                   <div>
-                    <h3 className="font-semibold text-slate-700 mb-1">Description</h3>
+                    <h3 className="font-semibold text-slate-700 mb-1">
+                      Description
+                    </h3>
                     <p className="text-slate-600">{event.desc}</p>
                   </div>
                 )}
@@ -514,34 +625,50 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
                 <div className="grid grid-cols-2 gap-4">
                   {normalizeLocation(event) !== "—" && (
                     <div>
-                      <h3 className="font-semibold text-slate-700 mb-1">Location</h3>
-                      <p className="text-slate-600">{normalizeLocation(event)}</p>
+                      <h3 className="font-semibold text-slate-700 mb-1">
+                        Location
+                      </h3>
+                      <p className="text-slate-600">
+                        {normalizeLocation(event)}
+                      </p>
                     </div>
                   )}
 
                   {event.capacity && (
                     <div>
-                      <h3 className="font-semibold text-slate-700 mb-1">Capacity</h3>
+                      <h3 className="font-semibold text-slate-700 mb-1">
+                        Capacity
+                      </h3>
                       <p className="text-slate-600">{event.capacity}</p>
                     </div>
                   )}
 
                   <div>
-                    <h3 className="font-semibold text-slate-700 mb-1">Start Date</h3>
-                    <p className="text-slate-600">{fmt(event.startDate || event.date)}</p>
+                    <h3 className="font-semibold text-slate-700 mb-1">
+                      Start Date
+                    </h3>
+                    <p className="text-slate-600">
+                      {fmt(event.startDate || event.date)}
+                    </p>
                   </div>
 
                   {event.endDate && (
                     <div>
-                      <h3 className="font-semibold text-slate-700 mb-1">End Date</h3>
+                      <h3 className="font-semibold text-slate-700 mb-1">
+                        End Date
+                      </h3>
                       <p className="text-slate-600">{fmt(event.endDate)}</p>
                     </div>
                   )}
 
                   {event.registrationDeadline && (
                     <div className="col-span-2">
-                      <h3 className="font-semibold text-slate-700 mb-1">Registration Deadline</h3>
-                      <p className="text-slate-600">{fmt(event.registrationDeadline)}</p>
+                      <h3 className="font-semibold text-slate-700 mb-1">
+                        Registration Deadline
+                      </h3>
+                      <p className="text-slate-600">
+                        {fmt(event.registrationDeadline)}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -551,17 +678,23 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
             {detailsTab === "vendors" && event.type === "bazaar" && (
               <div className="space-y-3">
                 {vendors.length === 0 ? (
-                  <p className="text-slate-500 text-center py-8">No vendors registered yet</p>
+                  <p className="text-slate-500 text-center py-8">
+                    No vendors registered yet
+                  </p>
                 ) : (
                   <div className="bg-slate-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-slate-700 mb-3">Participating Vendors</h3>
+                    <h3 className="font-semibold text-slate-700 mb-3">
+                      Participating Vendors
+                    </h3>
                     <ul className="space-y-3">
                       {vendors.map((vendorReg, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <span className="w-2 h-2 bg-cyan-600 rounded-full mt-1.5 flex-shrink-0"></span>
                           <div>
                             <div className="text-slate-700 font-medium">
-                              {vendorReg.vendor?.companyName || vendorReg.companyName || "Company"}
+                              {vendorReg.vendor?.companyName ||
+                                vendorReg.companyName ||
+                                "Company"}
                             </div>
                             {vendorReg.vendor?.email && (
                               <div className="text-sm text-slate-500">
@@ -600,21 +733,34 @@ export default function ProfessorEventCard({ event, currentUser, onRegister, isF
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-slate-800 mb-4">Vendors Participating</h2>
-              
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">
+                Vendors Participating
+              </h2>
+
               {loadingVendors ? (
-                <p className="text-center text-slate-600 py-8">Loading vendors...</p>
+                <p className="text-center text-slate-600 py-8">
+                  Loading vendors...
+                </p>
               ) : vendors.length === 0 ? (
-                <p className="text-center text-slate-600 py-8">No vendors registered yet.</p>
+                <p className="text-center text-slate-600 py-8">
+                  No vendors registered yet.
+                </p>
               ) : (
                 <div className="space-y-3 max-h-[50vh] overflow-y-auto">
                   {vendors.map((vendorReg, idx) => (
-                    <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                    <div
+                      key={idx}
+                      className="bg-slate-50 rounded-lg p-4 border border-slate-200"
+                    >
                       <div className="font-semibold text-slate-800 mb-1">
-                        {vendorReg.vendor?.companyName || vendorReg.companyName || "N/A"}
+                        {vendorReg.vendor?.companyName ||
+                          vendorReg.companyName ||
+                          "N/A"}
                       </div>
                       <div className="text-sm text-slate-600">
-                        {vendorReg.vendor?.email || vendorReg.email || "N/A"}
+                        {vendorReg.vendor?.email ||
+                          vendorReg.email ||
+                          "N/A"}
                       </div>
                     </div>
                   ))}
