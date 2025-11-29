@@ -1,57 +1,54 @@
-import mongoose from 'mongoose';
+import cron from 'node-cron';
 import { Booth } from './models/Events/Booth.js';
 import { Bazaar } from './models/Events/Bazaar.js';
 
-export const rejectOverduePayments = async () => {
-  const now = new Date();
-
-  // ---------------- Reject overdue booths ----------------
-  const booths = await Booth.find({
-    "registeredVendors.status": "approved",
-    "registeredVendors.paymentStatus": "unpaid",
-    "registeredVendors.paymentDeadline": { $lt: now },
+/**
+ * Cron job to check for expired booth applications and reject them
+ * Runs every hour
+ */
+export const startBoothExpirationCron = () => {
+  // Run every hour (at minute 0)
+  cron.schedule('0 * * * *', async () => {
+    try {
+      console.log('🔍 Checking for expired booth applications...');
+      
+      const rejectedCount = await Booth.rejectExpiredApplications();
+      
+      if (rejectedCount > 0) {
+        console.log(`✅ Rejected ${rejectedCount} expired booth application(s)`);
+      } else {
+        console.log('✅ No expired applications found');
+      }
+    } catch (error) {
+      console.error('❌ Error in booth expiration cron job:', error);
+    }
   });
 
-  for (const booth of booths) {
-    let updated = false;
+  console.log('⏰ Booth expiration cron job started (runs every hour)');
+};
 
-    booth.registeredVendors.forEach((vendor) => {
-      if (
-        vendor.status === 'approved' &&
-        vendor.paymentStatus === 'unpaid' &&
-        vendor.paymentDeadline < now
-      ) {
-        vendor.status = 'rejected';
-        updated = true;
+
+/**
+ * Cron job to check for expired bazaar booth applications and reject them
+ * Runs every hour
+ */
+export const startBazaarExpirationCron = () => {
+  // Run every hour (at minute 0)
+  cron.schedule('0 * * * *', async () => {
+    try {
+      console.log('🔍 Checking for expired bazaar applications...');
+      
+      const rejectedCount = await Bazaar.rejectExpiredApplications();
+      
+      if (rejectedCount > 0) {
+        console.log(`✅ Rejected ${rejectedCount} expired bazaar application(s)`);
+      } else {
+        console.log('✅ No expired bazaar applications found');
       }
-    });
-
-    if (updated) await booth.save();
-  }
-
-  // ---------------- Reject overdue bazaars ----------------
-  const bazaars = await Bazaar.find({
-    "registeredVendors.status": "approved",
-    "registeredVendors.paymentStatus": "unpaid",
-    "registeredVendors.paymentDeadline": { $lt: now },
+    } catch (error) {
+      console.error('❌ Error in bazaar expiration cron job:', error);
+    }
   });
 
-  for (const bazaar of bazaars) {
-    let updated = false;
-
-    bazaar.registeredVendors.forEach((vendor) => {
-      if (
-        vendor.status === 'approved' &&
-        vendor.paymentStatus === 'unpaid' &&
-        vendor.paymentDeadline < now
-      ) {
-        vendor.status = 'rejected';
-        updated = true;
-      }
-    });
-
-    if (updated) await bazaar.save();
-  }
-
-  console.log('✅ Overdue unpaid registrations checked and rejected.');
+  console.log('⏰ Bazaar expiration cron job started (runs every hour)');
 };

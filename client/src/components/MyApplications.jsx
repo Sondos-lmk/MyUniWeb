@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import ModernAlert from "./ui/ModernAlert";
 
 function MyApplications() {
   const [applications, setApplications] = useState([]);
@@ -9,39 +10,51 @@ function MyApplications() {
   const [selectedApp, setSelectedApp] = useState(null);
   const [workers, setWorkers] = useState([{ name: "", idPicture: null }]);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Alert states
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+  const [confirmMessage, setConfirmMessage] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const token = localStorage.getItem("token");
 
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
+
+  const showConfirm = (message, onConfirm) => {
+    setConfirmMessage(message);
+    setConfirmAction(() => onConfirm);
+  };
+
   const handleCancelApplication = async (appToCancel) => {
-    if (!window.confirm("Are you sure you want to cancel this application? This action cannot be undone.")) {
-      return;
-    }
+    showConfirm(
+      "Are you sure you want to cancel this application? This action cannot be undone.",
+      async () => {
+        try {
+          await API.delete(
+            `/events/${appToCancel.id}/applications/${appToCancel.registrationId}/cancel`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
 
-    try {
-      // setLoading(true); // <-- This is intentionally removed to prevent UI flicker
-      // Call the new DELETE endpoint
-      await API.delete(
-        `/events/${appToCancel.id}/applications/${appToCancel.registrationId}/cancel`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+          showAlert("Application cancelled successfully.", "success");
+
+          setApplications((prevApps) => 
+            prevApps.filter(
+              (app) => app.registrationId !== appToCancel.registrationId
+            )
+          );
+
+        } catch (err) {
+          console.error("Error cancelling application:", err);
+          showAlert(err.response?.data?.error || "Failed to cancel application.", "error");
         }
-      );
-
-      alert("Application cancelled successfully.");
-
-      // Update the UI by removing the cancelled app from state
-      setApplications((prevApps) => 
-        prevApps.filter(
-          (app) => app.registrationId !== appToCancel.registrationId
-        )
-      );
-
-    } catch (err) {
-      console.error("Error cancelling application:", err);
-      alert(err.response?.data?.error || "Failed to cancel application.");
-    } finally {
-      // setLoading(false); // <-- This is intentionally removed
-    }
+      }
+    );
   };
 
   // ---------------------------- Worker Submission ----------------------------
@@ -68,7 +81,7 @@ function MyApplications() {
   const handleSubmitWorkers = async () => {
     const isValid = workers.every((w) => w.name.trim() && w.idPicture);
     if (!isValid) {
-      alert("Please fill in all worker names and upload their ID pictures");
+      showAlert("Please fill in all worker names and upload their ID pictures", "error");
       return;
     }
 
@@ -80,7 +93,6 @@ function MyApplications() {
         formData.append("workers", worker.idPicture);
       });
 
-      // Use eventId and registrationId in the URL
       const response = await API.post(
         `/users/${selectedApp.id}/registrations/${selectedApp.registrationId}/submit-workers`,
         formData,
@@ -92,9 +104,8 @@ function MyApplications() {
         }
       );
 
-      alert("Workers submitted successfully!");
+      showAlert("Workers submitted successfully!", "success");
 
-      // Update state using registrationId
       setApplications((prev) =>
         prev.map((a) =>
           a.registrationId === selectedApp.registrationId 
@@ -110,10 +121,11 @@ function MyApplications() {
       initiatePayment({ ...selectedApp, workersSubmitted: true });
     } catch (err) {
       console.error("Error submitting workers:", err);
-      alert(
+      showAlert(
         err.response?.data?.message ||
           err.response?.data?.error ||
-          "Failed to submit workers"
+          "Failed to submit workers",
+        "error"
       );
     } finally {
       setSubmitting(false);
@@ -132,47 +144,41 @@ function MyApplications() {
 
   const initiatePayment = async (application) => {
     if (!application.finalPrice || application.finalPrice <= 0) {
-      alert("Invalid price amount");
+      showAlert("Invalid price amount", "error");
       return;
     }
 
-    const confirmWallet = window.confirm(
-      `Would you like to pay using your credit card?`
-    );
+    showConfirm(
+      "Would you like to pay using your credit card?",
+      async () => {
+        try {
+          const res = await API.post(
+            "/payment/create-bazaar-booth-checkout",
+            {
+              eventId: application.id,
+              registrationId: application.registrationId,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-    // If user cancels
-    if (!confirmWallet) {
-      console.log("Payment cancelled by user.");
-      return;
-    }
+          if (res.data.url) {
+            window.location.href = res.data.url; // Stripe redirect
+            return;
+          }
 
-    try {
-      // Pay with Stripe - use eventId and registrationId
-      const res = await API.post(
-        "/payment/create-bazaar-booth-checkout",
-        {
-          eventId: application.id,
-          registrationId: application.registrationId,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+          showAlert("Could not create Stripe session", "error");
 
-      if (res.data.url) {
-        window.location.href = res.data.url; // Stripe redirect
-        return;
+        } catch (err) {
+          console.error("Payment error:", err);
+          showAlert(
+            err.response?.data?.message ||
+            err.response?.data?.error ||
+            "Payment failed",
+            "error"
+          );
+        }
       }
-
-      alert("Could not create Stripe session");
-
-    } catch (err) {
-      console.error("Payment error:", err);
-
-      alert(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Payment failed"
-      );
-    }
+    );
   };
 
   // ---------------------------- Fetch Applications ----------------------------
@@ -202,9 +208,7 @@ function MyApplications() {
 
   return (
     <>
-      <div className="p-6 bg-white  rounded-2xl mt-6">
-       
-
+      <div className="p-6 bg-white rounded-2xl mt-6">
         {!applications.length ? (
           <div className="p-6 border rounded-2xl text-center">
             <p className="text-gray-600">
@@ -216,7 +220,7 @@ function MyApplications() {
             {applications.map((app, idx) => (
               <div
                 key={app.registrationId || idx}
-                className="border p-4 rounded-lg flex justify-between items-start" // Changed to items-start
+                className="border p-4 rounded-lg flex justify-between items-start"
               >
                 {/* --- LEFT SIDE: INFO, STATUS, AND BUTTONS --- */}
                 <div>
@@ -243,9 +247,8 @@ function MyApplications() {
                     </span>
                   </p>
                   
-                  {/* --- MODIFIED SECTION --- */}
                   {app.status === "approved" && (
-                    <div className="mt-2"> {/* Wrapped in a div for layout */}
+                    <div className="mt-2">
                       Payment Status:{" "}
                       <span
                         className={`font-semibold ${
@@ -263,9 +266,8 @@ function MyApplications() {
                         </span>
                       )}
 
-                      {/* --- BUTTONS MOVED HERE --- */}
                       {app.paymentStatus !== "paid" && (
-                        <div className="mt-2 flex gap-2"> {/* Added flex and gap */}
+                        <div className="mt-2 flex gap-2">
                           <button
                             onClick={() => handleCancelApplication(app)}
                             className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
@@ -289,10 +291,8 @@ function MyApplications() {
                           )}
                         </div>
                       )}
-                      {/* --- END OF MOVED BUTTONS --- */}
                     </div>
                   )}
-                  {/* --- END OF MODIFIED SECTION --- */}
                 </div>
 
                 {/* --- RIGHT SIDE: STATUS BADGE ONLY --- */}
@@ -308,9 +308,6 @@ function MyApplications() {
                   >
                     {(app.status || "unknown").toUpperCase()}
                   </span>
-                  
-                  {/* Buttons were here, but are now moved to the left */}
-                  
                 </div>
               </div>
             ))}
@@ -411,6 +408,21 @@ function MyApplications() {
           </div>
         </div>
       )}
+
+      {/* Regular Alert */}
+      <ModernAlert 
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertMessage(null)}
+      />
+
+      {/* Confirmation Dialog */}
+      <ModernAlert 
+        message={confirmMessage}
+        isConfirm={true}
+        onConfirm={confirmAction}
+        onClose={() => setConfirmMessage(null)}
+      />
     </>
   );
 }

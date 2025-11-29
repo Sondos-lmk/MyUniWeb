@@ -68,10 +68,53 @@ boothSchema.pre("save", function (next) {
     if (vendor.status === 'approved' && vendor.paymentStatus === 'unpaid' && !vendor.paymentDeadline) {
       vendor.paymentDeadline = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days
     }
+    // Auto-reject if paymentDeadline has passed
+     if (vendor.status === 'approved' && vendor.paymentStatus === 'unpaid' && vendor.paymentDeadline && now > vendor.paymentDeadline) 
+      { vendor.status = 'rejected';}
+
   });
 
+ 
   next();
-});
+  });
+
+// ------------------- Static method to check and reject expired applications -------------------
+boothSchema.statics.rejectExpiredApplications = async function() {
+  const now = new Date();
+  
+  const booths = await this.find({
+    'registeredVendors.status': 'approved',
+    'registeredVendors.paymentStatus': 'unpaid',
+    'registeredVendors.paymentDeadline': { $lt: now }
+  });
+
+  let rejectedCount = 0;
+
+  for (const booth of booths) {
+    let modified = false;
+    
+    booth.registeredVendors.forEach((vendor) => {
+      if (
+        vendor.status === 'approved' &&
+        vendor.paymentStatus === 'unpaid' &&
+        vendor.paymentDeadline &&
+        now > vendor.paymentDeadline
+      ) {
+        vendor.status = 'rejected';
+        modified = true;
+        rejectedCount++;
+      }
+    });
+
+    if (modified) {
+      await booth.save();
+    }
+  }
+
+  return rejectedCount;
+};
+
+
 
 
 export const Booth = Event.discriminator('booth', boothSchema);

@@ -9,7 +9,7 @@ import { connectDB } from './config/db.js';
 import cron from 'node-cron';
 import { sendCertificatesForCompletedWorkshops } from './utils/certificateScheduler.js';
 import { sendRemindersForUpcomingEvents } from "./utils/reminderScheduler.js";
-
+import { startBoothExpirationCron, startBazaarExpirationCron } from './cronJobs.js';
 console.log('Environment variables:', {
   CLIENT_ID: process.env.CLIENT_ID ? '✅' : '❌',
   CLIENT_SECRET: process.env.CLIENT_SECRET ? '✅' : '❌',
@@ -20,12 +20,6 @@ console.log('Environment variables:', {
 });
 
 
-// TODO: Implement rejectOverduePayments function if needed
-// Run every hour
-// cron.schedule('0 * * * *', async () => {
-//   console.log('Checking for overdue payments...');
-//   await rejectOverduePayments();
-// });
 
 
 
@@ -61,5 +55,8 @@ async function bootstrap() {
   console.log(
     "✅ Reminder scheduler initialized (runs every minute for testing)"
   );
+  // Start cron jobs for checking expired applications
+  startBoothExpirationCron();
+  startBazaarExpirationCron();
 }
 bootstrap();

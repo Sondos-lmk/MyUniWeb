@@ -6,6 +6,7 @@ import MyApplications from "../components/MyApplications";
 import API from "../services/api";
 import LoyaltyManager from "../components/LoyalityProgrameManger";
 import DashboardLayout from "../components/DashboardLayout";
+import ModernAlert from "../components/ui/ModernAlert";
 import { Store, Calendar, FileText, Award } from "lucide-react";
 
 function Dashboard() {
@@ -23,8 +24,20 @@ function Dashboard() {
   const [showLogoUpload, setShowLogoUpload] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+  const [formErrors, setFormErrors] = useState({});
 
   const token = localStorage.getItem("token");
+
+  // Show modern alert
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setTimeout(() => {
+      setAlertMessage(null);
+    }, 3000);
+  };
 
   const sidebarItems = [
     { 
@@ -34,16 +47,16 @@ function Dashboard() {
       onClick: () => setActiveSection("overview") 
     },
     { 
+      key: "applyBooth", 
+      label: "Apply for Booth", 
+      icon: FileText, 
+      onClick: () => setActiveSection("applyBooth") 
+    },
+    { 
       key: "bazaarEvents", 
       label: "Bazaar Events", 
       icon: Calendar, 
       onClick: () => setActiveSection("bazaarEvents") 
-    },
-    { 
-      key: "applications", 
-      label: "My Applications", 
-      icon: FileText, 
-      onClick: () => setActiveSection("applications") 
     },
     { 
       key: "loyalty", 
@@ -81,12 +94,12 @@ function Dashboard() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      showAlert('Please select an image file', 'error');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('Please select an image smaller than 5MB');
+      showAlert('Please select an image smaller than 5MB', 'error');
       return;
     }
 
@@ -112,10 +125,11 @@ function Dashboard() {
       }));
       
       setShowLogoUpload(false);
+      showAlert("Logo updated successfully!", "success");
       
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert(error.response?.data?.message || 'Failed to upload logo');
+      showAlert(error.response?.data?.message || 'Failed to upload logo', "error");
     } finally {
       setLogoUploading(false);
       event.target.value = '';
@@ -158,15 +172,41 @@ function Dashboard() {
     setSelectedEvent(event);
     setReps([{ name: "", email: "" }]);
     setBoothSize("2x2");
+    setFormErrors({});
   };
 
   const handleCloseModal = () => {
     setSelectedEvent(null);
+    setFormErrors({});
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    reps.forEach((rep, idx) => {
+      if (!rep.name || rep.name.trim() === "") {
+        errors[`name_${idx}`] = "Name is required";
+      }
+      
+      if (!rep.email || rep.email.trim() === "") {
+        errors[`email_${idx}`] = "Email is required";
+      } else if (!/\S+@\S+\.\S+/.test(rep.email)) {
+        errors[`email_${idx}`] = "Please enter a valid email address";
+      }
+    });
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedEvent) return;
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
 
     try {
       const res = await API.post(
@@ -174,13 +214,14 @@ function Dashboard() {
         { reps, boothSize },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert(res.data.message || "Applied successfully!");
+      showAlert(res.data.message || "Applied successfully!", "success");
       setSelectedEvent(null);
       setReps([{ name: "", email: "" }]);
       setBoothSize("2x2");
+      setFormErrors({});
     } catch (err) {
       console.error("Error applying for bazaar:", err);
-      alert(err.response?.data?.error || "Failed to apply");
+      showAlert(err.response?.data?.error || "Failed to apply", "error");
     }
   };
 
@@ -224,28 +265,36 @@ function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   type="button"
+                  onClick={() => setActiveSection("applyBooth")}
+                  className={quickActionClasses}
+                >
+                  <FileText className="w-5 h-5" />
+                  Apply for Booth
+                </button>
+                <button
+                  type="button"
                   onClick={() => setActiveSection("bazaarEvents")}
                   className={quickActionClasses}
                 >
                   <Calendar className="w-5 h-5" />
                   Browse Bazaar Events
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveSection("applications")}
-                  className={quickActionClasses}
-                >
-                  <FileText className="w-5 h-5" />
-                  View My Applications
-                </button>
               </div>
             </div>
 
-            {/* Booth Application Form */}
+            {/* My Applications */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold mb-4">Apply for Booth</h3>
-              <ApplyBoothForm />
+              <h3 className="text-lg font-semibold mb-4">My Applications</h3>
+              <MyApplications />
             </div>
+          </div>
+        );
+
+      case "applyBooth":
+        return (
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">Apply for Booth</h2>
+            <ApplyBoothForm />
           </div>
         );
 
@@ -295,14 +344,6 @@ function Dashboard() {
                 ))}
               </div>
             )}
-          </div>
-        );
-
-      case "applications":
-        return (
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">My Applications</h2>
-            <MyApplications />
           </div>
         );
 
@@ -404,6 +445,13 @@ function Dashboard() {
 
         {renderContent()}
       </div>
+
+      {/* Modern Alert Component */}
+      <ModernAlert 
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertMessage(null)}
+      />
 
       {/* Logo Upload Modal */}
       {showLogoUpload && (
@@ -510,27 +558,60 @@ function Dashboard() {
                     <input
                       type="text"
                       placeholder="Name"
-                      className="border border-gray-300 rounded-lg p-3 w-full mb-2 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className={`border ${formErrors[`name_${idx}`] ? 'border-red-500' : 'border-gray-300'} rounded-lg p-3 w-full mb-2 focus:ring-2 focus:ring-teal-500 focus:border-transparent`}
                       value={rep.name}
                       onChange={(e) => {
                         const newReps = [...reps];
                         newReps[idx].name = e.target.value;
                         setReps(newReps);
+                        // Clear error when user types
+                        if (formErrors[`name_${idx}`]) {
+                          setFormErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors[`name_${idx}`];
+                            return newErrors;
+                          });
+                        }
                       }}
                       required
                     />
+                    {formErrors[`name_${idx}`] && (
+                      <p className="text-red-500 text-sm mb-2 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {formErrors[`name_${idx}`]}
+                      </p>
+                    )}
+                    
                     <input
                       type="email"
                       placeholder="Email"
-                      className="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className={`border ${formErrors[`email_${idx}`] ? 'border-red-500' : 'border-gray-300'} rounded-lg p-3 w-full focus:ring-2 focus:ring-teal-500 focus:border-transparent`}
                       value={rep.email}
                       onChange={(e) => {
                         const newReps = [...reps];
                         newReps[idx].email = e.target.value;
                         setReps(newReps);
+                        // Clear error when user types
+                        if (formErrors[`email_${idx}`]) {
+                          setFormErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors[`email_${idx}`];
+                            return newErrors;
+                          });
+                        }
                       }}
                       required
                     />
+                    {formErrors[`email_${idx}`] && (
+                      <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {formErrors[`email_${idx}`]}
+                      </p>
+                    )}
                   </div>
                   {reps.length > 1 && (
                     <button

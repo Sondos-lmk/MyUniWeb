@@ -69,9 +69,52 @@ bazaarSchema.pre("save", function (next) {
     if (vendor.status === 'approved' && vendor.paymentStatus === 'unpaid' && !vendor.paymentDeadline) {
       vendor.paymentDeadline = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days
     }
+    // Auto-reject if paymentDeadline has passed
+     if (
+  vendor.status === 'approved' &&vendor.paymentStatus === 'unpaid' && vendor.paymentDeadline && now > vendor.paymentDeadline) 
+  {vendor.status = 'rejected';}
   });
 
+  
+
   next();
-});
+
+  });
+  // ------------------- Static method to check and reject expired applications -------------------
+bazaarSchema.statics.rejectExpiredApplications = async function() {
+  const now = new Date();
+  
+  const bazaars = await this.find({
+    'registeredVendors.status': 'approved',
+    'registeredVendors.paymentStatus': 'unpaid',
+    'registeredVendors.paymentDeadline': { $lt: now }
+  });
+
+  let rejectedCount = 0;
+
+  for (const bazaar of bazaars) {
+    let modified = false;
+    
+    bazaar.registeredVendors.forEach((vendor) => {
+      if (
+        vendor.status === 'approved' &&
+        vendor.paymentStatus === 'unpaid' &&
+        vendor.paymentDeadline &&
+        now > vendor.paymentDeadline
+      ) {
+        vendor.status = 'rejected';
+        modified = true;
+        rejectedCount++;
+      }
+    });
+
+    if (modified) {
+      await bazaar.save();
+    }
+  }
+
+  return rejectedCount;
+};
+
 
 export const Bazaar = Event.discriminator('bazaar', bazaarSchema);
