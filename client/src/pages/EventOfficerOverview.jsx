@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import DashboardLayout from "../components/DashboardLayout";
+import EventOfficerAnalytics from "../components/EventOfficerAnalytics";
 import { Calendar, GraduationCap, Dumbbell, Store, ClipboardList, Archive, FileText, Users, Folder } from "lucide-react";
 
 export default function EventOfficerOverview() {
@@ -64,6 +65,7 @@ export default function EventOfficerOverview() {
             </div>
           </CardContent>
         </Card>
+        <EventOfficerAnalytics />
       </div>
     </DashboardLayout>
   );

@@ -181,22 +181,25 @@ export default function EventOfficerEventCard({ event, onEdit, onGenerateQr }) {
         </div>
 
         {/* MAIN BUTTONS */}
-        <div className="mt-auto pt-5 flex items-center gap-3">
+        <div className="mt-auto pt-5 grid grid-cols-2 gap-3">
           {!isUpcoming && (
             <button
               onClick={handleViewFeedback}
-              className="rounded-xl px-4 py-2 bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"
+              className="rounded-xl px-4 py-2 bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 w-full"
             >
               {showFeedback ? "Hide Feedback" : "View Feedback"}
             </button>
           )}
 
-            <button
+          {/* More Info */}
+          <button
             onClick={() => navigate(`/eventOfficer/events/${eventId}/details`)}
-            className="rounded-xl px-4 py-2 bg-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-300"
-            >
+            className={`rounded-xl px-4 py-2 bg-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-300 w-full ${
+              isUpcoming ? "col-span-2 justify-self-end max-w-[140px]" : ""
+            }`}
+          >
             More Info
-            </button>
+          </button>
         </div>
 
         {showFeedback && (

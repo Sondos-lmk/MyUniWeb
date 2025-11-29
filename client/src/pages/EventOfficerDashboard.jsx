@@ -11,6 +11,7 @@ import { Calendar, Dumbbell, Store, Archive, GraduationCap, ArrowLeft, ChevronDo
 import EventFormPage from "../components/EventFormPage";
 import ApprovedEvents from "../components/ApprovingEvents";
 import CreateGymSession from "./CreateGymSession";
+import EventOfficerAnalytics from "../components/EventOfficerAnalytics";
 
 function EventOfficerDashboard() {
   const { user } = useAuth();
@@ -101,6 +102,7 @@ function EventOfficerDashboard() {
             </div>
           )}
         </div>
+        <EventOfficerAnalytics />
       </div>
     </DashboardLayout>
   );
