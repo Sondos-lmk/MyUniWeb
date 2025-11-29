@@ -23,6 +23,7 @@ import loyaltyRoutes from './routes/loyalityRoutes.js';
 import pollRoutes from "./routes/pollRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 import eventFeedbackRoutes from "./routes/eventFeedbackRoutes.js";
+import eventOfficerAnalyticsRoutes from "./routes/eventOfficerAnalyticsRoutes.js";
 
 //import courtRoutes from "./routes/court.js";
 
@@ -75,6 +76,7 @@ app.use("/api/polls", pollRoutes);
 app.use("/api/documents", documentRoutes);
 app.use('/api/auth', authRoutes);
 app.use("/api/events", eventFeedbackRoutes);
+app.use("/api/eventOfficer/analytics", eventOfficerAnalyticsRoutes);
 
 
 // STRIPE WEBHOOK — ALWAYS LAST BEFORE 404!!!
