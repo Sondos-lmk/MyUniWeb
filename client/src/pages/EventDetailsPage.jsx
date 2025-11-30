@@ -13,6 +13,7 @@ import {
   Store,
   Folder,
   FileText,
+  ArrowLeft,
 } from "lucide-react";
 
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString() : "—");
@@ -69,6 +70,14 @@ export default function EventDetailsPage() {
     ? "Administrator · Event Details"
     : "Event Officer · More Information";
 
+  const handleBackClick = () => {
+    if (isAdminView) {
+      navigate("/admin", { state: { initialTab: "upcoming" } });
+    } else {
+      navigate("/eventOfficer/all-events");
+    }
+  };
+
   const [event, setEvent] = useState(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [error, setError] = useState("");
@@ -85,7 +94,7 @@ export default function EventDetailsPage() {
 
   const [coverPreview, setCoverPreview] = useState(null); // local-only image
 
-  const showQrFeatures = !isAdminView;
+  const showQrFeatures = !isAdminView && (event?.type === 'booth' || event?.type === 'bazaar');
 
   useEffect(() => {
     if (!showQrFeatures && activeTab === "qr") {
@@ -128,7 +137,14 @@ export default function EventDetailsPage() {
     }
 
     const vendorIds = Array.from(
-      new Set((event.registeredVendors || []).map((v) => v.vendor).filter(Boolean))
+      new Set(
+        (event.registeredVendors || [])
+          .map((v) => {
+            // Handle both populated objects and ID strings
+            return typeof v.vendor === 'object' && v.vendor !== null ? v.vendor._id : v.vendor;
+          })
+          .filter(id => id && id !== 'null')
+      )
     );
 
     if (vendorIds.length === 0) {
@@ -259,8 +275,12 @@ export default function EventDetailsPage() {
   }
 
   const isBazaarEvent = event.type === "bazaar";
-  const vendorRegistrations = isBazaarEvent ? event.registeredVendors || [] : [];
-  const approvedVendorsCount = vendorRegistrations.filter((v) => v.status === "approved").length;
+  const allVendorRegistrations = isBazaarEvent ? event.registeredVendors || [] : [];
+  // Filter to only show approved and paid vendors in the vendors tab
+  const vendorRegistrations = allVendorRegistrations.filter(
+    (v) => v.status === "approved" && v.paymentStatus === "paid"
+  );
+  const approvedVendorsCount = allVendorRegistrations.filter((v) => v.status === "approved").length;
 
   // ---------- Main content inside DashboardLayout ----------
   return (
@@ -272,7 +292,16 @@ export default function EventDetailsPage() {
       extraSidebarProps={{ isReportsOpen, selectedReport }}
     >
       <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Top header row: Title + Tag (NO back button) */}
+        {/* Back Button */}
+        <button
+          onClick={handleBackClick}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 font-medium"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back to Events
+        </button>
+
+        {/* Top header row: Title + Tag */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">{event.title}</h1>
@@ -492,13 +521,19 @@ export default function EventDetailsPage() {
                       </thead>
                       <tbody>
                         {vendorRegistrations.map((registration) => {
-                          const profile = registration.vendor
-                            ? vendorProfiles[registration.vendor]
-                            : null;
+                          // Handle both populated vendor objects and vendor IDs
+                          const vendorId = typeof registration.vendor === 'object' && registration.vendor !== null
+                            ? registration.vendor._id
+                            : registration.vendor;
+                          
+                          const profile = typeof registration.vendor === 'object' && registration.vendor !== null
+                            ? registration.vendor
+                            : (vendorId ? vendorProfiles[vendorId] : null);
+                          
                           const vendorName =
                             profile?.companyName ||
                             profile?.name ||
-                            registration.vendor ||
+                            vendorId ||
                             "—";
                           const vendorEmail =
                             profile?.companyEmail ||

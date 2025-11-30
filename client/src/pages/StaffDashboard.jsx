@@ -11,8 +11,9 @@ import ProfessorEventCard from "../components/ProfessorEventCard";
 import AttendedEvents from "./AttendedEvents";
 import Voting from "../components/Voting";
 import DashboardLayout from "../components/DashboardLayout";
-import { Calendar, Dumbbell, Store, CalendarDays, MessageSquare, Vote } from "lucide-react";
+import { Calendar, Dumbbell, Store, CalendarDays, MessageSquare, Vote, ShoppingBag } from "lucide-react";
 import LoyaltyVendors from "./LoyaltyVendors";
+import AvailableBooths from "./AvailableBooths";
 import EventsReviews from "./EventsReviews";
 import VendorPolls from "../components/VendorPolls";
 
@@ -165,9 +166,10 @@ const StaffDashboard = () => {
 	const sidebarItems = [
 		{ key: "events", label: "Events", icon: CalendarDays, onClick: () => setActiveSection("events") },
 		{ key: "eventsReviews", label: "Events Reviews", icon: MessageSquare, onClick: () => setActiveSection("eventsReviews") },
+		{ key: "availableBooths", label: "Available Booths", icon: ShoppingBag, onClick: () => setActiveSection("availableBooths") },
 		{ key: "boothPolls", label: "Booth Polls", icon: Vote, onClick: () => setActiveSection("boothPolls") },
-		{ key: "gymSchedule", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveSection("gymSchedule") },
 		{ key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveSection("loyaltyVendors") },
+		{ key: "gymSchedule", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveSection("gymSchedule") },
 	];
 
 	return (
@@ -331,6 +333,11 @@ const StaffDashboard = () => {
 				{/* Events Reviews Section */}
 				{activeSection === "eventsReviews" && (
 					<EventsReviews />
+				)}
+
+				{/* Available Booths Section */}
+				{activeSection === "availableBooths" && (
+					<AvailableBooths />
 				)}
 
 				{/* Booth Polls Section */}

@@ -12,16 +12,6 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// --- SPECIAL WEBHOOK ROUTE ---
-// This route MUST use express.raw() to get the raw request body
-// for Stripe's signature verification.
-// Place this route first, and do NOT use 'requireAuth'.
-// router.post(
-//   '/stripe-webhook', 
-//   express.raw({ type: 'application/json' }), 
-//   stripeWebhook
-// );
-
 // --- WALLET ROUTES ---
 // These routes are for authenticated users
 

@@ -90,8 +90,8 @@ export default function ProfessorWorkshopParticipants() {
             </tr>
           </thead>
           <tbody>
-            {data.participants.map((p) => (
-              <tr key={p._id} className="border-t">
+            {data.participants.map((p, index) => (
+              <tr key={p._id || `participant-${index}`} className="border-t">
                 <td className="px-4 py-2">{p.name}</td>
                 <td className="px-4 py-2">{p.email}</td>
                 <td className="px-4 py-2 capitalize">{p.role}</td>

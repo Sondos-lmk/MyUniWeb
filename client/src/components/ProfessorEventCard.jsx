@@ -96,7 +96,12 @@ export default function ProfessorEventCard({
       setLoadingVendors(true);
       try {
         const response = await API.get(`/events/${eventId}`);
-        setVendors(response.data.registeredVendors || []);
+        const allVendors = response.data.registeredVendors || [];
+        // Filter to only show approved and paid vendors
+        const approvedPaidVendors = allVendors.filter(
+          (v) => v.status === "approved" && v.paymentStatus === "paid"
+        );
+        setVendors(approvedPaidVendors);
       } catch (err) {
         console.error("Error fetching vendors:", err);
       } finally {
@@ -220,7 +225,12 @@ export default function ProfessorEventCard({
     if (event.type === "bazaar") {
       try {
         const response = await API.get(`/events/${eventId}`);
-        setVendors(response.data.registeredVendors || []);
+        const allVendors = response.data.registeredVendors || [];
+        // Filter to only show approved and paid vendors
+        const approvedPaidVendors = allVendors.filter(
+          (v) => v.status === "approved" && v.paymentStatus === "paid"
+        );
+        setVendors(approvedPaidVendors);
       } catch (err) {
         console.error("Error fetching vendors:", err);
       }

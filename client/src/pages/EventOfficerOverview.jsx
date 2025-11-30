@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import DashboardLayout from "../components/DashboardLayout";
 import EventOfficerAnalytics from "../components/EventOfficerAnalytics";
-import { Calendar, GraduationCap, Dumbbell, Store, ClipboardList, Archive, FileText, Users, Folder } from "lucide-react";
+import { Calendar, GraduationCap, Dumbbell, Store, ClipboardList, Archive, FileText, Users, Folder, ShoppingBag } from "lucide-react";
 
 export default function EventOfficerOverview() {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
@@ -18,6 +18,7 @@ export default function EventOfficerOverview() {
     { to: '/eventOfficer/dashboard', label: 'Overview', icon: GraduationCap },
     { to: '/eventOfficer/approveWorkshops', label: 'Workshops', icon: ClipboardList },
     { to: '/eventOfficer/all-events', label: 'All Events', icon: ClipboardList },
+    { to: '/eventOfficer/available-booths', label: 'Available Booths', icon: ShoppingBag },
     { to: '/gym-schedule', label: 'Gym Schedule', icon: Dumbbell },
     { to: '/eventOfficer/loyalty-vendors', label: 'Loyalty Vendors', icon: Store },
     { to: '/eventOfficer/documents', label: 'View Documents', icon: Folder },

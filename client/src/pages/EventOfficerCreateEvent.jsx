@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import EventFormPage from '../components/EventFormPage';
-import { ListChecks, GraduationCap, ClipboardList, Dumbbell, Calendar, Archive, Store, Users, Clipboard, FileText } from 'lucide-react';
+import { ListChecks,GraduationCap, ClipboardList, Dumbbell, Calendar, Archive, Store, Users, Clipboard, FileText, Folder, ShoppingBag } from 'lucide-react';
 
 export default function EventOfficerCreateEvent() {
   const navigate = useNavigate();
@@ -13,8 +13,10 @@ export default function EventOfficerCreateEvent() {
     { to: '/eventOfficer/dashboard', label: 'Overview', icon: GraduationCap },
     { to: '/eventOfficer/approveWorkshops', label: 'Workshops', icon: ListChecks },
     { to: '/eventOfficer/all-events', label: 'All Events', icon: ClipboardList },
+    { to: '/eventOfficer/available-booths', label: 'Available Booths', icon: ShoppingBag },
     { to: '/gym-schedule', label: 'Gym Schedule', icon: Dumbbell },
     { to: '/eventOfficer/loyalty-vendors', label: 'Loyalty Vendors', icon: Store },
+    { to: '/eventOfficer/documents', label: 'View Documents', icon: Folder },
     {
       key: 'reports',
       label: 'Reports',
