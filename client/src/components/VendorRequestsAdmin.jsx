@@ -35,27 +35,53 @@ export default function VendorRequestsAdmin() {
         const approvedEvents = [...approvedBazaars, ...approvedBooths];
         setEvents(approvedEvents);
 
+        // Extract vendor IDs - handle both populated objects and ID strings
         const vendorIds = approvedEvents
-          .flatMap((ev) => ev.registeredVendors.map((v) => v.vendor))
+          .flatMap((ev) => ev.registeredVendors.map((v) => {
+            // If vendor is already populated (object), use its _id
+            if (typeof v.vendor === 'object' && v.vendor !== null) {
+              return v.vendor._id;
+            }
+            // Otherwise it's just an ID string
+            return v.vendor;
+          }))
           .filter(Boolean);
 
         const uniqueVendorIds = [...new Set(vendorIds)];
 
         if (uniqueVendorIds.length > 0) {
-          const vendorsData = await Promise.all(
-            uniqueVendorIds.map((id) =>
-              API.get(`/users/${id}`).catch(() => null)
-            )
-          );
+          // Check if vendors are already populated
+          const firstVendor = approvedEvents[0]?.registeredVendors?.[0]?.vendor;
+          const isAlreadyPopulated = typeof firstVendor === 'object' && firstVendor !== null;
+          
+          if (isAlreadyPopulated) {
+            // Vendors already populated, just create the map
+            const map = {};
+            approvedEvents.forEach((ev) => {
+              ev.registeredVendors.forEach((v) => {
+                if (typeof v.vendor === 'object' && v.vendor !== null) {
+                  map[v.vendor._id] = v.vendor.companyName || v.vendor.businessName || v.vendor.name;
+                }
+              });
+            });
+            setVendorsMap(map);
+          } else {
+            // Need to fetch vendor data
+            const vendorsData = await Promise.all(
+              uniqueVendorIds.map((id) =>
+                API.get(`/users/${id}`).catch(() => null)
+              )
+            );
 
-          const map = {};
-          vendorsData.forEach((res) => {
-            if (res && res.data) {
-              map[res.data._id] = res.data.companyName || res.data.name;
-            }
-          });
+            const map = {};
+            vendorsData.forEach((res) => {
+              if (res && res.data) {
+                map[res.data._id] = res.data.companyName || res.data.name;
+              }
+            });
 
-          setVendorsMap(map);
+            setVendorsMap(map);
+          }
         }
       } catch (err) {
         console.error("Error fetching events:", err);
@@ -168,12 +194,21 @@ export default function VendorRequestsAdmin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pendingVendors.map((vendor, idx) => (
-                        <tr key={vendor.vendor || idx} className="hover:bg-gray-50">
+                      {pendingVendors.map((vendor, idx) => {
+                        // Get vendor ID - handle both populated object and string
+                        const vendorId = typeof vendor.vendor === 'object' && vendor.vendor !== null 
+                          ? vendor.vendor._id 
+                          : vendor.vendor;
+                        
+                        // Get vendor name - check if populated first
+                        const vendorName = typeof vendor.vendor === 'object' && vendor.vendor !== null
+                          ? (vendor.vendor.companyName || vendor.vendor.businessName || vendor.vendor.name)
+                          : (vendorsMap[vendorId] || vendorId || "Unknown");
+                        
+                        return (
+                        <tr key={vendorId || idx} className="hover:bg-gray-50">
                           <td className="border p-2">
-                            {capitalize(vendorsMap[vendor.vendor]) ||
-                              vendor.vendor ||
-                              "Unknown"}
+                            {capitalize(vendorName)}
                           </td>
                           <td className="border p-2">
                             {vendor.reps?.map((r, i) => (
@@ -231,7 +266,7 @@ export default function VendorRequestsAdmin() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>

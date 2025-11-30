@@ -546,7 +546,8 @@ import ProfessorEventCard from "../components/ProfessorEventCard";
 import VendorPolls from "../components/VendorPolls";
 import API from "../services/api";
 import { getMyWorkshops } from "../services/workshop";
-import { Store, Home, PenSquare, ClipboardList, Dumbbell, Calendar, CalendarDays, Vote, MessageSquare } from "lucide-react";
+import AvailableBooths from "./AvailableBooths";
+import { Store, Home, PenSquare, ClipboardList, Dumbbell, Calendar, CalendarDays, Vote, MessageSquare, ShoppingBag } from "lucide-react";
 
 function ProfessorDashboard() {
   const { user } = useAuth();
@@ -583,8 +584,9 @@ function ProfessorDashboard() {
     { key: "events", label: "Events", icon: CalendarDays, onClick: () => setActiveSection("events") },
     { key: "eventsReviews", label: "Events Reviews", icon: MessageSquare, onClick: () => setActiveSection("eventsReviews") },
     { key: "boothPolls", label: "Booth Polls", icon: Vote, onClick: () => setActiveSection("boothPolls") },
-    { key: "gymSchedule", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveSection("gymSchedule") },
+    { key: "availableBooths", label: "Available Booths", icon: ShoppingBag, onClick: () => setActiveSection("availableBooths") },
     { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveSection("loyaltyVendors") },
+    { key: "gymSchedule", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveSection("gymSchedule") },
   ];
 
   // Load favorites
@@ -1024,6 +1026,13 @@ function ProfessorDashboard() {
         {activeSection === "boothPolls" && (
           <div className="mt-6">
             <VendorPolls />
+          </div>
+        )}
+
+        {/* Available Booths Section */}
+        {activeSection === "availableBooths" && (
+          <div className="mt-6">
+            <AvailableBooths />
           </div>
         )}
 

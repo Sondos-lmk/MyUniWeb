@@ -27,6 +27,7 @@ function Dashboard() {
   const [alertMessage, setAlertMessage] = useState(null);
   const [alertType, setAlertType] = useState("success");
   const [formErrors, setFormErrors] = useState({});
+  const [applications, setApplications] = useState([]);
 
   const token = localStorage.getItem("token");
 
@@ -165,7 +166,22 @@ function Dashboard() {
       }
     };
 
+    const fetchApplications = async () => {
+      try {
+        const res = await API.get("/events/my-applications", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const apps = Array.isArray(res.data)
+          ? res.data
+          : res.data?.applications || res.data?.data || [];
+        setApplications(apps);
+      } catch (err) {
+        console.error("Error fetching applications:", err);
+      }
+    };
+
     fetchEvents();
+    fetchApplications();
   }, [role, token]);
 
   const handleSelectEvent = (event) => {
@@ -219,6 +235,15 @@ function Dashboard() {
       setReps([{ name: "", email: "" }]);
       setBoothSize("2x2");
       setFormErrors({});
+      
+      // Refresh applications to update UI
+      const appsRes = await API.get("/events/my-applications", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const apps = Array.isArray(appsRes.data)
+        ? appsRes.data
+        : appsRes.data?.applications || appsRes.data?.data || [];
+      setApplications(apps);
     } catch (err) {
       console.error("Error applying for bazaar:", err);
       showAlert(err.response?.data?.error || "Failed to apply", "error");
@@ -259,29 +284,6 @@ function Dashboard() {
       case "overview":
         return (
           <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setActiveSection("applyBooth")}
-                  className={quickActionClasses}
-                >
-                  <FileText className="w-5 h-5" />
-                  Apply for Booth
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveSection("bazaarEvents")}
-                  className={quickActionClasses}
-                >
-                  <Calendar className="w-5 h-5" />
-                  Browse Bazaar Events
-                </button>
-              </div>
-            </div>
-
             {/* My Applications */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h3 className="text-lg font-semibold mb-4">My Applications</h3>
@@ -314,34 +316,42 @@ function Dashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
-                {events.map((event) => (
-                  <div
-                    key={event._id}
-                    className="border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow flex justify-between items-center"
-                  >
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-800">{event.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {new Date(event.startDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}{" "}
-                        -{" "}
-                        {new Date(event.endDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </p>
-                      <p className="text-gray-700 mt-2">{event.desc}</p>
-                    </div>
-                    <button
-                      onClick={() => handleSelectEvent(event)}
-                      className="bg-blue-400 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition ml-4"
+                {events.map((event) => {
+                  const hasApplied = applications.some((app) => app.id === event._id || app.id === event._id.toString());
+                  return (
+                    <div
+                      key={event._id}
+                      className="border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow flex justify-between items-center"
                     >
-                      Apply
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-gray-800">{event.title}</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {new Date(event.startDate).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}{" "}
+                          -{" "}
+                          {new Date(event.endDate).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                        <p className="text-gray-700 mt-2">{event.desc}</p>
+                      </div>
+                      <button
+                        onClick={() => !hasApplied && handleSelectEvent(event)}
+                        disabled={hasApplied}
+                        className={`px-6 py-2 rounded-lg transition ml-4 ${
+                          hasApplied
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            : "bg-blue-400 text-white hover:bg-blue-600"
+                        }`}
+                      >
+                        {hasApplied ? "Applied" : "Apply"}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

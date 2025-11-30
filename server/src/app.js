@@ -55,6 +55,12 @@ app.use(cors({
   credentials: true,
 }));
 
+// STRIPE WEBHOOK — MUST BE BEFORE express.json()!!!
+app.post(
+  '/api/payment/webhook',
+  express.raw({ type: 'application/json' }),
+  stripeWebhook
+);
 
 app.use(express.json());
 app.use(morgan('dev'));
@@ -78,13 +84,6 @@ app.use('/api/auth', authRoutes);
 app.use("/api/events", eventFeedbackRoutes);
 app.use("/api/eventOfficer/analytics", eventOfficerAnalyticsRoutes);
 
-
-// STRIPE WEBHOOK — ALWAYS LAST BEFORE 404!!!
-app.post(
-  '/api/payment/stripe-webhook',
-  express.raw({ type: 'application/json' }),
-  stripeWebhook
-);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ message: 'Not Found' }));

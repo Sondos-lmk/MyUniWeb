@@ -10,8 +10,9 @@ import DashboardLayout from "../components/DashboardLayout";
 import { fetchMyFavorites } from "../services/favorites";
 import ProfessorEventCard from "../components/ProfessorEventCard";
 import AttendedEvents from "./AttendedEvents";
-import { Store, CalendarDays, MessageSquare, Vote, Dumbbell } from "lucide-react";
+import { Store, CalendarDays, MessageSquare, Vote, Dumbbell, ShoppingBag } from "lucide-react";
 import LoyaltyVendors from "./LoyaltyVendors";
+import AvailableBooths from "./AvailableBooths";
 import EventsReviews from "./EventsReviews";
 import VendorPolls from "../components/VendorPolls";
 import Voting from "../components/Voting";
@@ -165,8 +166,9 @@ const TADashboard = () => {
     { key: "events", label: "Events", icon: CalendarDays, onClick: () => setActiveSection("events") },
     { key: "eventsReviews", label: "Events Reviews", icon: MessageSquare, onClick: () => setActiveSection("eventsReviews") },
     { key: "boothPolls", label: "Booth Polls", icon: Vote, onClick: () => setActiveSection("boothPolls") },
-    { key: "gymSchedule", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveSection("gymSchedule") },
+    { key: "availableBooths", label: "Available Booths", icon: ShoppingBag, onClick: () => setActiveSection("availableBooths") },
     { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveSection("loyaltyVendors") },
+    { key: "gymSchedule", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveSection("gymSchedule") },
   ];
 
   return (
@@ -337,6 +339,11 @@ const TADashboard = () => {
           <div>
             <VendorPolls />
           </div>
+        )}
+
+        {/* Available Booths Section */}
+        {activeSection === "availableBooths" && (
+          <AvailableBooths />
         )}
 
         {/* Gym Schedule Section */}

@@ -16,12 +16,13 @@ import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
 import ProfessorEventCard from "../components/ProfessorEventCard";
 import { useAuth } from "../context/AuthContext";
-import { Calendar, CheckCircle, Star, Home, Trophy, Dumbbell, Store, Heart, Clock, CalendarDays, MessageSquare, Vote } from "lucide-react";
+import { Calendar, CheckCircle, Star, Home, Trophy, Dumbbell, Store, Heart, Clock, CalendarDays, MessageSquare, Vote, ShoppingBag } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import LoyaltyVendors from "./LoyaltyVendors";
 import EventsReviews from "./EventsReviews";
+import AvailableBooths from "./AvailableBooths";
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -237,9 +238,10 @@ const StudentDashboard = () => {
     { key: "events", label: "Events", icon: CalendarDays, onClick: () => setActiveSection("events") },
     { key: "eventsReviews", label: "Events Reviews", icon: MessageSquare, onClick: () => setActiveSection("eventsReviews") },
     { key: "boothPolls", label: "Booth Polls", icon: Vote, onClick: () => setActiveSection("boothPolls") },
-    { key: "courts", label: "View Courts", icon: Trophy, onClick: () => { setActiveSection("courts"); fetchCourts(); } },
-    { key: "gymSchedule", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveSection("gymSchedule") },
+    { key: "availableBooths", label: "Available Booths", icon: ShoppingBag, onClick: () => setActiveSection("availableBooths") },
     { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveSection("loyaltyVendors") },
+    { key: "gymSchedule", label: "Gym Schedule", icon: Dumbbell, onClick: () => setActiveSection("gymSchedule") },
+    { key: "courts", label: "View Courts", icon: Trophy, onClick: () => { setActiveSection("courts"); fetchCourts(); } },
   ];
 
   // Courts: fetch all courts
@@ -467,6 +469,11 @@ const StudentDashboard = () => {
           <div>
             <VendorPolls />
           </div>
+        )}
+
+        {/* Available Booths Section */}
+        {activeSection === "availableBooths" && (
+          <AvailableBooths />
         )}
 
         {/* COURTS */}

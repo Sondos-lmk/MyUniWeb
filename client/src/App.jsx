@@ -58,6 +58,8 @@ import EventOfficerAllEvents from "./pages/EventOfficerAllEvents.jsx";
 import EventOfficerApproveVendors from "./pages/EventOfficerApproveVendors.jsx";
 import EventOfficerWorkshops from "./pages/EventOfficerWorkshops.jsx";
 import EventOfficerLoyalty from "./pages/EventOfficerLoyalty.jsx";
+import EventOfficerVendorRequests from "./pages/EventOfficerVendorRequests.jsx";
+import EventOfficerAvailableBooths from "./pages/EventOfficerAvailableBooths.jsx";
 import EventOfficerReportsAttendees from "./pages/EventOfficerReportsAttendees.jsx";
 import EventOfficerReportsRevenue from "./pages/EventOfficerReportsRevenue.jsx";
 import EventOfficerCreateEvent from "./pages/EventOfficerCreateEvent.jsx";
@@ -131,6 +133,8 @@ function App() {
           {/* NEW PAGES */}
           <Route path="/events/:id/generate-visitor-qr" element={<GenerateVisitorQR />} />
           <Route path="/eventOfficer/loyalty-vendors" element={<EventOfficerLoyalty />} />
+          <Route path="/eventOfficer/vendor-requests" element={<EventOfficerVendorRequests />} />
+          <Route path="/eventOfficer/available-booths" element={<EventOfficerAvailableBooths />} />
           <Route path="/eventOfficer/attendees-report" element={<EventOfficerReportsAttendees />} />
           <Route path="/eventOfficer/revenue-report" element={<EventOfficerReportsRevenue />} />
           <Route path="/eventOfficer/events/:id/details" element={<EventDetailsPage />}/>

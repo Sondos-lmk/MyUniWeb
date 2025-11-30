@@ -26,8 +26,10 @@ import {
   Package,
   MessageSquare,
   Store,
-  Folder
+  Folder,
+  ShoppingBag
 } from "lucide-react";
+import AvailableBooths from "./AvailableBooths";
 import { useAuth } from "../context/AuthContext";
 import API from "../services/api";
 import { startOfDay, endOfDay, isAfter, format } from "date-fns";
@@ -54,7 +56,10 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (initialTabFromLocation) {
       setActiveTab(initialTabFromLocation);
-      navigate(location.pathname, { replace: true });
+      // Don't clear the state immediately, let it apply first
+      setTimeout(() => {
+        navigate(location.pathname, { replace: true, state: {} });
+      }, 0);
     }
   }, [initialTabFromLocation, navigate, location.pathname]);
 
@@ -117,12 +122,12 @@ const AdminDashboard = () => {
   const sidebarItems = [
     { key: "overview", label: "Overview", icon: GraduationCap, onClick: () => setActiveTab("overview") },
     { key: "upcoming", label: "Upcoming Events", icon: BarChart3, onClick: () => setActiveTab("upcoming") },
-    { key: "users", label: "All Users", icon: Users, onClick: () => setActiveTab("users") },
-    { key: "vendorRequests", label: "Vendor Requests", icon: Package, onClick: () => setActiveTab("vendorRequests") },
     { key: "allComments", label: "Events Reviews", icon: MessageSquare, onClick: () => setActiveTab("allComments") },
-      { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveTab("loyaltyVendors") },
+    { key: "availableBooths", label: "Available Booths", icon: ShoppingBag, onClick: () => setActiveTab("availableBooths") },
+    { key: "vendorRequests", label: "Vendor Requests", icon: Package, onClick: () => setActiveTab("vendorRequests") },
+    { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => setActiveTab("loyaltyVendors") },
     { key: "documents", label: "View Documents", icon: Folder, onClick: () => setActiveTab("documents") },
-
+    { key: "users", label: "All Users", icon: Users, onClick: () => setActiveTab("users") },
     {
       key: "reports",
       label: "Reports",
@@ -213,6 +218,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === "upcoming" && <AdminUpcomingEventsGrid />}
+        {activeTab === "availableBooths" && <div className="mt-8"><AvailableBooths /></div>}
         {activeTab === "users" && <div className="mt-8"><AllUsers /></div>}
         {activeTab === "vendorRequests" && <div className="mt-8"><ManageVendorRequests /></div>}
         {activeTab === "allComments" && <div className="mt-8"><ManageAllComments /></div>}

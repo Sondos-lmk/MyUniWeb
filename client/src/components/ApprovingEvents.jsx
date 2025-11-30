@@ -48,8 +48,11 @@ export default function ApprovedEvents() {
         setEvents(approvedEvents);
 
         const vendorIds = approvedEvents
-          .flatMap((ev) => ev.registeredVendors.map((v) => v.vendor))
-          .filter(Boolean);
+          .flatMap((ev) => ev.registeredVendors.map((v) => {
+            // Handle both populated objects and ID strings
+            return typeof v.vendor === 'object' && v.vendor !== null ? v.vendor._id : v.vendor;
+          }))
+          .filter(id => id && id !== 'null');
 
         const uniqueVendorIds = [...new Set(vendorIds)];
 
@@ -269,13 +272,18 @@ export default function ApprovedEvents() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pendingVendors.map((vendor, idx) => (
-                        <tr key={vendor.vendor || idx} className="hover:bg-gray-50">
-                          <td className="border p-2">
-                            {capitalize(vendorsMap[vendor.vendor]) ||
-                              vendor.vendor ||
-                              "Unknown"}
-                          </td>
+                      {pendingVendors.map((vendor, idx) => {
+                        // Extract vendor ID and name properly
+                        const vendorId = typeof vendor.vendor === 'object' && vendor.vendor !== null ? vendor.vendor._id : vendor.vendor;
+                        const vendorName = typeof vendor.vendor === 'object' && vendor.vendor !== null
+                          ? (vendor.vendor.companyName || vendor.vendor.businessName || vendor.vendor.name)
+                          : vendorsMap[vendorId];
+                        
+                        return (
+                          <tr key={vendorId || idx} className="hover:bg-gray-50">
+                            <td className="border p-2">
+                              {capitalize(vendorName) || vendorId || "Unknown"}
+                            </td>
                           <td className="border p-2">
                             {vendor.reps?.map((r, i) => (
                               <div key={i} className="text-sm">
@@ -332,7 +340,8 @@ export default function ApprovedEvents() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

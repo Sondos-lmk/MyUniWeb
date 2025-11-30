@@ -211,10 +211,17 @@ export const getAllEvents = async (req, res) => {
 
     let sortOrder = req.query.sort === "desc" ? -1 : 1;
 
-    const events = await Model.find(query)
+    // Build the query with base populates
+    let eventQuery = Model.find(query)
       .populate('ratings.user', 'name')
-      .populate('comments.user', 'name')
-      .sort({ startDate: sortOrder });
+      .populate('comments.user', 'name');
+    
+    // Only populate registeredVendors for booth and bazaar types
+    if (type === 'booth' || type === 'bazaar') {
+      eventQuery = eventQuery.populate('registeredVendors.vendor', 'companyName businessName logo productsOffered');
+    }
+    
+    const events = await eventQuery.sort({ startDate: sortOrder });
 
     res.status(200).json({
       message: "Filtered events fetched successfully",

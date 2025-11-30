@@ -30,7 +30,12 @@ export default function ViewDocuments() {
 
         // Create vendorId → companyName map
         const vendorIds = combined.flatMap(ev =>
-          ev.registeredVendors.map(v => v.vendor)
+          ev.registeredVendors
+            .map(v => {
+              // Handle both populated objects and ID strings
+              return typeof v.vendor === 'object' && v.vendor !== null ? v.vendor._id : v.vendor;
+            })
+            .filter(id => id !== null && id !== undefined && id !== 'null') // Filter out null/undefined values
         );
 
         const unique = [...new Set(vendorIds)];
@@ -62,52 +67,62 @@ export default function ViewDocuments() {
 
   if (loading) return <p className="p-6 text-center">Loading documents…</p>;
 
+  // Flatten all vendors from all events into a single list
+  const allVendors = events.flatMap(event =>
+    event.registeredVendors
+      .filter(v => {
+        const vendorId = typeof v.vendor === 'object' && v.vendor !== null ? v.vendor._id : v.vendor;
+        return vendorId && vendorId !== 'null';
+      })
+      .map(v => {
+        const vendorId = typeof v.vendor === 'object' && v.vendor !== null ? v.vendor._id : v.vendor;
+        const vendorName = typeof v.vendor === 'object' && v.vendor !== null 
+          ? (v.vendor.companyName || v.vendor.businessName || v.vendor.name)
+          : vendorsMap[vendorId];
+        
+        return {
+          eventId: event._id,
+          eventTitle: event.title,
+          eventType: event.type,
+          vendorId,
+          vendorName: vendorName || "Vendor"
+        };
+      })
+  );
+
   return (
     <>
       <h1 className="text-3xl font-bold mb-6">View Vendor & Worker Documents</h1>
 
-      {events.length === 0 ? (
-        <p className="text-gray-500">No events with vendors found.</p>
+      {allVendors.length === 0 ? (
+        <p className="text-gray-500">No vendors with documents found.</p>
       ) : (
-        events.map(event => (
-          <div
-            key={event._id}
-            className="mb-6 bg-white border rounded-xl shadow p-6"
-          >
-            <h2 className="text-xl font-semibold mb-2">
-              {event.title} ({event.type})
-            </h2>
-
-            {event.registeredVendors?.length === 0 ? (
-              <p className="text-gray-400">No vendors registered.</p>
-            ) : (
-              <table className="w-full border mt-3">
-                <tbody>
-                  {event.registeredVendors.map((v, idx) => (
-                    <tr key={idx} className="border">
-                      <td className="p-3 font-medium">
-                        {vendorsMap[v.vendor] || "Vendor"}
-                      </td>
-                      <td className="p-3">
-                        <button
-                          onClick={() =>
-                            setSelected({
-                              eventId: event._id,
-                              vendorId: v.vendor,
-                            })
-                          }
-                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-800"
-                        >
-                          View Documents
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+        <div className="bg-white border rounded-xl shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">All Vendors</h2>
+          <div className="space-y-3">
+            {allVendors.map((vendor, idx) => (
+              <div key={idx} className="flex items-center justify-between border-b pb-3 last:border-b-0">
+                <div>
+                  <p className="font-medium">{vendor.vendorName}</p>
+                  <p className="text-sm text-gray-500">
+                    {vendor.eventTitle} ({vendor.eventType})
+                  </p>
+                </div>
+                <button
+                  onClick={() =>
+                    setSelected({
+                      eventId: vendor.eventId,
+                      vendorId: vendor.vendorId,
+                    })
+                  }
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-800"
+                >
+                  View Documents
+                </button>
+              </div>
+            ))}
           </div>
-        ))
+        </div>
       )}
 
       {selected.eventId && selected.vendorId && (
