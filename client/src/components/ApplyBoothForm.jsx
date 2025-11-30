@@ -124,7 +124,7 @@ function ApplyBoothForm() {
   return (
     <>
       <div className="p-6 max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-center">Apply for a Booth</h2>
+        <h2 className="text-2xl font-bold  text-gray-900 text-center mb-3">Apply for a Booth</h2>
 
         <form
           onSubmit={handleSubmit}

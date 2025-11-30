@@ -1,18 +1,102 @@
-import { User } from '../models/Users/User.js'; // Import base User model
+import { User } from '../models/Users/User.js';
 import { Event } from '../models/Events/Event.js';
 import { Bazaar } from '../models/Events/Bazaar.js';
 import { Booth } from '../models/Events/Booth.js';
 import { sendEmail } from '../utils/email.js';
 import Stripe from 'stripe';
+import QRCode from 'qrcode';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Initialize Stripe with your secret key
 import dotenv from "dotenv";
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// --- PAYMENT RECEIPT HELPER FUNCTIONS ---
+const __filename = fileURLToPath(import.meta.url);
 
+// --- QR CODE GENERATION ---
+const generateAndSaveQRCode = async (eventId, registrationId, vendorId) => {
+  try {
+    const qrDir = path.join(process.cwd(), 'uploads', 'qrcodes');
+    if (!fs.existsSync(qrDir)) {
+      fs.mkdirSync(qrDir, { recursive: true });
+    }
+
+    const qrContent = JSON.stringify({
+      eventId: eventId.toString(),
+      registrationId: registrationId.toString(),
+      vendorId: vendorId.toString(),
+      timestamp: new Date().toISOString()
+    });
+
+    const filename = `qr_${registrationId}_${Date.now()}.png`;
+    const filepath = path.join(qrDir, filename);
+
+    await QRCode.toFile(filepath, qrContent, {
+      width: 400,
+      margin: 2,
+      color: { dark: '#000000', light: '#FFFFFF' }
+    });
+
+    console.log(`✅ QR code saved: ${filepath}`);
+
+    return {
+      filepath,
+      filename
+    };
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    throw error;
+  }
+};
+
+// --- SEND QR EMAIL WITH ATTACHMENT ---
+export const sendQRMail = async (eventId, registrationId, vendor) => {
+  try {
+    if (!vendor) return;
+
+    const qrData = await generateAndSaveQRCode(eventId, registrationId, vendor._id);
+    const vendorName = vendor.companyName || vendor.name || "Vendor";
+
+    const html = `
+      <div style="font-family: Arial; padding: 20px; line-height: 1.6">
+        <h2 style="color: #004a99;">Your Payment is Confirmed ✔</h2>
+        <p>Hi ${vendorName},</p>
+        <p>Your booth payment has been received successfully.</p>
+        <p>Please find your QR code attached to this email.</p>
+        <p style="margin-top: 20px; color: #666; font-size: 0.9em;">
+          <strong>Note:</strong> Save the attached QR code for event entry.
+        </p>
+        <p style="margin-top: 20px;">Thank you,<br/>Innovex Team</p>
+      </div>
+    `;
+
+    await sendEmail({
+      to: vendor.email,
+      subject: "Your Booth QR Code – Payment Confirmed!",
+      html,
+      attachments: [
+        {
+          filename: qrData.filename,
+          path: qrData.filepath, // full local path to file
+          cid: 'qrcode' // optional, useful if you want to embed inline
+        }
+      ]
+    });
+
+    console.log("✅ QR mail sent with attachment to:", vendor.email);
+    return qrData.filepath;
+
+  } catch (err) {
+    console.error("Error sending QR email:", err);
+    throw err;
+  }
+};
+
+
+// --- PAYMENT RECEIPTS ---
 const sendPaymentReceipt = async (user, registration, paymentMethod) => {
   try {
     if (!registration.event) {
@@ -125,8 +209,7 @@ const sendBazaarBoothPaymentReceipt = async (user, event, registration, paymentM
   }
 };
 
-// --- 1. PAY WITH WALLET ---
-
+// --- PAY WITH WALLET ---
 export const payWithWallet = async (req, res) => {
   try {
     const { eventId } = req.body;
@@ -164,7 +247,6 @@ export const payWithWallet = async (req, res) => {
       (reg) => reg.event && reg.event._id.equals(eventId)
     );
 
-    // Only send receipt if event still exists
     if (populatedReg && populatedReg.event) {
       sendPaymentReceipt(user, populatedReg, 'Wallet');
     } else {
@@ -182,8 +264,7 @@ export const payWithWallet = async (req, res) => {
   }
 };
 
-// --- 2. REQUEST REFUND (from Wallet) ---
-
+// --- REQUEST REFUND ---
 export const requestRefund = async (req, res) => {
   try {
     const { eventId } = req.body;
@@ -194,7 +275,6 @@ export const requestRefund = async (req, res) => {
       return res.status(404).json({ error: "Event details not found." });
     }
 
-    // 2. The 2-Week Business Rule
     const eventStartDate = new Date(event.startDate);
     const today = new Date();
     const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000;
@@ -205,7 +285,6 @@ export const requestRefund = async (req, res) => {
       });
     }
 
-    // 3. Find the registration
     const regIndex = user.registeredEvents.findIndex(
       (reg) => reg.event.equals(eventId)
     );
@@ -216,7 +295,6 @@ export const requestRefund = async (req, res) => {
 
     const registration = user.registeredEvents[regIndex];
 
-    // 4. Process refund if paid
     if (registration.paymentStatus === 'paid') {
       if (typeof user.wallet !== 'number' || isNaN(user.wallet)) {
         user.wallet = 0;
@@ -225,7 +303,6 @@ export const requestRefund = async (req, res) => {
       const refundAmount = registration.priceAtRegistration;
       user.wallet += refundAmount;
 
-      // ⭐ Store refund transaction
       user.walletTransactions.push({
         amount: refundAmount,
         type: "refund",
@@ -234,7 +311,6 @@ export const requestRefund = async (req, res) => {
       });
     }
 
-    // 5. Remove user from event's registered users
     const userId = user._id;
     if (event.registeredUsers && event.registeredUsers.includes(userId)) {
       event.registeredUsers = event.registeredUsers.filter(
@@ -248,7 +324,6 @@ export const requestRefund = async (req, res) => {
     }
     await event.save();
 
-    // 6. Remove registration from user
     user.registeredEvents.splice(regIndex, 1);
     await user.save();
 
@@ -277,9 +352,7 @@ export const getWallet = async (req, res) => {
   }
 };
 
-// --- 3. CREATE STRIPE CHECKOUT SESSION ---
-// --- 3. CREATE STRIPE CHECKOUT SESSION FOR REGULAR EVENTS ---
-
+// --- CREATE STRIPE CHECKOUT ---
 export const createStripeCheckout = async (req, res) => {
   try {
     const { eventId } = req.body;
@@ -330,17 +403,14 @@ export const createStripeCheckout = async (req, res) => {
   }
 };
 
-// --- 4. CREATE STRIPE CHECKOUT SESSION FOR BAZAAR/BOOTH ---
-
+// --- CREATE STRIPE CHECKOUT FOR BAZAAR/BOOTH ---
 export const createBazaarBoothStripeCheckout = async (req, res) => {
   try {
-    const { eventId } = req.body;
+    const { eventId, registrationId } = req.body;
     const user = req.user;
-    const { registrationId } = req.body; // send this from frontend
 
     console.log('Creating Stripe checkout for event:', { eventId, userId: user._id, registrationId });
 
-    // Try to find the event in both collections
     let event = await Bazaar.findById(eventId);
     let eventType = 'bazaar';
 
@@ -373,13 +443,6 @@ export const createBazaarBoothStripeCheckout = async (req, res) => {
     const finalPrice = registration.finalPrice;
     const priceInCents = Math.round(finalPrice * 100);
 
-    console.log('Creating Stripe session for:', {
-      eventTitle,
-      finalPrice,
-      eventType,
-      vendorId: user._id
-    });
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -402,7 +465,7 @@ export const createBazaarBoothStripeCheckout = async (req, res) => {
         userId: user._id.toString(),
         eventId: eventId,
         vendorId: user._id.toString(),
-        eventType, // still saved in metadata for webhook use
+        eventType,
         registrationId: registration._id.toString()
       },
       customer_email: user.email,
@@ -419,8 +482,7 @@ export const createBazaarBoothStripeCheckout = async (req, res) => {
   }
 };
 
-
-// --- 5. STRIPE WEBHOOK HANDLER (UPDATED FOR BOTH TYPES) ---
+// --- STRIPE WEBHOOK HANDLER ---
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -440,7 +502,6 @@ export const stripeWebhook = async (req, res) => {
     try {
       console.log('Processing Stripe webhook for:', { userId, eventId, registrationId });
 
-      // Find the event in Bazaar or Booth
       let eventDoc = await Bazaar.findById(eventId);
       let eventKind = 'bazaar';
 
@@ -458,20 +519,17 @@ export const stripeWebhook = async (req, res) => {
         throw new Error(`Vendor registration not found for registration ID: ${registrationId}`);
       }
 
-      // --- UPDATE PAYMENT STATUS WITHOUT TRIGGERING VALIDATION ERRORS ---
       registration.paymentStatus = 'paid';
-      await eventDoc.save({ validateBeforeSave: false }); // ✅ skip validation
+      await eventDoc.save({ validateBeforeSave: false });
 
-      // Find the user
       const user = await User.findById(userId);
       if (user) {
-        // Send QR code email
-        await sendQRMail(registration._id, user);
+        // Generate and send QR code
+        await sendQRMail(eventId, registrationId, user);
 
-        // Send Bazaar/Booth payment receipt
+        // Send payment receipt
         await sendBazaarBoothPaymentReceipt(user, eventDoc, registration, 'Credit Card');
 
-        // Populate user's events and send regular event receipt if event exists
         await user.populate('registeredEvents.event');
         const populatedReg = user.registeredEvents.find(
           (reg) => reg.event && reg.event._id.equals(eventId)
@@ -493,45 +551,4 @@ export const stripeWebhook = async (req, res) => {
   }
 
   res.json({ received: true });
-};
-
-
-////////////////////////////////////////////////////////////////
-
-import QRCode from "qrcode";
-
-// Send QR code email for Bazaar/Booth registration
-export const sendQRMail = async (eventId, vendor) => {
-  try {
-    if (!vendor) return;
-
-    const qrContent = `EVENT_ID=${eventId};VENDOR_ID=${vendor._id}`;
-    const qrImage = await QRCode.toDataURL(qrContent);
-
-    const vendorName = vendor.companyName || vendor.name || "Vendor";
-
-    const html = `
-      <div style="font-family: Arial; padding: 20px; line-height: 1.6">
-        <h2 style="color: #004a99;">Your Payment is Confirmed ✔</h2>
-        <p>Hi ${vendorName},</p>
-        <p>Your booth payment has been received successfully.</p>
-        <p>Please present this QR code at the event check-in:</p>
-        <div style="margin-top: 20px;">
-          <img src="${qrImage}" alt="QR Code" style="width:200px; height:200px;" />
-        </div>
-        <p style="margin-top: 20px;">Thank you,<br/>Innovex Team</p>
-      </div>
-    `;
-
-    await sendEmail({
-      to: vendor.email,
-      subject: "Your Booth QR Code – Payment Confirmed!",
-      html,
-    });
-
-    console.log("QR mail sent to:", vendor.email);
-
-  } catch (err) {
-    console.error("Error sending QR email:", err);
-  }
 };

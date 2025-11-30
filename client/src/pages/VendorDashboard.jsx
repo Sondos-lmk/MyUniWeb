@@ -13,7 +13,6 @@ function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const role = user?.role || "unknown";
-
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [reps, setReps] = useState([{ name: "", email: "" }]);
@@ -224,6 +223,8 @@ function Dashboard() {
       return;
     }
 
+    setLoading(true);
+
     try {
       const res = await API.post(
         `/events/bazaar/${selectedEvent._id}/register`,
@@ -247,6 +248,8 @@ function Dashboard() {
     } catch (err) {
       console.error("Error applying for bazaar:", err);
       showAlert(err.response?.data?.error || "Failed to apply", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -285,8 +288,8 @@ function Dashboard() {
         return (
           <div className="space-y-6">
             {/* My Applications */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold mb-4">My Applications</h3>
+            <div className="bg-white rounded-xl shadow-md p-4">
+              
               <MyApplications />
             </div>
           </div>
@@ -295,7 +298,7 @@ function Dashboard() {
       case "applyBooth":
         return (
           <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Apply for Booth</h2>
+          
             <ApplyBoothForm />
           </div>
         );
@@ -658,6 +661,12 @@ function Dashboard() {
           </div>
         </div>
       )}
+      {loading && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-999">
+    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white"></div>
+  </div>
+)}
+
     </DashboardLayout>
   );
 }

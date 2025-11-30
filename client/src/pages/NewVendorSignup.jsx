@@ -93,8 +93,8 @@ export default function NewVendorSignup() {
           </Button>
           <div className="flex justify-center">
             <div className="flex justify-center">
-            <img src="http://localhost:4000/uploads/logo/logoredefined.png"  alt="Innovex" className="w-40 h-40 object-contain"/>
-          </div>
+              <img src="http://localhost:4000/uploads/logo/logoredefined.png" alt="Innovex" className="w-40 h-40 object-contain"/>
+            </div>
           </div>
           <div>
             <CardTitle className="text-2xl mb-2">Vendor Registration</CardTitle>
@@ -165,14 +165,15 @@ export default function NewVendorSignup() {
                   className="hidden"
                   id="taxDoc"
                 />
-                <Label htmlFor="taxDoc">
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <span>
-                      <Upload className="size-4 mr-2" />
-                      Upload Document
-                    </span>
-                  </Button>
-                </Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => document.getElementById('taxDoc').click()}
+                >
+                  <Upload className="size-4 mr-2" />
+                  Upload Document
+                </Button>
                 {taxDocument && (
                   <div className="mt-2 flex items-center gap-2 bg-blue-50 p-2 rounded text-sm justify-center">
                     <FileText className="size-4 text-blue-600" />
@@ -196,14 +197,15 @@ export default function NewVendorSignup() {
                   className="hidden"
                   id="logo"
                 />
-                <Label htmlFor="logo">
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <span>
-                      <Upload className="size-4 mr-2" />
-                      Upload Logo
-                    </span>
-                  </Button>
-                </Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => document.getElementById('logo').click()}
+                >
+                  <Upload className="size-4 mr-2" />
+                  Upload Logo
+                </Button>
                 {logo && (
                   <div className="mt-2 flex items-center gap-2 bg-blue-50 p-2 rounded text-sm justify-center">
                     <FileText className="size-4 text-blue-600" />
