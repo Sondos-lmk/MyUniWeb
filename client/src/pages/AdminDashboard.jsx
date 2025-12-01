@@ -218,7 +218,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === "upcoming" && <AdminUpcomingEventsGrid />}
-        {activeTab === "availableBooths" && <div className="mt-8"><AvailableBooths /></div>}
+        {activeTab === "availableBooths" && <div className="mt-8"><AvailableBooths showActions={false} /></div>}
         {activeTab === "users" && <div className="mt-8"><AllUsers /></div>}
         {activeTab === "vendorRequests" && <div className="mt-8"><ManageVendorRequests /></div>}
         {activeTab === "allComments" && <div className="mt-8"><ManageAllComments /></div>}

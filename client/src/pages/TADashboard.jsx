@@ -343,7 +343,7 @@ const TADashboard = () => {
 
         {/* Available Booths Section */}
         {activeSection === "availableBooths" && (
-          <AvailableBooths />
+          <AvailableBooths showActions={false} />
         )}
 
         {/* Gym Schedule Section */}

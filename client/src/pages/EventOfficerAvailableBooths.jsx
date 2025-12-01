@@ -40,7 +40,7 @@ function EventOfficerAvailableBooths() {
       extraSidebarProps={{ isReportsOpen: reportsOpen, selectedReport }}
     >
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <AvailableBooths />
+        <AvailableBooths showActions={true} />
       </div>
     </DashboardLayout>
   );
