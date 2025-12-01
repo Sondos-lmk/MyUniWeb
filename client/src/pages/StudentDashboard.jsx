@@ -532,15 +532,21 @@ const StudentDashboard = () => {
                         {day.slots.map((slot, i) => (
                           <div
                             key={i}
-                            onClick={() =>
-                              bookCourt(
-                                selectedCourt,
-                                day.date,
-                                slot.startTime,
-                                slot.endTime
-                              )
-                            }
-                            className="mt-2 mx-auto w-fit px-6 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 cursor-pointer shadow"
+                            onClick={() => {
+                              if (!slot.booked) {
+                                bookCourt(
+                                  selectedCourt,
+                                  day.date,
+                                  slot.startTime,
+                                  slot.endTime
+                                );
+                              }
+                            }}
+                            className={`mt-2 mx-auto w-fit px-6 py-2 rounded-md shadow ${
+                              slot.booked
+                                ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                                : "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                            }`}
                           >
                             <div className="font-semibold text-center">
                               {slot.startTime} - {slot.endTime}
@@ -548,7 +554,7 @@ const StudentDashboard = () => {
 
                             {slot.booked && (
                               <div className="text-sm text-center mt-1">
-                                {slot.studentName} – {slot.studentGucId}
+                                Booked By: {slot.studentName}, ID: {slot.studentGucId}
                               </div>
                             )}
                           </div>

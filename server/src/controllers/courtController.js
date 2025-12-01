@@ -91,7 +91,7 @@ export const bookCourt = async (req, res) => {
       endTime,
       bookedBy: user._id,
       studentName: user.name,
-      studentGucId: user.gucId
+      studentGucId: user.uniID || user.gucId
     });
 
     await booking.save();

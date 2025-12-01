@@ -13,11 +13,12 @@ import {
   Store,
   Folder,
   FileText,
-  ShoppingBag,
+  ArrowLeft,
   BarChart3,
   MessageSquare,
+  ShoppingBag,
   Package,
-  Users, 
+  Users,
 } from "lucide-react";
 
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString() : "—");
@@ -65,7 +66,7 @@ export default function EventDetailsPage() {
   // ✅ Dynamic sidebar based on role
   const sidebarItems = isAdminView
     ? [
- // ADMIN SIDEBAR - Navigate back to admin dashboard with specific tab
+        // ADMIN SIDEBAR - Navigate back to admin dashboard with specific tab
         { key: "overview", label: "Overview", icon: GraduationCap, onClick: () => navigate("/admin", { state: { initialTab: "overview" } }) },
         { key: "upcoming", label: "Upcoming Events", icon: BarChart3, onClick: () => navigate("/admin", { state: { initialTab: "upcoming" } }) },
         { key: "allComments", label: "Events Reviews", icon: MessageSquare, onClick: () => navigate("/admin", { state: { initialTab: "allComments" } }) },
@@ -102,7 +103,6 @@ export default function EventDetailsPage() {
         },
       ]
     : [
-
         // EVENT OFFICER SIDEBAR - Match EventOfficerDashboard.jsx exact order
         { to: "/eventOfficer/dashboard", label: "Overview", icon: GraduationCap },
         { to: "/eventOfficer/approveWorkshops", label: "Workshops", icon: ListChecks },
@@ -139,6 +139,23 @@ export default function EventDetailsPage() {
         },
       ];
 
+  // ✅ Back button handler
+  const handleBackClick = () => {
+    if (fromBoothsPage) {
+      // Coming from Available Booths page (with QR generation)
+      if (isAdminView) {
+        navigate("/admin", { state: { initialTab: "availableBooths" } });
+      } else {
+        navigate("/eventOfficer/available-booths");
+      }
+    } else if (isAdminView) {
+      // Coming from Admin Dashboard
+      navigate("/admin", { state: { initialTab: "upcoming" } });
+    } else {
+      // Coming from Event Officer Dashboard
+      navigate("/eventOfficer/all-events");
+    }
+  };
 
   const [event, setEvent] = useState(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
@@ -323,12 +340,12 @@ export default function EventDetailsPage() {
   if (!event) {
     return (
       <DashboardLayout
-      dashboardTitle={isAdminView ? "Admin Dashboard" : "Event Officer Dashboard"}
-      roleLabel={isAdminView ? "Administrator" : "Events Officer"}
-      roleColor={isAdminView ? "bg-indigo-600" : "bg-cyan-600"}
-      sidebarItems={sidebarItems}
-      extraSidebarProps={{ isReportsOpen, selectedReport }}
-    >
+        dashboardTitle={isAdminView ? "Admin Dashboard" : "Event Officer Dashboard"}
+        roleLabel={isAdminView ? "Administrator" : "Events Officer"}
+        roleColor={isAdminView ? "bg-indigo-600" : "bg-cyan-600"}
+        sidebarItems={sidebarItems}
+        extraSidebarProps={{ isReportsOpen, selectedReport }}
+      >
         <div className="max-w-5xl mx-auto px-6 py-10">
           <p className="text-red-600">{error || "Event not found."}</p>
         </div>
@@ -354,6 +371,21 @@ export default function EventDetailsPage() {
       extraSidebarProps={{ isReportsOpen, selectedReport }}
     >
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Back Button */}
+        <button
+          onClick={handleBackClick}
+          className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 mb-6 font-medium transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>
+            {fromBoothsPage 
+              ? "Back to Available Booths" 
+              : isAdminView 
+                ? "Back to Events" 
+                : "Back to Events"}
+          </span>
+        </button>
+
         {/* Top header row: Title + Tag */}
         <div className="flex items-center justify-between mb-6">
           <div>
