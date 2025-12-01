@@ -1032,7 +1032,7 @@ function ProfessorDashboard() {
         {/* Available Booths Section */}
         {activeSection === "availableBooths" && (
           <div className="mt-6">
-            <AvailableBooths />
+            <AvailableBooths showActions={false} />
           </div>
         )}
 

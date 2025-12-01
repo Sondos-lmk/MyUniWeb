@@ -13,7 +13,11 @@ import {
   Store,
   Folder,
   FileText,
-  ArrowLeft,
+  ShoppingBag,
+  BarChart3,
+  MessageSquare,
+  Package,
+  Users, 
 } from "lucide-react";
 
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString() : "—");
@@ -24,44 +28,32 @@ export default function EventDetailsPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ---------- Layout state (sidebar) ----------
+  //const fromAdminUpcoming = location.state?.from === "admin-upcoming";
+  //const isAdminView = fromAdminUpcoming || location.pathname.startsWith("/admin/");
+  //const headerSubLabel = isAdminView
+    //? "Administrator · Event Details"
+    //: "Event Officer · More Information";
+
+  const openQR = location.state?.openQR;
+  const fromBoothsPage = location.state?.fromBoothsPage === true;
+
+
+
+
+  // automatically switch to QR when coming from booths
+  useEffect(() => {
+    if (fromBoothsPage || openQR) {
+      setActiveTab("qr");
+    }
+  }, [fromBoothsPage, openQR]);
+
+  // now safe to create this!
+  const forceQrOnly = fromBoothsPage === true;
+
+
+    // ---------- Layout state (sidebar) ----------
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState("attendees");
-
-  const sidebarItems = [
-    { to: "/eventOfficer/dashboard", label: "Overview", icon: GraduationCap },
-    { to: "/eventOfficer/approveWorkshops", label: "Workshops", icon: ListChecks },
-    { to: "/eventOfficer/all-events", label: "All Events", icon: ClipboardList },
-    { to: "/gym-schedule", label: "Gym Schedule", icon: Dumbbell },
-    { to: "/eventOfficer/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
-    { to: "/eventOfficer/documents", label: "View Documents", icon: Folder },
-    {
-      key: "reports",
-      label: "Reports",
-      icon: FileText,
-      isCollapsible: true,
-      isOpen: isReportsOpen,
-      onToggle: () => setIsReportsOpen((s) => !s),
-      subItems: [
-        {
-          label: "Attendees Report",
-          onClick: () => {
-            setSelectedReport("attendees");
-            navigate("/eventOfficer/attendees-report");
-            setIsReportsOpen(true);
-          },
-        },
-        {
-          label: "Revenue Report",
-          onClick: () => {
-            setSelectedReport("revenue");
-            navigate("/eventOfficer/revenue-report");
-            setIsReportsOpen(true);
-          },
-        },
-      ],
-    },
-  ];
 
   // ---------- Existing logic ----------
   const fromAdminUpcoming = location.state?.from === "admin-upcoming";
@@ -70,19 +62,89 @@ export default function EventDetailsPage() {
     ? "Administrator · Event Details"
     : "Event Officer · More Information";
 
-  const handleBackClick = () => {
-    if (isAdminView) {
-      navigate("/admin", { state: { initialTab: "upcoming" } });
-    } else {
-      navigate("/eventOfficer/all-events");
-    }
-  };
+  // ✅ Dynamic sidebar based on role
+  const sidebarItems = isAdminView
+    ? [
+ // ADMIN SIDEBAR - Navigate back to admin dashboard with specific tab
+        { key: "overview", label: "Overview", icon: GraduationCap, onClick: () => navigate("/admin", { state: { initialTab: "overview" } }) },
+        { key: "upcoming", label: "Upcoming Events", icon: BarChart3, onClick: () => navigate("/admin", { state: { initialTab: "upcoming" } }) },
+        { key: "allComments", label: "Events Reviews", icon: MessageSquare, onClick: () => navigate("/admin", { state: { initialTab: "allComments" } }) },
+        { key: "availableBooths", label: "Available Booths", icon: ShoppingBag, onClick: () => navigate("/admin", { state: { initialTab: "availableBooths" } }) },
+        { key: "vendorRequests", label: "Vendor Requests", icon: Package, onClick: () => navigate("/admin", { state: { initialTab: "vendorRequests" } }) },
+        { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => navigate("/admin", { state: { initialTab: "loyaltyVendors" } }) },
+        { key: "documents", label: "View Documents", icon: Folder, onClick: () => navigate("/admin", { state: { initialTab: "documents" } }) },
+        { key: "users", label: "All Users", icon: Users, onClick: () => navigate("/admin", { state: { initialTab: "users" } }) },
+        {
+          key: "reports",
+          label: "Reports",
+          icon: FileText,
+          isCollapsible: true,
+          isOpen: isReportsOpen,
+          onToggle: () => setIsReportsOpen((s) => !s),
+          subItems: [
+            {
+              label: "Attendees Report",
+              onClick: () => {
+                setSelectedReport("attendees");
+                navigate("/admin", { state: { initialTab: "reports", selectedReport: "attendees" } });
+                setIsReportsOpen(true);
+              },
+            },
+            {
+              label: "Revenue Report",
+              onClick: () => {
+                setSelectedReport("revenue");
+                navigate("/admin", { state: { initialTab: "reports", selectedReport: "revenue" } });
+                setIsReportsOpen(true);
+              },
+            },
+          ],
+        },
+      ]
+    : [
+
+        // EVENT OFFICER SIDEBAR - Match EventOfficerDashboard.jsx exact order
+        { to: "/eventOfficer/dashboard", label: "Overview", icon: GraduationCap },
+        { to: "/eventOfficer/approveWorkshops", label: "Workshops", icon: ListChecks },
+        { to: "/eventOfficer/all-events", label: "All Events", icon: ClipboardList },
+        { to: "/eventOfficer/available-booths", label: "Available Booths", icon: ShoppingBag },
+        { to: "/gym-schedule", label: "Gym Schedule", icon: Dumbbell },
+        { to: "/eventOfficer/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
+        { to: "/eventOfficer/documents", label: "View Documents", icon: Folder },
+        {
+          key: "reports",
+          label: "Reports",
+          icon: FileText,
+          isCollapsible: true,
+          isOpen: isReportsOpen,
+          onToggle: () => setIsReportsOpen((s) => !s),
+          subItems: [
+            {
+              label: "Attendees Report",
+              onClick: () => {
+                setSelectedReport("attendees");
+                navigate("/eventOfficer/attendees-report");
+                setIsReportsOpen(true);
+              },
+            },
+            {
+              label: "Revenue Report",
+              onClick: () => {
+                setSelectedReport("revenue");
+                navigate("/eventOfficer/revenue-report");
+                setIsReportsOpen(true);
+              },
+            },
+          ],
+        },
+      ];
+
 
   const [event, setEvent] = useState(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [error, setError] = useState("");
 
-  const [activeTab, setActiveTab] = useState("info"); // "info" | "vendors" | "qr"
+  const [activeTab, setActiveTab] = useState(fromBoothsPage ? "qr" : "info"); // "info" | "vendors" | "qr"
 
   const [visitors, setVisitors] = useState([]);
   const [loadingVisitors, setLoadingVisitors] = useState(false);
@@ -97,10 +159,10 @@ export default function EventDetailsPage() {
   const showQrFeatures = !isAdminView && (event?.type === 'booth' || event?.type === 'bazaar');
 
   useEffect(() => {
-    if (!showQrFeatures && activeTab === "qr") {
+    if (!fromBoothsPage && !showQrFeatures && activeTab === "qr") {
       setActiveTab("info");
     }
-  }, [showQrFeatures, activeTab]);
+  }, [fromBoothsPage, showQrFeatures, activeTab]);
 
   useEffect(() => {
     if (event && event.type !== "bazaar" && activeTab === "vendors") {
@@ -245,9 +307,9 @@ export default function EventDetailsPage() {
   if (loadingEvent) {
     return (
       <DashboardLayout
-        dashboardTitle="Event Officer Dashboard"
-        roleLabel="Events Officer"
-        roleColor="bg-cyan-600"
+        dashboardTitle={isAdminView ? "Admin Dashboard" : "Event Officer Dashboard"}
+        roleLabel={isAdminView ? "Administrator" : "Events Officer"}
+        roleColor={isAdminView ? "bg-indigo-600" : "bg-cyan-600"}
         sidebarItems={sidebarItems}
         extraSidebarProps={{ isReportsOpen, selectedReport }}
       >
@@ -261,12 +323,12 @@ export default function EventDetailsPage() {
   if (!event) {
     return (
       <DashboardLayout
-        dashboardTitle="Event Officer Dashboard"
-        roleLabel="Events Officer"
-        roleColor="bg-cyan-600"
-        sidebarItems={sidebarItems}
-        extraSidebarProps={{ isReportsOpen, selectedReport }}
-      >
+      dashboardTitle={isAdminView ? "Admin Dashboard" : "Event Officer Dashboard"}
+      roleLabel={isAdminView ? "Administrator" : "Events Officer"}
+      roleColor={isAdminView ? "bg-indigo-600" : "bg-cyan-600"}
+      sidebarItems={sidebarItems}
+      extraSidebarProps={{ isReportsOpen, selectedReport }}
+    >
         <div className="max-w-5xl mx-auto px-6 py-10">
           <p className="text-red-600">{error || "Event not found."}</p>
         </div>
@@ -285,22 +347,13 @@ export default function EventDetailsPage() {
   // ---------- Main content inside DashboardLayout ----------
   return (
     <DashboardLayout
-      dashboardTitle="Event Officer Dashboard"
-      roleLabel="Events Officer"
-      roleColor="bg-cyan-600"
+      dashboardTitle={isAdminView ? "Admin Dashboard" : "Event Officer Dashboard"}
+      roleLabel={isAdminView ? "Administrator" : "Events Officer"}
+      roleColor={isAdminView ? "bg-indigo-600" : "bg-cyan-600"}
       sidebarItems={sidebarItems}
       extraSidebarProps={{ isReportsOpen, selectedReport }}
     >
       <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Back Button */}
-        <button
-          onClick={handleBackClick}
-          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 font-medium"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Back to Events
-        </button>
-
         {/* Top header row: Title + Tag */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -322,45 +375,68 @@ export default function EventDetailsPage() {
         <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
           {/* Tabs */}
           <div className="border-b border-slate-200 px-6 pt-4 flex gap-6">
-            <button
-              className={`pb-3 text-sm font-semibold ${
-                activeTab === "info"
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-              onClick={() => setActiveTab("info")}
-            >
-              Information
-            </button>
-            {isBazaarEvent && (
-              <button
-                className={`pb-3 text-sm font-semibold ${
-                  activeTab === "vendors"
-                    ? "text-indigo-600 border-b-2 border-indigo-600"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-                onClick={() => setActiveTab("vendors")}
-              >
-                Vendors Participating
-              </button>
+
+            {fromBoothsPage ? (
+              <>
+                {/* ONLY QR TAB */}
+                <button
+                  className={`pb-3 text-sm font-semibold ${
+                    activeTab === "qr"
+                      ? "text-indigo-600 border-b-2 border-indigo-600"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                  onClick={() => setActiveTab("qr")}
+                >
+                  QR Codes
+                </button>
+              </>
+            ) : (
+              <>
+                {/* NORMAL TABS */}
+                <button
+                  className={`pb-3 text-sm font-semibold ${
+                    activeTab === "info"
+                      ? "text-indigo-600 border-b-2 border-indigo-600"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                  onClick={() => setActiveTab("info")}
+                >
+                  Information
+                </button>
+
+                {isBazaarEvent && (
+                  <button
+                    className={`pb-3 text-sm font-semibold ${
+                      activeTab === "vendors"
+                        ? "text-indigo-600 border-b-2 border-indigo-600"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                    onClick={() => setActiveTab("vendors")}
+                  >
+                    Vendors Participating
+                  </button>
+                )}
+
+                { showQrFeatures && (
+                  <button
+                    className={`pb-3 text-sm font-semibold ${
+                      activeTab === "qr"
+                        ? "text-indigo-600 border-b-2 border-indigo-600"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                    onClick={() => setActiveTab("qr")}
+                  >
+                    QR Codes
+                  </button>
+                )}
+              </>
             )}
-            {showQrFeatures && (
-              <button
-                className={`pb-3 text-sm font-semibold ${
-                  activeTab === "qr"
-                    ? "text-indigo-600 border-b-2 border-indigo-600"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-                onClick={() => setActiveTab("qr")}
-              >
-                QR Codes
-              </button>
-            )}
+
           </div>
 
           {/* Tab Content */}
           <div className="px-6 py-6 space-y-6">
-            {activeTab === "info" && (
+            {!fromBoothsPage && activeTab === "info" && (
               <div className="grid md:grid-cols-[2fr,1fr] gap-6">
                 <div>
                   <h2 className="text-lg font-semibold mb-3">Event Details</h2>
@@ -479,7 +555,7 @@ export default function EventDetailsPage() {
               </div>
             )}
 
-            {activeTab === "vendors" && isBazaarEvent && (
+            {!fromBoothsPage && activeTab === "vendors" && isBazaarEvent && (
               <div>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                   <div>
@@ -651,7 +727,7 @@ export default function EventDetailsPage() {
               </div>
             )}
 
-            {activeTab === "qr" && showQrFeatures && (
+            { activeTab === "qr" && showQrFeatures && (
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold">Visitor QR Codes</h2>

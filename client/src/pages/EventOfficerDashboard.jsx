@@ -22,34 +22,51 @@ function EventOfficerDashboard() {
   const [activeQuickAction, setActiveQuickAction] = React.useState(null);
 
   // Collapsible Reports state
-  const [reportsOpen, setReportsOpen] = React.useState(false);
-  const [selectedReport, setSelectedReport] = React.useState('attendees');
+  //const [reportsOpen, setReportsOpen] = React.useState(false);
+  //const [selectedReport, setSelectedReport] = React.useState('attendees');
 
-  const sidebarItems = [
-    { key: "overview", label: "Overview", icon: GraduationCap, onClick: () => setActiveSection('overview') },
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState("attendees");
+
+const sidebarItems = [
+    { to: "/eventOfficer/dashboard", label: "Overview", icon: GraduationCap },
     { to: "/eventOfficer/approveWorkshops", label: "Workshops", icon: ListChecks },
     { to: "/eventOfficer/all-events", label: "All Events", icon: ClipboardList },
-    { to: "/eventOfficer/available-booths", label: "Available Booths", icon: ShoppingBag },
+    { to: '/eventOfficer/available-booths', label: 'Available Booths', icon: ShoppingBag },
+    { to: "/gym-schedule", label: "Gym Schedule", icon: Dumbbell },
     { to: "/eventOfficer/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
     { to: "/eventOfficer/documents", label: "View Documents", icon: Folder },
-    { to: "/gym-schedule", label: "Gym Schedule", icon: Dumbbell },
-    // Collapsible Reports group (Admin-style shape)
     {
       key: "reports",
       label: "Reports",
       icon: FileText,
       isCollapsible: true,
-      isOpen: reportsOpen,
-      onToggle: () => setReportsOpen((v) => !v),
+      isOpen: isReportsOpen,
+      onToggle: () => setIsReportsOpen((s) => !s),
       subItems: [
-        { label: "Attendees Report", onClick: () => { setSelectedReport('attendees'); navigate('/eventOfficer/attendees-report'); setReportsOpen(true); } },
-        { label: "Revenue Report", onClick: () => { setSelectedReport('revenue'); navigate('/eventOfficer/revenue-report'); setReportsOpen(true); } },
+        {
+          label: "Attendees Report",
+          onClick: () => {
+            setSelectedReport("attendees");
+            navigate("/eventOfficer/attendees-report");
+            setIsReportsOpen(true);
+          },
+        },
+        {
+          label: "Revenue Report",
+          onClick: () => {
+            setSelectedReport("revenue");
+            navigate("/eventOfficer/revenue-report");
+            setIsReportsOpen(true);
+          },
+        },
       ],
     },
   ];
 
+
   return (
-    <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={sidebarItems} activeKey={activeSection} extraSidebarProps={{ isReportsOpen: reportsOpen, selectedReport }}>
+    <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={sidebarItems} activeKey={activeSection} extraSidebarProps={{ isReportsOpen, selectedReport }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Overview Section */}
         {activeSection === 'overview' && (
