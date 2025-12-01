@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import ModernAlert from "./ui/ModernAlert";
+import CreatePollModal from "../components/CreatePollModal";
+
 // ArrowLeft removed — back button removed from this view
 
 export default function ApprovedEvents() {
@@ -14,6 +16,9 @@ export default function ApprovedEvents() {
   const [vendorsMap, setVendorsMap] = useState({});
   const [alertMessage, setAlertMessage] = useState(null);
   const [alertType, setAlertType] = useState("success");
+  const [pollModalOpen, setPollModalOpen] = useState(false);
+  const [pollModalData, setPollModalData] = useState(null);
+
   
   const navigate = useNavigate();
 
@@ -434,18 +439,17 @@ export default function ApprovedEvents() {
 
                       {/* ✅ Create Poll Button */}
                       <button
-                        onClick={() =>
-                          navigate(`/polls/create`, {
-                            state: {
-                              boothId,
-                              boothTitle: conflict.booth?.title,
-                              vendors: vendorsForPoll,
-                              reason: `Date conflict between ${pair.vendor1Name} and ${pair.vendor2Name}`,
-                              conflictStart,
-                              conflictEnd,
-                            },
-                          })
-                        }
+                        onClick={() => {
+                          setPollModalData({
+                            boothId,
+                            boothTitle: conflict.booth?.title,
+                            vendors: vendorsForPoll,
+                            reason: `Date conflict between ${pair.vendor1Name} and ${pair.vendor2Name}`,
+                            conflictStart,
+                            conflictEnd,
+                          });
+                          setPollModalOpen(true);
+                        }}
                         className="mt-3 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-all"
                       >
                         + Create Poll
@@ -519,6 +523,18 @@ export default function ApprovedEvents() {
           onClose={() => setAlertMessage(null)}
         />
       )}
+      {pollModalOpen && pollModalData && (
+      <CreatePollModal
+        open={pollModalOpen}
+        onClose={() => setPollModalOpen(false)}
+        boothId={pollModalData.boothId}
+        boothTitle={pollModalData.boothTitle}
+        vendors={pollModalData.vendors}
+        reason={pollModalData.reason}
+        conflictStart={pollModalData.conflictStart}
+        conflictEnd={pollModalData.conflictEnd}
+      />
+    )}
     </div>
   );
 }
