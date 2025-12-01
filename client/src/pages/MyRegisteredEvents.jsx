@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api"; // Your API service
+import ModernAlert from "../components/ui/ModernAlert";
 
 export default function MyRegisteredEvents() {
   const [registrations, setRegistrations] = useState([]);
@@ -10,6 +11,14 @@ export default function MyRegisteredEvents() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null); // Stores the event being paid for
   const [paymentError, setPaymentError] = useState(""); // For errors in the moda
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   useEffect(() => {
     fetchEvents();
@@ -106,30 +115,32 @@ export default function MyRegisteredEvents() {
     const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000; // 14 days
 
     if (eventStartDate.getTime() - today.getTime() < twoWeeksInMs) {
-      alert("Cancellation failed: You can only cancel events that are more than 2 weeks away.");
+      showAlert("Cancellation failed: You can only cancel events that are more than 2 weeks away.", "error");
       return;
     }
 
     // 3. Confirmation
-    if (!window.confirm("Are you sure you want to cancel this event? This action cannot be undone.")) {
-      return;
-    }
-
-    // 4. API Call
-    setLoading(true);
-    try {
-      // The endpoint is the same, but the logic on the server is new
-      await API.post("/payment/request-refund", { eventId });
-      
-      // Refresh the list. The event will be gone.
-      await fetchEvents(); 
-    } catch (err) {
-      console.error("Refund error:", err);
-      // Display the error from the server (e.g., if the deadline passed just now)
-      alert(err.response?.data?.error || "Refund request failed.");
-    } finally {
-      setLoading(false);
-    }
+    setConfirmAction({
+      message: "Are you sure you want to cancel this event? This action cannot be undone.",
+      onConfirm: async () => {
+        // 4. API Call
+        setLoading(true);
+        try {
+          // The endpoint is the same, but the logic on the server is new
+          await API.post("/payment/request-refund", { eventId });
+          
+          // Refresh the list. The event will be gone.
+          await fetchEvents(); 
+        } catch (err) {
+          console.error("Refund error:", err);
+          // Display the error from the server (e.g., if the deadline passed just now)
+          showAlert(err.response?.data?.error || "Refund request failed.", "error");
+        } finally {
+          setLoading(false);
+          setConfirmAction(null);
+        }
+      }
+    });
   };
 
 
@@ -376,6 +387,26 @@ export default function MyRegisteredEvents() {
           </div>
         )}
       </div>
+
+      {/* Modern Alert */}
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmAction && (
+        <ModernAlert
+          message={confirmAction.message}
+          type="error"
+          isConfirm={true}
+          onConfirm={confirmAction.onConfirm}
+          onClose={() => setConfirmAction(null)}
+        />
+      )}
     </>
   );
 }

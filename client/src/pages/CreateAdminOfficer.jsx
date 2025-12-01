@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import ModernAlert from "../components/ui/ModernAlert";
 
 export default function CreateAdminOfficer() {
   const navigate = useNavigate();
@@ -12,24 +13,31 @@ export default function CreateAdminOfficer() {
     password: "",
     role: "",
   });
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
 
     if (!adminForm.role) {
-      alert("Please select a role (admin or event officer)");
+      showAlert("Please select a role (admin or event officer)", "error");
       return;
     }
 
     if (!adminForm.email.endsWith("@guc.edu.eg")) {
-      alert("Email must end with @guc.edu.eg");
+      showAlert("Email must end with @guc.edu.eg", "error");
       return;
     }
 
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Session expired. Please log in again.");
+        showAlert("Session expired. Please log in again.", "error");
         navigate("/");
         return;
       }
@@ -57,11 +65,11 @@ export default function CreateAdminOfficer() {
         );
       }
 
-      alert(`Successfully created ${adminForm.role}: ${data.user.name}`);
+      showAlert(`Successfully created ${adminForm.role}: ${data.user.name}`, "success");
       setAdminForm({ name: "", email: "", password: "", role: "" });
     } catch (error) {
       console.error("Error creating user:", error.message);
-      alert(`Error creating user: ${error.message}`);
+      showAlert(`Error creating user: ${error.message}`, "error");
     }
   };
 
@@ -132,6 +140,13 @@ export default function CreateAdminOfficer() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Modern Alert */}
+      <ModernAlert
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertMessage(null)}
+      />
     </div>
   );
 }

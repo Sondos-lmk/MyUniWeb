@@ -23,11 +23,19 @@ import { Button } from "../components/ui/button";
 import LoyaltyVendors from "./LoyaltyVendors";
 import EventsReviews from "./EventsReviews";
 import AvailableBooths from "./AvailableBooths";
+import ModernAlert from "../components/ui/ModernAlert";
 
 const StudentDashboard = () => {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("events");
   const [eventsTab, setEventsTab] = useState("upcoming"); // "upcoming", "registered", "favorites", "attended"
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [myEvents, setMyEvents] = useState([]);
   const [courts, setCourts] = useState([]);
@@ -78,7 +86,7 @@ const StudentDashboard = () => {
       fetchGymSessions(); // Refresh sessions
     } catch (err) {
       console.error("Error registering for gym session:", err);
-      alert(err.response?.data?.message || "Failed to register for session");
+      showAlert(err.response?.data?.message || "Failed to register for session", "error");
     } finally {
       setRegisteringId(null);
     }
@@ -297,7 +305,7 @@ const StudentDashboard = () => {
       fetchAvailability(courtId);
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Booking failed");
+      showAlert(err.response?.data?.message || "Booking failed", "error");
     }
   };
 
@@ -568,6 +576,13 @@ const StudentDashboard = () => {
         )}
 
       </div>
+
+      {/* Modern Alert */}
+      <ModernAlert
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertMessage(null)}
+      />
     </DashboardLayout>
   );
 };

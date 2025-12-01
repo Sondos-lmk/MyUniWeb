@@ -2,11 +2,19 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import ModernAlert from "../components/ui/ModernAlert";
 
 export default function ManagePendingUsers() {
   const navigate = useNavigate();
   const [pendingUsers, setPendingUsers] = useState([]);
   const [selectedRoles, setSelectedRoles] = useState({});
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   useEffect(() => {
     const fetchPendingUsers = async () => {
@@ -46,10 +54,10 @@ export default function ManagePendingUsers() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPendingUsers(pendingUsers.filter((user) => user._id !== id));
-      alert("Verification email sent to user");
+      showAlert("Verification email sent to user", "success");
     } catch (err) {
       console.error("Error approving user:", err);
-      alert(err.response?.data?.message || "Failed to approve user");
+      showAlert(err.response?.data?.message || "Failed to approve user", "error");
     }
   };
 
@@ -112,6 +120,13 @@ export default function ManagePendingUsers() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modern Alert */}
+      <ModernAlert
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertMessage(null)}
+      />
     </div>
   );
 }

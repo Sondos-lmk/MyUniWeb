@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import ModernAlert from "./ui/ModernAlert";
 
 export default function EventFormPage() {
   const { id } = useParams();
@@ -12,6 +13,13 @@ export default function EventFormPage() {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   // 🔹 Load event if editing
   useEffect(() => {
@@ -30,7 +38,7 @@ export default function EventFormPage() {
           }
         } catch (err) {
           console.error("Error loading event:", err);
-          alert("Failed to load event data");
+          showAlert("Failed to load event data", "error");
         }
       })();
     }
@@ -66,12 +74,12 @@ export default function EventFormPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      alert(`Event ${id ? "updated" : "created"} successfully!`);
+      showAlert(`Event ${id ? "updated" : "created"} successfully!`, "success");
       navigate("/eventOfficer/dashboard");
     } catch (error) {
       console.error(error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || "Failed to submit event";
-      alert(errorMessage);
+      showAlert(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -216,6 +224,14 @@ export default function EventFormPage() {
             </button>
           )}
         </form>
+      )}
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
     </div>
   );

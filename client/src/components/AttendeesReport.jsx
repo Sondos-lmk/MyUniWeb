@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import ModernAlert from './ui/ModernAlert';
 
 export default function AttendeesReport() {
   const [filters, setFilters] = useState({ name: '', type: '', startDate: '', endDate: '' });
@@ -7,6 +8,13 @@ export default function AttendeesReport() {
   const [loading, setLoading] = useState(false);
   const [eventOptions, setEventOptions] = useState([]);
   const [eventOptionsLoading, setEventOptionsLoading] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   useEffect(() => {
     const fetchEventOptions = async () => {
@@ -95,7 +103,7 @@ export default function AttendeesReport() {
       setData(res.data.report || []);
     } catch (err) {
       console.error('Error fetching attendees report:', err);
-      alert(err.response?.data?.message || 'Failed to fetch report');
+      showAlert(err.response?.data?.message || 'Failed to fetch report', 'error');
     } finally {
       setLoading(false);
     }
@@ -223,6 +231,14 @@ export default function AttendeesReport() {
       )}
       {data && data.length === 0 && (
         <p className="text-sm text-slate-500">No data to display.</p>
+      )}
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
     </div>
   );

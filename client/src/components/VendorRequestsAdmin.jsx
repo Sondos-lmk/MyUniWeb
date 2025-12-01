@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import ModernAlert from "./ui/ModernAlert";
 
 export default function VendorRequestsAdmin() {
   const [events, setEvents] = useState([]);
   const [vendorsMap, setVendorsMap] = useState({});
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -114,11 +122,12 @@ export default function VendorRequestsAdmin() {
       })
     );
 
-    alert(`Vendor ${newStatus} successfully!`);
+    showAlert(`Vendor ${newStatus} successfully!`, "success");
   } catch (err) {
     console.error("Error updating vendor status:", err);
-    alert(
-      err.response?.data?.error || "Failed to update vendor status."
+    showAlert(
+      err.response?.data?.error || "Failed to update vendor status.",
+      "error"
     );
   }
 };
@@ -274,6 +283,14 @@ export default function VendorRequestsAdmin() {
             </div>
           );
         })
+      )}
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
     </div>
   );

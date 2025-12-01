@@ -3,12 +3,14 @@ import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import { Dumbbell, Clock3, CalendarDays, MoreVertical } from "lucide-react";
 import EditGymSessionModal from "../components/EditGymSessionModal";
+import ModernAlert from "../components/ui/ModernAlert";
 
 export default function GymScheduleEOPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const [editingSession, setEditingSession] = useState(null); // full session object
   const [openMenuId, setOpenMenuId] = useState(null); // which card menu is open
@@ -32,22 +34,26 @@ export default function GymScheduleEOPage() {
   }, []);
 
   const handleCancelSession = async (sessionId) => {
-    if (!window.confirm("Are you sure you want to cancel this gym session?")) return;
-
-    try {
-      setMessage("");
-      setError("");
-      await api.delete(`/gym/${sessionId}`);
-      setMessage("Gym session cancelled successfully.");
-      await fetchSessions();
-    } catch (err) {
-      console.error("Cancel gym session error:", err);
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Failed to cancel this gym session.";
-      setError(msg);
-    }
+    setConfirmAction({
+      message: "Are you sure you want to cancel this gym session?",
+      onConfirm: async () => {
+        try {
+          setMessage("");
+          setError("");
+          await api.delete(`/gym/${sessionId}`);
+          setMessage("Gym session cancelled successfully.");
+          await fetchSessions();
+        } catch (err) {
+          console.error("Cancel gym session error:", err);
+          const msg =
+            err.response?.data?.message ||
+            err.response?.data?.error ||
+            "Failed to cancel this gym session.";
+          setError(msg);
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   const handleEditSaved = () => {
@@ -183,6 +189,17 @@ export default function GymScheduleEOPage() {
           session={editingSession}
           onClose={() => setEditingSession(null)}
           onSaved={handleEditSaved}
+        />
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmAction && (
+        <ModernAlert
+          message={confirmAction.message}
+          type="error"
+          isConfirm={true}
+          onConfirm={confirmAction.onConfirm}
+          onClose={() => setConfirmAction(null)}
         />
       )}
     </div>

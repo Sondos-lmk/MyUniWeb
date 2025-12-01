@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { MessageSquare, Calendar, Heart } from "lucide-react";
 import API from "../services/api";
 import { addFavorite, removeFavorite } from "../services/favorites";
+import ModernAlert from "./ui/ModernAlert";
 
 const badgeColor = (type) => {
   switch (type) {
@@ -62,6 +63,13 @@ export default function ProfessorEventCard({
   // ⭐ Favorites state
   const [isFav, setIsFav] = useState(!!isFavorite);
   const [togglingFavorite, setTogglingFavorite] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   useEffect(() => {
     setIsFav(!!isFavorite);
@@ -83,7 +91,7 @@ export default function ProfessorEventCard({
       }
     } catch (err) {
       console.error("Error toggling favorite:", err);
-      alert(err.response?.data?.message || "Failed to update favorites");
+      showAlert(err.response?.data?.message || "Failed to update favorites", "error");
     } finally {
       setTogglingFavorite(false);
     }
@@ -171,7 +179,7 @@ export default function ProfessorEventCard({
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!regName.trim() || !regEmail.trim() || !regId.trim()) {
-      alert("Please fill in name, email, and ID");
+      showAlert("Please fill in name, email, and ID", "error");
       return;
     }
 
@@ -182,7 +190,7 @@ export default function ProfessorEventCard({
         email: regEmail,
         id: regId,
       });
-      alert("Successfully registered for the event!");
+      showAlert("Successfully registered for the event!", "success");
       setShowRegisterModal(false);
       setRegName("");
       setRegEmail("");
@@ -190,7 +198,7 @@ export default function ProfessorEventCard({
       onRegister?.();
     } catch (err) {
       console.error("Registration error", err);
-      alert(err.response?.data?.message || "Failed to register");
+      showAlert(err.response?.data?.message || "Failed to register", "error");
     } finally {
       setRegistering(false);
     }
@@ -199,7 +207,7 @@ export default function ProfessorEventCard({
   const handleFeedback = async (e) => {
     e.preventDefault();
     if (!feedback.trim()) {
-      alert("Please write your feedback");
+      showAlert("Please write your feedback", "error");
       return;
     }
 
@@ -208,13 +216,13 @@ export default function ProfessorEventCard({
         comment: feedback,
         rating: rating,
       });
-      alert("Feedback submitted successfully!");
+      showAlert("Feedback submitted successfully!", "success");
       setShowFeedbackModal(false);
       setFeedback("");
       setRating(5);
     } catch (err) {
-      console.error("Feedback error", err);
-      alert(err.response?.data?.message || "Failed to submit feedback");
+      console.error("Error submitting feedback", err);
+      showAlert(err.response?.data?.message || "Failed to submit feedback", "error");
     }
   };
 
@@ -789,6 +797,13 @@ export default function ProfessorEventCard({
           </div>
         </div>
       )}
+
+      {/* Modern Alert */}
+      <ModernAlert
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertMessage(null)}
+      />
     </>
   );
 }

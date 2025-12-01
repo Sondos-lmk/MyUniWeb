@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import ModernAlert from "../components/ui/ModernAlert";
 
 
 export default function ManageAllEvents() {
@@ -9,6 +10,7 @@ export default function ManageAllEvents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -33,27 +35,28 @@ export default function ManageAllEvents() {
   }, []);
 
   const handleDeleteEvent = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this event?"
-    );
-    if (!confirmDelete) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
-      const res = await axios.delete(`${apiUrl}/api/events/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSuccess(res.data.message || "Event deleted successfully!");
-      setError("");
-      setEvents(events.filter((e) => e._id !== id));
-    } catch (err) {
-      console.error("Error deleting event:", err);
-      setError(
-        err.response?.data?.message ||
-          "Cannot delete event. Maybe someone registered for it."
-      );
-    }
+    setConfirmAction({
+      message: "Are you sure you want to delete this event?",
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
+          const res = await axios.delete(`${apiUrl}/api/events/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setSuccess(res.data.message || "Event deleted successfully!");
+          setError("");
+          setEvents(events.filter((e) => e._id !== id));
+        } catch (err) {
+          console.error("Error deleting event:", err);
+          setError(
+            err.response?.data?.message ||
+              "Cannot delete event. Maybe someone registered for it."
+          );
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   return (
@@ -106,6 +109,17 @@ export default function ManageAllEvents() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmAction && (
+        <ModernAlert
+          message={confirmAction.message}
+          type="error"
+          isConfirm={true}
+          onConfirm={confirmAction.onConfirm}
+          onClose={() => setConfirmAction(null)}
+        />
       )}
     </div>
   );

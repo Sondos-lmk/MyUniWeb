@@ -1,9 +1,18 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
+import ModernAlert from "./ui/ModernAlert";
 
 const AdminAllComments = () => {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   const fetchComments = async () => {
     try {
@@ -17,17 +26,21 @@ const AdminAllComments = () => {
   };
 
   const handleDelete = async (eventId, commentId) => {
-    if (!window.confirm("Delete this comment?")) return;
-
-    try {
-      await API.delete(`/events/${eventId}/comments/${commentId}`);
-      setComments((prev) =>
-        prev.filter((c) => c.commentId !== commentId)
-      );
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("Failed to delete comment");
-    }
+    setConfirmAction({
+      message: "Delete this comment?",
+      onConfirm: async () => {
+        try {
+          await API.delete(`/events/${eventId}/comments/${commentId}`);
+          setComments((prev) =>
+            prev.filter((c) => c.commentId !== commentId)
+          );
+        } catch (err) {
+          console.error("Delete error:", err);
+          showAlert("Failed to delete comment", "error");
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   useEffect(() => {
@@ -88,6 +101,25 @@ const AdminAllComments = () => {
             </tbody>
           </table>
         </div>
+      )}
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmAction && (
+        <ModernAlert
+          message={confirmAction.message}
+          type="error"
+          isConfirm={true}
+          onConfirm={confirmAction.onConfirm}
+          onClose={() => setConfirmAction(null)}
+        />
       )}
     </div>
   );
