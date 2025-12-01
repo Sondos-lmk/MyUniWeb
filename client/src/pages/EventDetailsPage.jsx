@@ -14,6 +14,11 @@ import {
   Folder,
   FileText,
   ArrowLeft,
+  BarChart3,
+  MessageSquare,
+  ShoppingBag,
+  Package,
+  Users,
 } from "lucide-react";
 
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString() : "—");
@@ -28,47 +33,88 @@ export default function EventDetailsPage() {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState("attendees");
 
-  const sidebarItems = [
-    { to: "/eventOfficer/dashboard", label: "Overview", icon: GraduationCap },
-    { to: "/eventOfficer/approveWorkshops", label: "Workshops", icon: ListChecks },
-    { to: "/eventOfficer/all-events", label: "All Events", icon: ClipboardList },
-    { to: "/gym-schedule", label: "Gym Schedule", icon: Dumbbell },
-    { to: "/eventOfficer/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
-    { to: "/eventOfficer/documents", label: "View Documents", icon: Folder },
-    {
-      key: "reports",
-      label: "Reports",
-      icon: FileText,
-      isCollapsible: true,
-      isOpen: isReportsOpen,
-      onToggle: () => setIsReportsOpen((s) => !s),
-      subItems: [
-        {
-          label: "Attendees Report",
-          onClick: () => {
-            setSelectedReport("attendees");
-            navigate("/eventOfficer/attendees-report");
-            setIsReportsOpen(true);
-          },
-        },
-        {
-          label: "Revenue Report",
-          onClick: () => {
-            setSelectedReport("revenue");
-            navigate("/eventOfficer/revenue-report");
-            setIsReportsOpen(true);
-          },
-        },
-      ],
-    },
-  ];
-
   // ---------- Existing logic ----------
   const fromAdminUpcoming = location.state?.from === "admin-upcoming";
   const isAdminView = fromAdminUpcoming || location.pathname.startsWith("/admin/");
   const headerSubLabel = isAdminView
     ? "Administrator · Event Details"
     : "Event Officer · More Information";
+
+  // ✅ Dynamic sidebar based on role
+  const sidebarItems = isAdminView
+    ? [
+        // ADMIN SIDEBAR - Icons match AdminDashboard.jsx
+        { to: "/admin", label: "Overview", icon: GraduationCap },
+        { to: "/admin/upcoming-events", label: "Upcoming Events", icon: BarChart3 },
+        { to: "/admin/all-comments", label: "Events Reviews", icon: MessageSquare },
+        { to: "/admin/available-booths", label: "Available Booths", icon: ShoppingBag },
+        { to: "/admin/vendor-requests", label: "Vendor Requests", icon: Package },
+        { to: "/admin/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
+        { to: "/admin/documents", label: "View Documents", icon: Folder },
+        { to: "/admin/all-users", label: "All Users", icon: Users },
+        {
+          key: "reports",
+          label: "Reports",
+          icon: FileText,
+          isCollapsible: true,
+          isOpen: isReportsOpen,
+          onToggle: () => setIsReportsOpen((s) => !s),
+          subItems: [
+            {
+              label: "Attendees Report",
+              onClick: () => {
+                setSelectedReport("attendees");
+                navigate("/admin/attendees-report");
+                setIsReportsOpen(true);
+              },
+            },
+            {
+              label: "Revenue Report",
+              onClick: () => {
+                setSelectedReport("revenue");
+                navigate("/admin/revenue-report");
+                setIsReportsOpen(true);
+              },
+            },
+          ],
+        },
+      ]
+    : [
+        // EVENT OFFICER SIDEBAR - Match EventOfficerDashboard.jsx exact order
+        { to: "/eventOfficer/dashboard", label: "Overview", icon: GraduationCap },
+        { to: "/eventOfficer/approveWorkshops", label: "Workshops", icon: ListChecks },
+        { to: "/eventOfficer/all-events", label: "All Events", icon: ClipboardList },
+        { to: "/eventOfficer/available-booths", label: "Available Booths", icon: ShoppingBag },
+        { to: "/gym-schedule", label: "Gym Schedule", icon: Dumbbell },
+        { to: "/eventOfficer/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
+        { to: "/eventOfficer/documents", label: "View Documents", icon: Folder },
+        {
+          key: "reports",
+          label: "Reports",
+          icon: FileText,
+          isCollapsible: true,
+          isOpen: isReportsOpen,
+          onToggle: () => setIsReportsOpen((s) => !s),
+          subItems: [
+            {
+              label: "Attendees Report",
+              onClick: () => {
+                setSelectedReport("attendees");
+                navigate("/eventOfficer/attendees-report");
+                setIsReportsOpen(true);
+              },
+            },
+            {
+              label: "Revenue Report",
+              onClick: () => {
+                setSelectedReport("revenue");
+                navigate("/eventOfficer/revenue-report");
+                setIsReportsOpen(true);
+              },
+            },
+          ],
+        },
+      ];
 
   const handleBackClick = () => {
     if (isAdminView) {
@@ -245,9 +291,9 @@ export default function EventDetailsPage() {
   if (loadingEvent) {
     return (
       <DashboardLayout
-        dashboardTitle="Event Officer Dashboard"
-        roleLabel="Events Officer"
-        roleColor="bg-cyan-600"
+        dashboardTitle={isAdminView ? "Admin Dashboard" : "Event Officer Dashboard"}
+        roleLabel={isAdminView ? "Administrator" : "Events Officer"}
+        roleColor={isAdminView ? "bg-indigo-600" : "bg-cyan-600"}
         sidebarItems={sidebarItems}
         extraSidebarProps={{ isReportsOpen, selectedReport }}
       >
@@ -261,9 +307,9 @@ export default function EventDetailsPage() {
   if (!event) {
     return (
       <DashboardLayout
-        dashboardTitle="Event Officer Dashboard"
-        roleLabel="Events Officer"
-        roleColor="bg-cyan-600"
+        dashboardTitle={isAdminView ? "Admin Dashboard" : "Event Officer Dashboard"}
+        roleLabel={isAdminView ? "Administrator" : "Events Officer"}
+        roleColor={isAdminView ? "bg-indigo-600" : "bg-cyan-600"}
         sidebarItems={sidebarItems}
         extraSidebarProps={{ isReportsOpen, selectedReport }}
       >
@@ -285,9 +331,9 @@ export default function EventDetailsPage() {
   // ---------- Main content inside DashboardLayout ----------
   return (
     <DashboardLayout
-      dashboardTitle="Event Officer Dashboard"
-      roleLabel="Events Officer"
-      roleColor="bg-cyan-600"
+      dashboardTitle={isAdminView ? "Admin Dashboard" : "Event Officer Dashboard"}
+      roleLabel={isAdminView ? "Administrator" : "Events Officer"}
+      roleColor={isAdminView ? "bg-indigo-600" : "bg-cyan-600"}
       sidebarItems={sidebarItems}
       extraSidebarProps={{ isReportsOpen, selectedReport }}
     >
