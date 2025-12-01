@@ -502,37 +502,63 @@ export const stripeWebhook = async (req, res) => {
     try {
       console.log('Processing Stripe webhook for:', { userId, eventId, registrationId });
 
-      let eventDoc = await Bazaar.findById(eventId);
-      let eventKind = 'bazaar';
+      // Check if this is a VENDOR payment (Bazaar/Booth) or STUDENT event payment
+      if (registrationId) {
+        // ===== VENDOR PAYMENT (Bazaar/Booth) =====
+        let eventDoc = await Bazaar.findById(eventId);
+        let eventKind = 'bazaar';
 
-      if (!eventDoc) {
-        eventDoc = await Booth.findById(eventId);
-        eventKind = 'booth';
-      }
+        if (!eventDoc) {
+          eventDoc = await Booth.findById(eventId);
+          eventKind = 'booth';
+        }
 
-      if (!eventDoc) {
-        throw new Error(`Event not found in Bazaar or Booth for ID: ${eventId}`);
-      }
+        if (!eventDoc) {
+          throw new Error(`Event not found in Bazaar or Booth for ID: ${eventId}`);
+        }
 
-      const registration = eventDoc.registeredVendors.id(registrationId);
-      if (!registration) {
-        throw new Error(`Vendor registration not found for registration ID: ${registrationId}`);
-      }
+        const registration = eventDoc.registeredVendors.id(registrationId);
+        if (!registration) {
+          throw new Error(`Vendor registration not found for registration ID: ${registrationId}`);
+        }
 
-      registration.paymentStatus = 'paid';
-      await eventDoc.save({ validateBeforeSave: false });
+        registration.paymentStatus = 'paid';
+        await eventDoc.save({ validateBeforeSave: false });
 
-      const user = await User.findById(userId);
-      if (user) {
-        // Generate and send QR code
-        await sendQRMail(eventId, registrationId, user);
+        const user = await User.findById(userId);
+        if (user) {
+          // Generate and send QR code
+          await sendQRMail(eventId, registrationId, user);
+
+          // Send payment receipt
+          await sendBazaarBoothPaymentReceipt(user, eventDoc, registration, 'Credit Card');
+        }
+
+        console.log(`✅ Vendor payment recorded for ${eventKind} ${eventId} and registration ${registrationId}`);
+
+      } else {
+        // ===== STUDENT EVENT PAYMENT =====
+        const user = await User.findById(userId);
+        if (!user) {
+          throw new Error(`User not found for ID: ${userId}`);
+        }
+
+        const registration = user.registeredEvents.find(
+          (reg) => reg.event.toString() === eventId
+        );
+
+        if (!registration) {
+          throw new Error(`Registration not found for user ${userId} and event ${eventId}`);
+        }
+
+        // Mark as paid
+        registration.paymentStatus = 'paid';
+        await user.save();
 
         // Send payment receipt
-        await sendBazaarBoothPaymentReceipt(user, eventDoc, registration, 'Credit Card');
-
         await user.populate('registeredEvents.event');
         const populatedReg = user.registeredEvents.find(
-          (reg) => reg.event && reg.event._id.equals(eventId)
+          (reg) => reg.event && reg.event._id.toString() === eventId
         );
 
         if (populatedReg && populatedReg.event) {
@@ -540,9 +566,9 @@ export const stripeWebhook = async (req, res) => {
         } else {
           console.warn(`⚠️ Event ${eventId} was deleted, skipping payment receipt`);
         }
-      }
 
-      console.log(`✅ Payment recorded for ${eventKind} ${eventId} and registration ${registrationId}`);
+        console.log(`✅ Student event payment recorded for user ${userId} and event ${eventId}`);
+      }
 
     } catch (err) {
       console.error('❌ Error updating after Stripe payment:', err);
