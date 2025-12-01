@@ -1,12 +1,20 @@
 // components/Voting.jsx
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import ModernAlert from "./ui/ModernAlert";
 
 export default function Voting() {
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(null);
   const [error, setError] = useState("");
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   const fetchPolls = async () => {
     try {
@@ -32,7 +40,7 @@ export default function Voting() {
       setError("");
       await API.post(`/polls/${pollId}/vote`, { vendorId });
       fetchPolls();
-      alert("Your vote has been submitted!");
+      showAlert("Your vote has been submitted!", "success");
     } catch (err) {
       console.log("VOTE ERROR:", err.response?.data);
       setError(err.response?.data?.message || "Failed to submit vote");
@@ -109,6 +117,14 @@ export default function Voting() {
           </div>
         </div>
       ))}
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
     </div>
   );
 }

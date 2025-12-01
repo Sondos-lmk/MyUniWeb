@@ -1,10 +1,18 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
+import ModernAlert from "../components/ui/ModernAlert";
 
 export default function AllUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -35,7 +43,7 @@ export default function AllUsers() {
         : `/admin/users/${userId}/unblock`;
 
       await API.patch(url);
-      alert(`User ${isActive ? "blocked" : "unblocked"} successfully`);
+      showAlert(`User ${isActive ? "blocked" : "unblocked"} successfully`, "success");
 
       // Refresh user list
       const token = localStorage.getItem("token");
@@ -45,7 +53,7 @@ export default function AllUsers() {
       setUsers(res.data);
     } catch (error) {
       console.error("Error toggling user status:", error);
-      alert("Something went wrong while updating user status.");
+      showAlert("Something went wrong while updating user status.", "error");
     }
   };
 
@@ -146,6 +154,13 @@ export default function AllUsers() {
           </div>
         </div>
       </div>
+
+      {/* Modern Alert */}
+      <ModernAlert
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertMessage(null)}
+      />
     </div>
   );
 }

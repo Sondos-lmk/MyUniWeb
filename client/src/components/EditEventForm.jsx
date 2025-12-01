@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Modal from "./ui/Modal";
+import ModernAlert from "./ui/ModernAlert";
 
 export default function EditEventForm({ eventId, onClose }) {
   const token = localStorage.getItem("token");
@@ -9,6 +10,13 @@ export default function EditEventForm({ eventId, onClose }) {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   // Load event data when modal opens
   useEffect(() => {
@@ -23,7 +31,7 @@ export default function EditEventForm({ eventId, onClose }) {
         if (new Date(event.startDate) <= now) setIsReadOnly(true);
       } catch (err) {
         console.error("Error loading event:", err);
-        alert("Failed to load event data");
+        showAlert("Failed to load event data", "error");
       }
     })();
   }, [eventId]);
@@ -51,7 +59,7 @@ export default function EditEventForm({ eventId, onClose }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      alert("Event updated successfully!");
+      showAlert("Event updated successfully!", "success");
       onClose(); // close modal
       window.location.reload(); // refresh dashboard
     } catch (error) {
@@ -60,7 +68,7 @@ export default function EditEventForm({ eventId, onClose }) {
         error.response?.data?.error ||
         error.response?.data?.message ||
         "Failed to update event";
-      alert(msg);
+      showAlert(msg, "error");
     } finally {
       setLoading(false);
     }
@@ -178,6 +186,14 @@ export default function EditEventForm({ eventId, onClose }) {
           </button>
         )}
       </form>
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
     </Modal>
   );
 }

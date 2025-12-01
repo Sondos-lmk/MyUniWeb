@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import ModernAlert from './ui/ModernAlert';
 
 export default function RevenueReport() {
   const [filters, setFilters] = useState({ type: '', startDate: '', endDate: '', sort: '' });
   const [data, setData] = useState(null);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   const fetchReport = async () => {
     try {
@@ -27,7 +35,7 @@ export default function RevenueReport() {
       setTotalRevenue(res.data.totalRevenue || 0);
     } catch (err) {
       console.error('Error fetching revenue report:', err);
-      alert(err.response?.data?.message || 'Failed to fetch report');
+      showAlert(err.response?.data?.message || 'Failed to fetch report', 'error');
     } finally {
       setLoading(false);
     }
@@ -111,6 +119,14 @@ export default function RevenueReport() {
             </table>
           </div>
         </>
+      )}
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
     </div>
   );

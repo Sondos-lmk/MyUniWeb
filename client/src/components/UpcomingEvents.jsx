@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
 import EventCard from "../components/EventCard";
+import ModernAlert from "./ui/ModernAlert";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import {
@@ -22,6 +23,13 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
   const [location, setLocation] = useState("");
   const [date, setDate] = useState(""); // format YYYY-MM-DD
   const [sortOrder, setSortOrder] = useState("asc");
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   // Fetch all upcoming events (default)
   const fetchEvents = async () => {
@@ -258,12 +266,12 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
             try {
               setLoading(true);
               await API.post(`/events/register/${id}`, { eventId: id });
-              alert('Registration successful');
+              showAlert('Registration successful', 'success');
               // optionally refresh event list
               await fetchEvents();
             } catch (err) {
               console.error('Register error', err);
-              alert(err.response?.data?.error || 'Registration failed');
+              showAlert(err.response?.data?.error || 'Registration failed', 'error');
             } finally {
               setLoading(false);
             }
@@ -331,6 +339,14 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
           ))}
         </div>
       */}
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
     </div>
   );
 };

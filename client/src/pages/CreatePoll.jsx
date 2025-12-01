@@ -2,6 +2,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import ModernAlert from "../components/ui/ModernAlert";
 
 export default function CreatePoll() {
   const location = useLocation();
@@ -22,6 +23,13 @@ export default function CreatePoll() {
   const [endAt, setEndAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   useEffect(() => {
     if (!boothId || vendors.length < 2) return;
@@ -63,7 +71,7 @@ export default function CreatePoll() {
         })),
       });
 
-      alert("Poll created and published successfully.");
+      showAlert("Poll created and published successfully.", "success");
       navigate(-1); // go back to conflicts page
     } catch (err) {
       console.error("Error creating poll:", err);
@@ -180,6 +188,14 @@ export default function CreatePoll() {
           </button>
         </div>
       </form>
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
     </div>
   );
 }

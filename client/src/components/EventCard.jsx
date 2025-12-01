@@ -5,6 +5,7 @@ import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { addFavorite, removeFavorite } from "../services/favorites";
 import { fetchEventFeedback } from "../services/feedback";
+import ModernAlert from "./ui/ModernAlert";
 
 
 // Simple heart SVG
@@ -58,6 +59,14 @@ export default function EventCard({
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsTab, setDetailsTab] = useState("details"); // "details" or "vendors"
   const [vendors, setVendors] = useState([]);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
 
   /* =========================
@@ -150,11 +159,11 @@ export default function EventCard({
         if (gTime) payload.time = gTime;
         if (gDuration !== "") payload.duration = Number(gDuration);
         await API.patch(`/gym/${eventId}`, payload);
-        alert("Gym session updated");
+        showAlert("Gym session updated", "success");
         setEditing(false);
       } catch (err) {
         console.error("Edit gym error:", err);
-        alert(err.response?.data?.message || "Failed to update gym session");
+        showAlert(err.response?.data?.message || "Failed to update gym session", "error");
       } finally {
         setSaving(false);
       }
@@ -167,15 +176,20 @@ export default function EventCard({
     };
 
     const handleCancelGym = async () => {
-      try {
-        if (!window.confirm("Are you sure you want to cancel this gym session?")) return;
-        await API.delete(`/gym/${eventId}`);
-        setIsDeleted(true);
-        alert("Gym session cancelled");
-      } catch (err) {
-        console.error("Cancel gym error:", err);
-        alert(err.response?.data?.message || "Failed to cancel gym session");
-      }
+      setConfirmAction({
+        message: "Are you sure you want to cancel this gym session?",
+        onConfirm: async () => {
+          try {
+            await API.delete(`/gym/${eventId}`);
+            setIsDeleted(true);
+            showAlert("Gym session cancelled", "success");
+          } catch (err) {
+            console.error("Cancel gym error:", err);
+            showAlert(err.response?.data?.message || "Failed to cancel gym session", "error");
+          }
+          setConfirmAction(null);
+        }
+      });
     };
     if (isDeleted) return null;
 
@@ -298,6 +312,17 @@ export default function EventCard({
           )}
         </div>
 
+        {/* Confirmation Dialog for Gym Session */}
+        {confirmAction && (
+          <ModernAlert
+            message={confirmAction.message}
+            type="error"
+            isConfirm={true}
+            onConfirm={confirmAction.onConfirm}
+            onClose={() => setConfirmAction(null)}
+          />
+        )}
+
       </div>
 
     );
@@ -336,13 +361,13 @@ export default function EventCard({
       console.error("Export error:", err);
 
       if (err.response?.status === 400) {
-        alert(err.response.data.message || "No users registered for this event.");
+        showAlert(err.response.data.message || "No users registered for this event.", "error");
       } else if (err.response?.status === 403) {
-        alert("Access denied. Only Event Officers can export registrations.");
+        showAlert("Access denied. Only Event Officers can export registrations.", "error");
       } else if (err.response?.status === 404) {
-        alert("Event not found.");
+        showAlert("Event not found.", "error");
       } else {
-        alert("Something went wrong while exporting. Please try again.");
+        showAlert("Something went wrong while exporting. Please try again.", "error");
       }
     }
   };
@@ -672,6 +697,14 @@ export default function EventCard({
             </div>
           </div>
         </div>
+      )}
+
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
 
     </div>

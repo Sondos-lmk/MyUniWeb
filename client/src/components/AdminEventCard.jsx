@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MoreVertical } from "lucide-react";
 import API from "../services/api";
+import ModernAlert from "./ui/ModernAlert";
 
 const badgeColor = (type) => {
   switch (type) {
@@ -33,24 +34,34 @@ export default function AdminEventCard({ event, onDelete }) {
   const navigate = useNavigate();
   const eventId = event?._id || event?.id;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   const handleDeleteEvent = async () => {
     if (!eventId) return;
-    if (!window.confirm("Are you sure you want to delete this event?")) {
-      setMenuOpen(false);
-      return;
-    }
-
-    try {
-      await API.delete(`/events/${eventId}`);
-      onDelete?.(eventId);
-      alert("Event deleted successfully!");
-    } catch (err) {
-      console.error("Delete event error", err);
-      alert(err.response?.data?.message || "Failed to delete event.");
-    } finally {
-      setMenuOpen(false);
-    }
+    setConfirmAction({
+      message: "Are you sure you want to delete this event?",
+      onConfirm: async () => {
+        try {
+          await API.delete(`/events/${eventId}`);
+          onDelete?.(eventId);
+          showAlert("Event deleted successfully!", "success");
+        } catch (err) {
+          console.error("Delete event error", err);
+          showAlert(err.response?.data?.message || "Failed to delete event.", "error");
+        } finally {
+          setMenuOpen(false);
+          setConfirmAction(null);
+        }
+      }
+    });
+    setMenuOpen(false);
   };
 
   const handleMoreInfo = () => {
@@ -125,6 +136,26 @@ export default function AdminEventCard({ event, onDelete }) {
           </button>
         </div>
       </div>
+
+      {/* Modern Alert */}
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmAction && (
+        <ModernAlert
+          message={confirmAction.message}
+          type="error"
+          isConfirm={true}
+          onConfirm={confirmAction.onConfirm}
+          onClose={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }

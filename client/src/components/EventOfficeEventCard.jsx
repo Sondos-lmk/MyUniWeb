@@ -5,6 +5,7 @@ import API from "../services/api";
 import { saveAs } from "file-saver";
 import { MoreVertical } from "lucide-react";
 import { fetchEventFeedback } from "../services/feedback";
+import ModernAlert from "./ui/ModernAlert";
 
 const badgeColor = (type) => {
   switch (type) {
@@ -24,6 +25,14 @@ export default function EventOfficerEventCard({ event, onEdit, onGenerateQr }) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedback, setFeedback] = useState({ ratings: [], comments: [] });
   const [loadingFeedback, setLoadingFeedback] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   const fmt = (d) => (d ? new Date(d).toLocaleString() : "—");
   const eventStart = event?.startDate || event?.date;
@@ -65,21 +74,25 @@ export default function EventOfficerEventCard({ event, onEdit, onGenerateQr }) {
       saveAs(blob, `${event.title.replace(/\s+/g, "_")}_registrations.xlsx`);
     } catch (err) {
       console.error("Export error:", err);
-      alert("Something went wrong");
+      showAlert("Something went wrong", "error");
     }
   };
 
   const handleDeleteEvent = async () => {
-    if (!window.confirm("Are you sure you want to delete this event?")) return;
-
-    try {
-      await API.delete(`/events/${eventId}`);
-      alert("Event deleted successfully!");
-      window.location.reload();
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("Cannot delete event. It may have registered users.");
-    }
+    setConfirmAction({
+      message: "Are you sure you want to delete this event?",
+      onConfirm: async () => {
+        try {
+          await API.delete(`/events/${eventId}`);
+          showAlert("Event deleted successfully!", "success");
+          window.location.reload();
+        } catch (err) {
+          console.error("Delete error:", err);
+          showAlert("Cannot delete event. It may have registered users.", "error");
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   const actionButtons = [];
@@ -244,6 +257,26 @@ export default function EventOfficerEventCard({ event, onEdit, onGenerateQr }) {
         )}
 
       </div>
+
+      {/* Modern Alert */}
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmAction && (
+        <ModernAlert
+          message={confirmAction.message}
+          type="error"
+          isConfirm={true}
+          onConfirm={confirmAction.onConfirm}
+          onClose={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }

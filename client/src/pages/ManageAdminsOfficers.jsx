@@ -2,10 +2,19 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import ModernAlert from "../components/ui/ModernAlert";
 
 export default function ManageAdminsOfficers() {
   const navigate = useNavigate();
   const [admins, setAdmins] = useState([]);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState("success");
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const showAlert = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+  };
 
   const fetchAdmins = async () => {
     try {
@@ -45,23 +54,28 @@ export default function ManageAdminsOfficers() {
   }, []);
 
   const handleDeleteUser = async (id, role) => {
-    if (!window.confirm(`Are you sure you want to delete this ${role}?`)) return;
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/");
-        return;
+    setConfirmAction({
+      message: `Are you sure you want to delete this ${role}?`,
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) {
+            navigate("/");
+            return;
+          }
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
+          await axios.delete(`${apiUrl}/api/admin/delete-user/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setAdmins(admins.filter((user) => user._id !== id));
+          showAlert(`${role} deleted successfully`, "success");
+        } catch (err) {
+          console.error("Error deleting user:", err);
+          showAlert(err.response?.data?.message || `Failed to delete ${role}`, "error");
+        }
+        setConfirmAction(null);
       }
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
-      await axios.delete(`${apiUrl}/api/admin/delete-user/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setAdmins(admins.filter((user) => user._id !== id));
-      alert(`${role} deleted successfully`);
-    } catch (err) {
-      console.error("Error deleting user:", err);
-      alert(err.response?.data?.message || `Failed to delete ${role}`);
-    }
+    });
   };
 
   return (
@@ -96,6 +110,26 @@ export default function ManageAdminsOfficers() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modern Alert */}
+      {alertMessage && (
+        <ModernAlert
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmAction && (
+        <ModernAlert
+          message={confirmAction.message}
+          type="error"
+          isConfirm={true}
+          onConfirm={confirmAction.onConfirm}
+          onClose={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }
