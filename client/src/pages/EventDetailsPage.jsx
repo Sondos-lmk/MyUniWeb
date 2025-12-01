@@ -43,15 +43,15 @@ export default function EventDetailsPage() {
   // ✅ Dynamic sidebar based on role
   const sidebarItems = isAdminView
     ? [
-        // ADMIN SIDEBAR - Icons match AdminDashboard.jsx
-        { to: "/admin", label: "Overview", icon: GraduationCap },
-        { to: "/admin/upcoming-events", label: "Upcoming Events", icon: BarChart3 },
-        { to: "/admin/all-comments", label: "Events Reviews", icon: MessageSquare },
-        { to: "/admin/available-booths", label: "Available Booths", icon: ShoppingBag },
-        { to: "/admin/vendor-requests", label: "Vendor Requests", icon: Package },
-        { to: "/admin/loyalty-vendors", label: "Loyalty Vendors", icon: Store },
-        { to: "/admin/documents", label: "View Documents", icon: Folder },
-        { to: "/admin/all-users", label: "All Users", icon: Users },
+        // ADMIN SIDEBAR - Navigate back to admin dashboard with specific tab
+        { key: "overview", label: "Overview", icon: GraduationCap, onClick: () => navigate("/admin", { state: { initialTab: "overview" } }) },
+        { key: "upcoming", label: "Upcoming Events", icon: BarChart3, onClick: () => navigate("/admin", { state: { initialTab: "upcoming" } }) },
+        { key: "allComments", label: "Events Reviews", icon: MessageSquare, onClick: () => navigate("/admin", { state: { initialTab: "allComments" } }) },
+        { key: "availableBooths", label: "Available Booths", icon: ShoppingBag, onClick: () => navigate("/admin", { state: { initialTab: "availableBooths" } }) },
+        { key: "vendorRequests", label: "Vendor Requests", icon: Package, onClick: () => navigate("/admin", { state: { initialTab: "vendorRequests" } }) },
+        { key: "loyaltyVendors", label: "Loyalty Vendors", icon: Store, onClick: () => navigate("/admin", { state: { initialTab: "loyaltyVendors" } }) },
+        { key: "documents", label: "View Documents", icon: Folder, onClick: () => navigate("/admin", { state: { initialTab: "documents" } }) },
+        { key: "users", label: "All Users", icon: Users, onClick: () => navigate("/admin", { state: { initialTab: "users" } }) },
         {
           key: "reports",
           label: "Reports",
@@ -64,7 +64,7 @@ export default function EventDetailsPage() {
               label: "Attendees Report",
               onClick: () => {
                 setSelectedReport("attendees");
-                navigate("/admin/attendees-report");
+                navigate("/admin", { state: { initialTab: "reports", selectedReport: "attendees" } });
                 setIsReportsOpen(true);
               },
             },
@@ -72,7 +72,7 @@ export default function EventDetailsPage() {
               label: "Revenue Report",
               onClick: () => {
                 setSelectedReport("revenue");
-                navigate("/admin/revenue-report");
+                navigate("/admin", { state: { initialTab: "reports", selectedReport: "revenue" } });
                 setIsReportsOpen(true);
               },
             },
