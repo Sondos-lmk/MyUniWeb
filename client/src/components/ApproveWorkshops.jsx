@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { Info } from "lucide-react";
+import RequestEditModal from "./WorkshopRequestEditModal";
 
 export default function ApproveWorkshops() {
   const navigate = useNavigate();
@@ -9,6 +10,9 @@ export default function ApproveWorkshops() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedWorkshopId, setSelectedWorkshopId] = useState(null);
+
 
   // ✅ Fetch pending workshops (only Event Officer can)
   useEffect(() => {
@@ -60,7 +64,8 @@ export default function ApproveWorkshops() {
   };
 
   const handleRequestEdit = (id) => {
-    navigate(`/workshops/${id}/request-edit`);
+    setSelectedWorkshopId(id);
+    setEditModalOpen(true);
   };
 
   return (
@@ -206,6 +211,13 @@ export default function ApproveWorkshops() {
           ))}
         </div>
       )}
+      {editModalOpen && (
+      <RequestEditModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        workshopId={selectedWorkshopId}
+      />
+    )}
     </div>
   );
 }
