@@ -29,7 +29,30 @@ export default function EventDetailsPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ---------- Layout state (sidebar) ----------
+  //const fromAdminUpcoming = location.state?.from === "admin-upcoming";
+  //const isAdminView = fromAdminUpcoming || location.pathname.startsWith("/admin/");
+  //const headerSubLabel = isAdminView
+    //? "Administrator · Event Details"
+    //: "Event Officer · More Information";
+
+  const openQR = location.state?.openQR;
+  const fromBoothsPage = location.state?.fromBoothsPage === true;
+
+
+
+
+  // automatically switch to QR when coming from booths
+  useEffect(() => {
+    if (fromBoothsPage || openQR) {
+      setActiveTab("qr");
+    }
+  }, [fromBoothsPage, openQR]);
+
+  // now safe to create this!
+  const forceQrOnly = fromBoothsPage === true;
+
+
+    // ---------- Layout state (sidebar) ----------
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState("attendees");
 
@@ -116,10 +139,20 @@ export default function EventDetailsPage() {
         },
       ];
 
+  // ✅ Back button handler
   const handleBackClick = () => {
-    if (isAdminView) {
+    if (fromBoothsPage) {
+      // Coming from Available Booths page (with QR generation)
+      if (isAdminView) {
+        navigate("/admin", { state: { initialTab: "availableBooths" } });
+      } else {
+        navigate("/eventOfficer/available-booths");
+      }
+    } else if (isAdminView) {
+      // Coming from Admin Dashboard
       navigate("/admin", { state: { initialTab: "upcoming" } });
     } else {
+      // Coming from Event Officer Dashboard
       navigate("/eventOfficer/all-events");
     }
   };
@@ -128,7 +161,7 @@ export default function EventDetailsPage() {
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [error, setError] = useState("");
 
-  const [activeTab, setActiveTab] = useState("info"); // "info" | "vendors" | "qr"
+  const [activeTab, setActiveTab] = useState(fromBoothsPage ? "qr" : "info"); // "info" | "vendors" | "qr"
 
   const [visitors, setVisitors] = useState([]);
   const [loadingVisitors, setLoadingVisitors] = useState(false);
@@ -143,10 +176,10 @@ export default function EventDetailsPage() {
   const showQrFeatures = !isAdminView && (event?.type === 'booth' || event?.type === 'bazaar');
 
   useEffect(() => {
-    if (!showQrFeatures && activeTab === "qr") {
+    if (!fromBoothsPage && !showQrFeatures && activeTab === "qr") {
       setActiveTab("info");
     }
-  }, [showQrFeatures, activeTab]);
+  }, [fromBoothsPage, showQrFeatures, activeTab]);
 
   useEffect(() => {
     if (event && event.type !== "bazaar" && activeTab === "vendors") {
@@ -341,10 +374,16 @@ export default function EventDetailsPage() {
         {/* Back Button */}
         <button
           onClick={handleBackClick}
-          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 font-medium"
+          className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 mb-6 font-medium transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          Back to Events
+          <span>
+            {fromBoothsPage 
+              ? "Back to Available Booths" 
+              : isAdminView 
+                ? "Back to Events" 
+                : "Back to Events"}
+          </span>
         </button>
 
         {/* Top header row: Title + Tag */}
@@ -368,45 +407,68 @@ export default function EventDetailsPage() {
         <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
           {/* Tabs */}
           <div className="border-b border-slate-200 px-6 pt-4 flex gap-6">
-            <button
-              className={`pb-3 text-sm font-semibold ${
-                activeTab === "info"
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-              onClick={() => setActiveTab("info")}
-            >
-              Information
-            </button>
-            {isBazaarEvent && (
-              <button
-                className={`pb-3 text-sm font-semibold ${
-                  activeTab === "vendors"
-                    ? "text-indigo-600 border-b-2 border-indigo-600"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-                onClick={() => setActiveTab("vendors")}
-              >
-                Vendors Participating
-              </button>
+
+            {fromBoothsPage ? (
+              <>
+                {/* ONLY QR TAB */}
+                <button
+                  className={`pb-3 text-sm font-semibold ${
+                    activeTab === "qr"
+                      ? "text-indigo-600 border-b-2 border-indigo-600"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                  onClick={() => setActiveTab("qr")}
+                >
+                  QR Codes
+                </button>
+              </>
+            ) : (
+              <>
+                {/* NORMAL TABS */}
+                <button
+                  className={`pb-3 text-sm font-semibold ${
+                    activeTab === "info"
+                      ? "text-indigo-600 border-b-2 border-indigo-600"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                  onClick={() => setActiveTab("info")}
+                >
+                  Information
+                </button>
+
+                {isBazaarEvent && (
+                  <button
+                    className={`pb-3 text-sm font-semibold ${
+                      activeTab === "vendors"
+                        ? "text-indigo-600 border-b-2 border-indigo-600"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                    onClick={() => setActiveTab("vendors")}
+                  >
+                    Vendors Participating
+                  </button>
+                )}
+
+                { showQrFeatures && (
+                  <button
+                    className={`pb-3 text-sm font-semibold ${
+                      activeTab === "qr"
+                        ? "text-indigo-600 border-b-2 border-indigo-600"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                    onClick={() => setActiveTab("qr")}
+                  >
+                    QR Codes
+                  </button>
+                )}
+              </>
             )}
-            {showQrFeatures && (
-              <button
-                className={`pb-3 text-sm font-semibold ${
-                  activeTab === "qr"
-                    ? "text-indigo-600 border-b-2 border-indigo-600"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-                onClick={() => setActiveTab("qr")}
-              >
-                QR Codes
-              </button>
-            )}
+
           </div>
 
           {/* Tab Content */}
           <div className="px-6 py-6 space-y-6">
-            {activeTab === "info" && (
+            {!fromBoothsPage && activeTab === "info" && (
               <div className="grid md:grid-cols-[2fr,1fr] gap-6">
                 <div>
                   <h2 className="text-lg font-semibold mb-3">Event Details</h2>
@@ -525,7 +587,7 @@ export default function EventDetailsPage() {
               </div>
             )}
 
-            {activeTab === "vendors" && isBazaarEvent && (
+            {!fromBoothsPage && activeTab === "vendors" && isBazaarEvent && (
               <div>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                   <div>
@@ -697,7 +759,7 @@ export default function EventDetailsPage() {
               </div>
             )}
 
-            {activeTab === "qr" && showQrFeatures && (
+            { activeTab === "qr" && showQrFeatures && (
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold">Visitor QR Codes</h2>

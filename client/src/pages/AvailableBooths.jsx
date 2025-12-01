@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
 import { Store, MapPin, Calendar, Package, Tag, Clock, ExternalLink } from "lucide-react";
+import { MoreVertical } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-export default function AvailableBooths() {
+
+export default function AvailableBooths({ showActions = false }) {
   const [booths, setBooths] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  const toggleMenu = (id) => {
+    setOpenMenuId(openMenuId === id ? null : id);
+  };
+
+
 
   useEffect(() => {
     fetchPlatformBooths();
@@ -123,6 +135,7 @@ export default function AvailableBooths() {
             const now = new Date();
             const startDate = new Date(booth.startDate);
             const hasStarted = startDate <= now;
+            const hasBadge = hasStarted && remainingDays > 0;
             
             // Get vendor logo URL
             const vendorLogo = vendor.logo ? `http://localhost:4000${vendor.logo}` : null;
@@ -138,7 +151,39 @@ export default function AvailableBooths() {
                   <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-sm">
                     {booth.eventType === 'bazaar' ? 'Bazaar' : 'Platform'}
                   </div>
-                  
+                  {/* 3 Dots Menu (Event Officer Only) */}
+                  {showActions && (
+                    <div
+                      className={`absolute top-3 z-55 
+                        ${hasBadge ? "right-25" : "right-3"}`}
+                    >
+                      <div className="relative">
+                        <button
+                          onClick={() => toggleMenu(booth._id)}
+                          className="p-1.5 rounded-full hover:bg-white/20 transition"
+                        >
+                          <MoreVertical className="w-5 h-5 text-white" />
+                        </button>
+
+                        {/* Dropdown */}
+                        {openMenuId === booth._id && (
+                          <div className="absolute mt-2 right-0 bg-white shadow-xl border border-slate-200 rounded-lg w-44 overflow-hidden z-50">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();   // prevents parent click from firing
+                              navigate(`/eventOfficer/events/${booth.boothEventId}/details`, {
+                                state: { openQR: true, fromBoothsPage: true },
+                              });
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition"
+                          >
+                            QR Codes
+                          </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {/* Remaining Days Badge - Top Right (only if started) */}
                   {hasStarted && remainingDays !== null && remainingDays > 0 && (
                     <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold ${

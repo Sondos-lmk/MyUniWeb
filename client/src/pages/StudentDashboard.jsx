@@ -481,7 +481,7 @@ const StudentDashboard = () => {
 
         {/* Available Booths Section */}
         {activeSection === "availableBooths" && (
-          <AvailableBooths />
+          <AvailableBooths showActions={false} />
         )}
 
         {/* COURTS */}

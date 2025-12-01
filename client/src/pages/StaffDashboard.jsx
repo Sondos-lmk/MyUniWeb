@@ -337,7 +337,7 @@ const StaffDashboard = () => {
 
 				{/* Available Booths Section */}
 				{activeSection === "availableBooths" && (
-					<AvailableBooths />
+					<AvailableBooths showActions={false} />
 				)}
 
 				{/* Booth Polls Section */}
