@@ -35,7 +35,7 @@ function EventOfficerVendorRequests() {
     <DashboardLayout 
       dashboardTitle="Event Officer Dashboard" 
       roleLabel="Events Officer" 
-      roleColor="bg-cyan-600" 
+      roleColor="bg-blue-600" 
       sidebarItems={sidebarItems} 
       extraSidebarProps={{ isReportsOpen: reportsOpen, selectedReport }}
     >

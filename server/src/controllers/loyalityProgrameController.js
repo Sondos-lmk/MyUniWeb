@@ -160,7 +160,7 @@ export const getLoyaltyVendors = async (req, res) => {
     const entries = await LoyaltyProgram.find()
       .populate({
         path: 'vendor',
-        select: 'email name companyName role isVerified',
+        select: 'email name companyName role isVerified logo',
       })
       .lean();
 
@@ -173,6 +173,7 @@ export const getLoyaltyVendors = async (req, res) => {
         contactName: entry.vendor.name || '',
         email: entry.vendor.email,
         isVerified: entry.vendor.isVerified,
+        logo: entry.vendor.logo || '',
         discountRate: entry.discountRate,
         promoCode: entry.promoCode,
         termsAndConditions: entry.termsAndConditions || '',

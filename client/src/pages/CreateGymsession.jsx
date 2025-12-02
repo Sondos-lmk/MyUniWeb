@@ -115,13 +115,15 @@ export default function CreateGymSession() {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full"
-        >
-          {loading ? "Creating..." : "Create Session"}
-        </button>
+        <div className="flex justify-center">
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+          >
+            {loading ? "Creating..." : "Create Session"}
+          </button>
+        </div>
 
         {message && <p className="text-center mt-3">{message}</p>}
       </form>
