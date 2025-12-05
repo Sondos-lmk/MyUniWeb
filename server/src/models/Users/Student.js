@@ -17,6 +17,15 @@ const studentSchema = new mongoose.Schema({
       priceAtRegistration: {
         type: Number,
         required: true
+      },
+      referralCode: {
+        type: String,
+        default: null
+      },
+      referredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
       }
     }],
   isActive: { type: Boolean, default: true },

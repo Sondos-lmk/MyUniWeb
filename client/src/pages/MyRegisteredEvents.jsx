@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api"; // Your API service
 import ModernAlert from "../components/ui/ModernAlert";
+import { getReferralCode, clearReferralCode } from "../utils/referralHelper";
 
 export default function MyRegisteredEvents() {
   const [registrations, setRegistrations] = useState([]);
@@ -77,11 +78,42 @@ export default function MyRegisteredEvents() {
     }
   };
 
+  // --- VALIDATE REFERRAL CODE ---
+  const validateReferralCode = async (eventId, referralCode) => {
+    try {
+      const response = await API.post("/payment/validate-referral", {
+        eventId,
+        referralCode
+      });
+      return { valid: true, message: response.data.message };
+    } catch (err) {
+      return { 
+        valid: false, 
+        message: err.response?.data?.error || "Invalid referral code" 
+      };
+    }
+  };
+
   // --- (MODIFIED) STEP 1: OPEN MODAL ---
   // This is called when the user clicks "Pay Now" or "Pay Again"
-  const handlePayment = (registration) => {
+  const handlePayment = async (registration) => {
     setSelectedEvent(registration); // Save the whole registration object
     setPaymentError(""); // Clear old errors
+    
+    // Check if there's a referral code and validate it
+    const referralCode = getReferralCode(registration.event._id);
+    if (referralCode) {
+      const validation = await validateReferralCode(registration.event._id, referralCode);
+      if (!validation.valid) {
+        // Show error immediately and clear the referral code
+        showAlert(validation.message, "error");
+        clearReferralCode();
+        // Don't open the modal yet - let user see the error
+        setTimeout(() => setIsModalOpen(true), 1500);
+        return;
+      }
+    }
+    
     setIsModalOpen(true);
   };
 
@@ -93,8 +125,14 @@ export default function MyRegisteredEvents() {
     setPaymentError("");
 
     try {
+      // Check if there's a referral code for this event
+      const referralCode = getReferralCode(selectedEvent.event._id);
+      console.log('💳 Payment for event:', selectedEvent.event._id);
+      console.log('🔍 Retrieved referral code:', referralCode);
+      
       const response = await API.post("/payment/pay-with-wallet", { 
-        eventId: selectedEvent.event._id 
+        eventId: selectedEvent.event._id,
+        ...(referralCode && { referralCode }) // Include referral code if it exists
       });
       
       // Check if user was waitlisted and successfully got the spot
@@ -111,8 +149,18 @@ export default function MyRegisteredEvents() {
       console.error("Wallet payment error:", err);
       const errorData = err.response?.data;
       
+      // Check if referral code error (own code, invalid, etc.)
+      if (errorData?.error && (
+        errorData.error.includes("own referral code") ||
+        errorData.error.includes("Invalid referral code") ||
+        errorData.error.includes("already used a referral")
+      )) {
+        // Clear the invalid referral code from localStorage
+        clearReferralCode();
+        setPaymentError(errorData.error);
+      }
       // Check if spot was taken by another user
-      if (errorData?.spotTaken) {
+      else if (errorData?.spotTaken) {
         setPaymentError(errorData.error);
         setIsModalOpen(false);
         showAlert(errorData.error, "error");
@@ -134,9 +182,13 @@ export default function MyRegisteredEvents() {
     setPaymentError("");
 
     try {
+      // Check if there's a referral code for this event
+      const referralCode = getReferralCode(selectedEvent.event._id);
+      
       // Call your backend to create a checkout session
       const res = await API.post("/payment/create-stripe-checkout", {
-        eventId: selectedEvent.event._id
+        eventId: selectedEvent.event._id,
+        ...(referralCode && { referralCode }) // Include referral code if it exists
       });
 
       // Backend sends back a URL, redirect the user to Stripe
@@ -235,6 +287,16 @@ export default function MyRegisteredEvents() {
             <p className="text-lg font-semibold mb-6 text-slate-800">
               Amount: ${selectedEvent.priceAtRegistration}
             </p>
+
+            {/* Referral Code Indicator */}
+            {getReferralCode(selectedEvent.event._id) && (
+              <div className="bg-green-50 border-l-4 border-green-500 p-3 mb-4">
+                <p className="text-green-800 text-sm font-semibold flex items-center">
+                  <span className="mr-2">🎉</span>
+                  Referral code applied! You'll get 15% back after the cancellation deadline.
+                </p>
+              </div>
+            )}
 
             {/* Error message display */}
             {paymentError && (

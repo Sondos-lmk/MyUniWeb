@@ -9,6 +9,7 @@ import { connectDB } from './config/db.js';
 import cron from 'node-cron';
 import { sendCertificatesForCompletedWorkshops } from './utils/certificateScheduler.js';
 import { sendRemindersForUpcomingEvents } from "./utils/reminderScheduler.js";
+import { processReferralRewards } from './utils/referralRewardScheduler.js';
 import { startBoothExpirationCron, startBazaarExpirationCron } from './cronJobs.js';
 console.log('Environment variables:', {
   CLIENT_ID: process.env.CLIENT_ID ? '✅' : '❌',
@@ -55,6 +56,18 @@ async function bootstrap() {
   console.log(
     "✅ Reminder scheduler initialized (runs every minute for testing)"
   );
+
+  // 📅 Schedule referral reward processing
+  // Runs every hour to check if any events have passed the 2-week cancellation deadline
+  cron.schedule('0 * * * *', async () => {
+    try {
+      await processReferralRewards();
+    } catch (err) {
+      console.error('❌ Error in referral reward scheduler:', err?.message || err);
+    }
+  });
+  console.log('✅ Referral reward scheduler initialized (runs every hour)');
+
   // Start cron jobs for checking expired applications
   startBoothExpirationCron();
   startBazaarExpirationCron();

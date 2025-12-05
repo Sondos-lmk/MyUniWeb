@@ -19,6 +19,15 @@ const staffSchema = new mongoose.Schema({
       priceAtRegistration: {
         type: Number,
         required: true
+      },
+      referralCode: {
+        type: String,
+        default: null
+      },
+      referredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
       }
     }],
   wallet: { type: Number, default: 0 },

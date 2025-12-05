@@ -101,6 +101,42 @@ const eventSchema = new mongoose.Schema(
         },
       },
     ],
+
+    // 🔗 Referrals: track referral relationships for rewards
+    referrals: [
+      {
+        referrerUserId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        referredUserId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        referralCode: {
+          type: String,
+          required: true,
+        },
+        referrerPaid: {
+          type: Boolean,
+          default: false,
+        },
+        referredPaid: {
+          type: Boolean,
+          default: false,
+        },
+        rewardGranted: {
+          type: Boolean,
+          default: false,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
 
   baseOptions
