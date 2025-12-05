@@ -404,6 +404,15 @@ export default function EventCard({
         </div>
 
         {desc ? <p className="mt-2 text-sm text-slate-600 line-clamp-2">{desc}</p> : null}
+        
+        {/* Full Event Badge */}
+        {event.fullEventMessage && (
+          <div className="mt-3 bg-amber-50 border border-amber-300 rounded-md px-3 py-2">
+            <p className="text-amber-700 text-sm font-semibold">
+              {event.fullEventMessage}
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
           {location && (

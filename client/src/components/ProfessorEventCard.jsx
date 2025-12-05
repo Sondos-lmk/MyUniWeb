@@ -131,8 +131,20 @@ export default function ProfessorEventCard({
         String(currentUser?.id || currentUser?._id)
     );
 
+  // Check if user is on the waitlist
+  const isWaitlisted = event?.waitlist?.some(
+    (entry) =>
+      String(entry.user?._id || entry.user) ===
+      String(currentUser?.id || currentUser?._id)
+  );
+
   // Only show register button for workshops and trips
   const canRegister = event.type === "workshop" || event.type === "trip";
+
+  // Check if event is full
+  const maxParticipants = event.maxParticipants || event.capacity || 0;
+  const currentRegistrations = event.registeredUsers?.length || 0;
+  const isFull = maxParticipants > 0 && currentRegistrations >= maxParticipants;
 
   // Debug gym session data
   if (event.type === "gym") {
@@ -168,12 +180,18 @@ export default function ProfessorEventCard({
   if (isRegistered) {
     registrationStatus = "registered";
     registrationMessage = "Registered";
+  } else if (isWaitlisted) {
+    registrationStatus = "waitlisted";
+    registrationMessage = "Waitlisted";
   } else if (isEventPassed) {
     registrationStatus = "eventPassed";
     registrationMessage = "Event Passed";
   } else if (isDeadlinePassed) {
     registrationStatus = "deadlinePassed";
     registrationMessage = "Deadline Passed";
+  } else if (isFull) {
+    registrationStatus = "full";
+    registrationMessage = "Join Waitlist";
   }
 
   const handleRegister = async (e) => {
@@ -185,12 +203,21 @@ export default function ProfessorEventCard({
 
     setRegistering(true);
     try {
-      await API.post(`/events/register/${eventId}`, {
-        name: regName,
-        email: regEmail,
-        id: regId,
-      });
-      showAlert("Successfully registered for the event!", "success");
+      // If event is full, join waitlist instead
+      if (isFull) {
+        await API.post(`/payment/join-waitlist`, {
+          eventId: eventId,
+        });
+        showAlert("Successfully joined the waitlist! You'll be notified when a spot opens.", "success");
+      } else {
+        // Regular registration
+        await API.post(`/events/register/${eventId}`, {
+          name: regName,
+          email: regEmail,
+          id: regId,
+        });
+        showAlert("Successfully registered for the event!", "success");
+      }
       setShowRegisterModal(false);
       setRegName("");
       setRegEmail("");
@@ -407,16 +434,20 @@ export default function ProfessorEventCard({
             {!isFavoritesView && canRegister && (
               <button
                 onClick={() =>
-                  registrationStatus === "available" &&
+                  (registrationStatus === "available" || registrationStatus === "full") &&
                   setShowRegisterModal(true)
                 }
-                disabled={registrationStatus !== "available"}
+                disabled={registrationStatus !== "available" && registrationStatus !== "full"}
                 className={`flex-1 min-w-[140px] px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 ${
                   registrationStatus === "registered"
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : registrationStatus === "waitlisted"
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                     : registrationStatus === "deadlinePassed" ||
                       registrationStatus === "eventPassed"
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : registrationStatus === "full"
+                    ? "bg-green-600 hover:bg-green-700 text-white"
                     : "bg-green-600 hover:bg-green-700 text-white"
                 }`}
                 title={
@@ -426,6 +457,10 @@ export default function ProfessorEventCard({
                     ? "Registration deadline has passed"
                     : registrationStatus === "registered"
                     ? "You are already registered"
+                    : registrationStatus === "waitlisted"
+                    ? "You are on the waitlist - you'll be notified when a spot opens"
+                    : registrationStatus === "full"
+                    ? "Event is full - Click to join waitlist"
                     : "Click to register for this event"
                 }
               >
@@ -448,8 +483,13 @@ export default function ProfessorEventCard({
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-2xl font-bold mb-4">
-              Register for {event.title}
+              {isFull ? `Join Waitlist for ${event.title}` : `Register for ${event.title}`}
             </h2>
+            {isFull && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                ⚠️ This event is currently full. You'll be added to the waitlist and notified when a spot opens.
+              </div>
+            )}
             <form onSubmit={handleRegister}>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Name</label>
@@ -497,9 +537,11 @@ export default function ProfessorEventCard({
                 <button
                   type="submit"
                   disabled={registering}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                  className={`flex-1 px-4 py-2 text-white rounded-lg disabled:bg-gray-400 ${
+                    isFull ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700"
+                  }`}
                 >
-                  {registering ? "Registering..." : "Register"}
+                  {registering ? (isFull ? "Joining..." : "Registering...") : (isFull ? "Join Waitlist" : "Register")}
                 </button>
               </div>
             </form>

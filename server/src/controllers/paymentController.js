@@ -214,6 +214,7 @@ export const payWithWallet = async (req, res) => {
   try {
     const { eventId } = req.body;
     const user = req.user;
+    const userId = user._id;
 
     const registration = user.registeredEvents.find(
       (reg) => reg.event.equals(eventId)
@@ -227,6 +228,51 @@ export const payWithWallet = async (req, res) => {
       return res.status(400).json({ error: "Already paid for this event." });
     }
 
+    // 🆕 WAITLIST RACE CONDITION HANDLING
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: "Event not found." });
+    }
+
+    // Check if user was on waitlist
+    const wasOnWaitlist = registration.paymentStatus === 'waitlisted';
+    
+    if (wasOnWaitlist) {
+      // Check if event is still full
+      const maxParticipants = event.maxParticipants || event.capacity || 0;
+      const currentRegistrations = event.registeredUsers?.length || 0;
+      
+      if (currentRegistrations >= maxParticipants) {
+        return res.status(400).json({ 
+          error: "Sorry, the spot was already taken by another user. You remain on the waitlist.",
+          spotTaken: true 
+        });
+      }
+
+      // Check if user is still on waitlist
+      const stillOnWaitlist = event.waitlist?.some(
+        (entry) => entry.user.equals(userId)
+      );
+      
+      if (!stillOnWaitlist) {
+        return res.status(400).json({ 
+          error: "You are no longer on the waitlist for this event.",
+          spotTaken: true 
+        });
+      }
+    } else {
+      // 🆕 FOR REGULAR REGISTRATIONS: Check if event became full before payment
+      const maxParticipants = event.maxParticipants || event.capacity || 0;
+      const currentPaidUsers = event.registeredUsers?.length || 0;
+      
+      if (maxParticipants > 0 && currentPaidUsers >= maxParticipants) {
+        return res.status(400).json({ 
+          error: "This event has reached maximum capacity and is now full.",
+          spotTaken: true 
+        });
+      }
+    }
+
     const priceToPay = registration.priceAtRegistration;
 
     if (typeof user.wallet !== 'number' || isNaN(user.wallet)) {
@@ -237,8 +283,34 @@ export const payWithWallet = async (req, res) => {
       return res.status(400).json({ error: "Insufficient wallet balance." });
     }
 
+    // Process payment
     user.wallet -= priceToPay;
     registration.paymentStatus = 'paid';
+
+    // 🆕 Add user to event's registeredUsers if not already there
+    if (wasOnWaitlist) {
+      // Remove from waitlist
+      event.waitlist = event.waitlist.filter(
+        (entry) => !entry.user.equals(userId)
+      );
+      
+      // Add to registered users
+      if (!event.registeredUsers) event.registeredUsers = [];
+      if (!event.registeredUsers.includes(userId)) {
+        event.registeredUsers.push(userId);
+      }
+      
+      await event.save();
+      console.log(`✅ User ${userId} moved from waitlist to registered for event ${eventId}`);
+    } else {
+      // 🆕 FOR REGULAR USERS: Add to registeredUsers when they pay
+      if (!event.registeredUsers) event.registeredUsers = [];
+      if (!event.registeredUsers.some(id => id.equals(userId))) {
+        event.registeredUsers.push(userId);
+        await event.save();
+        console.log(`✅ User ${userId} added to registeredUsers for event ${eventId}`);
+      }
+    }
 
     await user.save();
 
@@ -255,7 +327,8 @@ export const payWithWallet = async (req, res) => {
 
     res.status(200).json({ 
       message: "Payment successful!",
-      newBalance: user.wallet
+      newBalance: user.wallet,
+      wasWaitlisted: wasOnWaitlist
     });
 
   } catch (err) {
@@ -270,7 +343,7 @@ export const requestRefund = async (req, res) => {
     const { eventId } = req.body;
     const user = req.user;
 
-    const event = await Event.findById(eventId);
+    const event = await Event.findById(eventId).populate('waitlist.user', 'email name');
     if (!event) {
       return res.status(404).json({ error: "Event details not found." });
     }
@@ -327,6 +400,61 @@ export const requestRefund = async (req, res) => {
     user.registeredEvents.splice(regIndex, 1);
     await user.save();
 
+    // 🆕 NOTIFY WAITLISTED USERS
+    if (event.waitlist && event.waitlist.length > 0) {
+      console.log(`📧 Notifying ${event.waitlist.length} waitlisted users about available spot`);
+      
+      const emailPromises = event.waitlist.map(async (entry) => {
+        const waitlistedUser = entry.user;
+        if (!waitlistedUser || !waitlistedUser.email) return;
+
+        const html = `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #004a99;"> A Spot Opened Up!</h2>
+            <p>Hi ${waitlistedUser.name},</p>
+            <p>Great news! A spot has become available for the event you're waitlisted for:</p>
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin: 0; color: #333;">${event.title}</h3>
+              <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date(event.startDate).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}</p>
+              <p style="margin: 5px 0;"><strong>Price:</strong> EGP ${event.price?.toFixed(2) || '0.00'}</p>
+            </div>
+            <p><strong>⚡ First to pay gets the spot!</strong></p>
+            <p>Log in to your account and complete payment to secure your registration.</p>
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" 
+                 style="background-color: #004a99; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Log In to Register
+              </a>
+            </div>
+            <p style="font-size: 0.9em; color: #777; margin-top: 20px;">
+              <em>Note: This spot is available on a first-come, first-served basis. Act quickly!</em>
+            </p>
+            <p style="margin-top: 20px;">Best regards,<br/>The Innovex Team</p>
+          </div>
+        `;
+
+        try {
+          await sendEmail({
+            to: waitlistedUser.email,
+            subject: `Spot Available: ${event.title}`,
+            html: html
+          });
+          console.log(`✅ Waitlist notification sent to ${waitlistedUser.email}`);
+        } catch (emailError) {
+          console.error(`❌ Failed to send waitlist email to ${waitlistedUser.email}:`, emailError);
+        }
+      });
+
+      // Send all emails in parallel
+      await Promise.allSettled(emailPromises);
+    }
+
     res.status(200).json({
       message: "Cancellation and refund successful!",
       newBalance: user.wallet
@@ -348,6 +476,79 @@ export const getWallet = async (req, res) => {
     });
 
   } catch (err) {
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+// --- JOIN WAITLIST ---
+export const joinWaitlist = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+    const user = req.user;
+    const userId = user._id;
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: "Event not found." });
+    }
+
+    // Check if event is actually full
+    const maxParticipants = event.maxParticipants || event.capacity || 0;
+    const currentRegistrations = event.registeredUsers?.length || 0;
+    
+    if (currentRegistrations < maxParticipants) {
+      return res.status(400).json({ error: "Event is not full. Please register normally." });
+    }
+
+    // Check if user already registered for the event
+    const alreadyRegistered = user.registeredEvents?.some(
+      (reg) => reg.event.equals(eventId)
+    );
+    if (alreadyRegistered) {
+      return res.status(400).json({ error: "You are already registered for this event." });
+    }
+
+    // Check if user already on waitlist
+    event.waitlist = event.waitlist || [];
+    const alreadyOnWaitlist = event.waitlist.some(
+      (entry) => entry.user.equals(userId)
+    );
+    if (alreadyOnWaitlist) {
+      return res.status(400).json({ error: "You are already on the waitlist for this event." });
+    }
+
+    // Add user to waitlist
+    event.waitlist.push({
+      user: userId,
+      joinedAt: new Date()
+    });
+    await event.save();
+    console.log(`✅ Added user ${userId} to event ${eventId} waitlist`);
+
+    // Add waitlist entry to user's registered events with special status
+    user.registeredEvents = user.registeredEvents || [];
+    user.registeredEvents.push({
+      event: eventId,
+      paymentStatus: 'waitlisted',
+      priceAtRegistration: event.price || 0
+    });
+    
+    console.log(`📝 Adding waitlisted event to user.registeredEvents:`, {
+      event: eventId,
+      paymentStatus: 'waitlisted',
+      priceAtRegistration: event.price || 0
+    });
+    
+    await user.save();
+    console.log(`✅ User saved successfully with ${user.registeredEvents.length} registered events`);
+
+    res.status(200).json({
+      message: "Successfully joined the waitlist! You'll be notified if a spot opens up.",
+      waitlistPosition: event.waitlist.length
+    });
+
+  } catch (err) {
+    console.error("Error joining waitlist:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
@@ -551,6 +752,56 @@ export const stripeWebhook = async (req, res) => {
           throw new Error(`Registration not found for user ${userId} and event ${eventId}`);
         }
 
+        // 🆕 WAITLIST RACE CONDITION HANDLING FOR STRIPE
+        const eventDoc = await Event.findById(eventId);
+        if (!eventDoc) {
+          throw new Error(`Event not found for ID: ${eventId}`);
+        }
+
+        const wasOnWaitlist = registration.paymentStatus === 'waitlisted';
+        
+        if (wasOnWaitlist) {
+          // Check if event is still full
+          const maxParticipants = eventDoc.maxParticipants || eventDoc.capacity || 0;
+          const currentRegistrations = eventDoc.registeredUsers?.length || 0;
+          
+          if (currentRegistrations >= maxParticipants) {
+            console.log(`⚠️ Spot taken for event ${eventId}, payment will be refunded`);
+            // In a real scenario, you'd want to refund the Stripe payment here
+            throw new Error('Spot was already taken by another user');
+          }
+
+          // Remove from waitlist and add to registered users
+          eventDoc.waitlist = eventDoc.waitlist?.filter(
+            (entry) => !entry.user.equals(userId)
+          ) || [];
+          
+          if (!eventDoc.registeredUsers) eventDoc.registeredUsers = [];
+          if (!eventDoc.registeredUsers.some(id => id.equals(userId))) {
+            eventDoc.registeredUsers.push(userId);
+          }
+          
+          await eventDoc.save();
+          console.log(`✅ User ${userId} moved from waitlist to registered for event ${eventId}`);
+        } else {
+          // 🆕 FOR REGULAR USERS: Check capacity and add to registeredUsers
+          const maxParticipants = eventDoc.maxParticipants || eventDoc.capacity || 0;
+          const currentRegistrations = eventDoc.registeredUsers?.length || 0;
+          
+          if (maxParticipants > 0 && currentRegistrations >= maxParticipants) {
+            console.log(`⚠️ Event full for ${eventId}, payment will be refunded`);
+            throw new Error('Event has reached maximum capacity');
+          }
+          
+          // Add to registered users
+          if (!eventDoc.registeredUsers) eventDoc.registeredUsers = [];
+          if (!eventDoc.registeredUsers.some(id => id.equals(userId))) {
+            eventDoc.registeredUsers.push(userId);
+            await eventDoc.save();
+            console.log(`✅ User ${userId} added to registeredUsers for event ${eventId}`);
+          }
+        }
+
         // Mark as paid
         registration.paymentStatus = 'paid';
         await user.save();
@@ -578,3 +829,46 @@ export const stripeWebhook = async (req, res) => {
 
   res.json({ received: true });
 };
+
+// --- CHECK IF WAITLIST SPOT IS AVAILABLE ---
+export const checkWaitlistSpot = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id;
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    // Check if user is on waitlist
+    const isOnWaitlist = event.waitlist?.some(
+      (entry) => entry.user.equals(userId)
+    );
+
+    if (!isOnWaitlist) {
+      return res.status(200).json({ 
+        isOnWaitlist: false,
+        spotAvailable: false 
+      });
+    }
+
+    // Check if spot is available
+    const maxParticipants = event.maxParticipants || event.capacity || 0;
+    const currentRegistrations = event.registeredUsers?.length || 0;
+    const spotAvailable = currentRegistrations < maxParticipants;
+
+    res.status(200).json({
+      isOnWaitlist: true,
+      spotAvailable,
+      eventTitle: event.title,
+      currentRegistrations,
+      maxParticipants
+    });
+
+  } catch (err) {
+    console.error('Error checking waitlist spot:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};
+

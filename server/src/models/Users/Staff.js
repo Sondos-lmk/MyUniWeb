@@ -13,7 +13,7 @@ const staffSchema = new mongoose.Schema({
       paymentStatus: {
         type: String,
         required: true,
-        enum: ['not paid', 'paid', 'refunded'],
+        enum: ['not paid', 'paid', 'refunded', 'waitlisted'],
         default: 'not paid'
       },
       priceAtRegistration: {
