@@ -15,9 +15,18 @@ const professorSchema = new mongoose.Schema({
         enum: ['not paid', 'paid', 'refunded', 'waitlisted'],
         default: 'not paid'
       },
-    priceAtRegistration: {
+      priceAtRegistration: {
         type: Number,
         required: true
+      },
+      referralCode: {
+        type: String,
+        default: null
+      },
+      referredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
       }
     }],
   favoritesLists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'events' }],

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -11,12 +11,14 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { GraduationCap, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import API from "../services/api";
+import { extractReferralFromURL, storeReferralCode, clearReferralCode } from "../utils/referralHelper";
 
 export default function NewFacultySignup() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -26,6 +28,28 @@ export default function NewFacultySignup() {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
+
+  // Capture and validate referral code from URL on mount
+  useEffect(() => {
+    const validateReferral = async () => {
+      const referralData = extractReferralFromURL(searchParams);
+      if (referralData) {
+        try {
+          await API.post("/payment/check-referral", {
+            eventId: referralData.eventId,
+            referralCode: referralData.code
+          });
+          storeReferralCode(referralData.code, referralData.eventId);
+          toast.success("🎉 Referral applied! You and your friend will both get 15% back after paying.");
+        } catch (err) {
+          const errorMessage = err.response?.data?.error || "Invalid referral code";
+          toast.error(errorMessage);
+          clearReferralCode();
+        }
+      }
+    };
+    validateReferral();
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

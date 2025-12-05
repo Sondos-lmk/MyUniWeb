@@ -7,7 +7,8 @@ import {
   getWallet,
   createBazaarBoothStripeCheckout,
   joinWaitlist,
-  checkWaitlistSpot
+  checkWaitlistSpot,
+  validateReferralCode
   
 } from '../controllers/paymentController.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -29,6 +30,12 @@ router.post('/join-waitlist', requireAuth, joinWaitlist);
 
 // Check if waitlist spot is available
 router.get('/waitlist/:eventId/check', requireAuth, checkWaitlistSpot);
+
+// Validate referral code before payment (authenticated)
+router.post('/validate-referral', requireAuth, validateReferralCode);
+
+// Validate referral code from URL (public - no auth required)
+router.post('/check-referral', validateReferralCode);
 
 
 // --- STRIPE CHECKOUT ROUTE ---

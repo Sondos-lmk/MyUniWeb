@@ -3,11 +3,13 @@ import { Event } from '../models/Events/Event.js';
 import { Bazaar } from '../models/Events/Bazaar.js';
 import { Booth } from '../models/Events/Booth.js';
 import { sendEmail } from '../utils/email.js';
+import { generateReferralCode } from '../utils/referralUtils.js';
 import Stripe from 'stripe';
 import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -97,7 +99,7 @@ export const sendQRMail = async (eventId, registrationId, vendor) => {
 
 
 // --- PAYMENT RECEIPTS ---
-const sendPaymentReceipt = async (user, registration, paymentMethod) => {
+const sendPaymentReceipt = async (user, registration, paymentMethod, referralLink = null) => {
   try {
     if (!registration.event) {
       throw new Error("Cannot send receipt; associated event not found.");
@@ -110,6 +112,22 @@ const sendPaymentReceipt = async (user, registration, paymentMethod) => {
     });
 
     const subject = `Payment Receipt for: ${eventTitle}`;
+    
+    const referralSection = referralLink ? `
+      <hr style="border: 0; border-top: 1px solid #eee; margin-top: 20px;">
+      <h3 style="color: #004a99;">🎁 Share & Earn!</h3>
+      <p>Invite your friends to this event and both of you will receive <strong>20% credit to your wallet</strong> after the cancellation deadline!</p>
+      <p style="margin: 15px 0;">
+        <strong>Your Referral Link:</strong><br/>
+        <a href="${referralLink}" style="color: #004a99; word-break: break-all;">${referralLink}</a>
+      </p>
+      <p style="font-size: 0.9em; color: #666;">
+        • Share this link with up to 3 friends<br/>
+        • They must register and pay for the same event<br/>
+        • Both you and your friend get 20% back after the 2-week cancellation deadline<br/>
+        • Rewards are void if either party cancels
+      </p>
+    ` : '';
     
     const html = `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
@@ -134,6 +152,7 @@ const sendPaymentReceipt = async (user, registration, paymentMethod) => {
             </tr>
           </tbody>
         </table>
+        ${referralSection}
         <hr style="border: 0; border-top: 1px solid #eee;">
         <p style="margin-top: 20px;">Thank you for your registration!</p>
         <p style="font-size: 0.9em; color: #777;"><em>The Innovex Team</em></p>
@@ -212,7 +231,7 @@ const sendBazaarBoothPaymentReceipt = async (user, event, registration, paymentM
 // --- PAY WITH WALLET ---
 export const payWithWallet = async (req, res) => {
   try {
-    const { eventId } = req.body;
+    const { eventId, referralCode } = req.body;
     const user = req.user;
     const userId = user._id;
 
@@ -232,6 +251,60 @@ export const payWithWallet = async (req, res) => {
     const event = await Event.findById(eventId);
     if (!event) {
       return res.status(404).json({ error: "Event not found." });
+    }
+
+    // 🔗 REFERRAL VALIDATION - Check if referral code is provided and valid
+    let referrerUserId = null;
+    if (referralCode) {
+      // Convert eventId to ObjectId for proper comparison
+      const eventObjectId = new mongoose.Types.ObjectId(eventId);
+      
+      // Find the referrer by searching for a user with this referral code for this event
+      const allUsers = await User.find({
+        'registeredEvents': {
+          $elemMatch: {
+            event: eventObjectId,
+            referralCode: referralCode,
+            paymentStatus: 'paid'
+          }
+        }
+      });
+
+      if (allUsers.length === 0) {
+        return res.status(400).json({ 
+          error: "Invalid referral code. The person who shared this link may not have paid yet, or the code is for a different event." 
+        });
+      }
+
+      const referrer = allUsers[0];
+      referrerUserId = referrer._id;
+
+      // Check if referrer is trying to use their own code
+      if (referrerUserId.equals(userId)) {
+        return res.status(400).json({ error: "You cannot use your own referral code." });
+      }
+
+      // Check if this code has reached max usage (1)
+      const usageCount = event.referrals.filter(
+        ref => ref.referralCode === referralCode
+      ).length;
+
+      if (usageCount >= 1) {
+        return res.status(400).json({ 
+          error: "This referral code has already been used." 
+        });
+      }
+
+      // Check if user already used a referral for this event
+      const alreadyUsedReferral = event.referrals.some(
+        ref => ref.referredUserId.equals(userId)
+      );
+
+      if (alreadyUsedReferral) {
+        return res.status(400).json({ 
+          error: "You have already used a referral code for this event." 
+        });
+      }
     }
 
     // Check if user was on waitlist
@@ -314,13 +387,45 @@ export const payWithWallet = async (req, res) => {
 
     await user.save();
 
+    // 🔗 Track referral relationship if referral code was used
+    if (referrerUserId) {
+      registration.referredBy = referrerUserId;
+      event.referrals.push({
+        referrerUserId: referrerUserId,
+        referredUserId: userId,
+        referralCode: referralCode,
+        referrerPaid: true,
+        referredPaid: true,
+        rewardGranted: false,
+        createdAt: new Date()
+      });
+      await event.save();
+      await user.save();
+      console.log(`✅ Referral tracked: ${referrerUserId} referred ${userId} for event ${eventId}`);
+    }
+
+    // 🔗 Generate referral code ONLY if user did NOT use a referral (they're the original payer)
+    let referralLink = null;
+    if (!referrerUserId) {
+      // User paid without a referral code, so they get their own referral link
+      const userReferralCode = generateReferralCode(userId.toString(), eventId.toString());
+      registration.referralCode = userReferralCode;
+      await user.save();
+
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5000';
+      referralLink = `${clientUrl}/login?ref=${userReferralCode}&eventId=${eventId}`;
+      console.log(`✅ Referral link generated for original payer: ${referralLink}`);
+    } else {
+      console.log(`ℹ️ User used a referral code, so no referral link generated for them`);
+    }
+
     await user.populate('registeredEvents.event');
     const populatedReg = user.registeredEvents.find(
       (reg) => reg.event && reg.event._id.equals(eventId)
     );
 
     if (populatedReg && populatedReg.event) {
-      sendPaymentReceipt(user, populatedReg, 'Wallet');
+      sendPaymentReceipt(user, populatedReg, 'Wallet', referralLink);
     } else {
       console.warn(`⚠️ Event ${eventId} was deleted, skipping payment receipt`);
     }
@@ -556,7 +661,7 @@ export const joinWaitlist = async (req, res) => {
 // --- CREATE STRIPE CHECKOUT ---
 export const createStripeCheckout = async (req, res) => {
   try {
-    const { eventId } = req.body;
+    const { eventId, referralCode } = req.body;
     const user = req.user;
 
     const registration = user.registeredEvents.find(
@@ -572,6 +677,16 @@ export const createStripeCheckout = async (req, res) => {
     const priceToPay = registration.priceAtRegistration;
 
     const priceInCents = Math.round(priceToPay * 100);
+
+    const metadata = {
+      userId: user._id.toString(),
+      eventId: eventId,
+    };
+
+    // Add referral code to metadata if provided
+    if (referralCode) {
+      metadata.referralCode = referralCode;
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -590,10 +705,7 @@ export const createStripeCheckout = async (req, res) => {
       mode: 'payment',
       success_url: `${process.env.FRONTEND_URL}/payment-success`,
       cancel_url: `${process.env.FRONTEND_URL}/my-registered-events`,
-      metadata: {
-        userId: user._id.toString(),
-        eventId: eventId,
-      },
+      metadata: metadata,
     });
 
     res.json({ url: session.url });
@@ -698,10 +810,10 @@ export const stripeWebhook = async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { userId, eventId, registrationId } = session.metadata;
+    const { userId, eventId, registrationId, referralCode } = session.metadata;
 
     try {
-      console.log('Processing Stripe webhook for:', { userId, eventId, registrationId });
+      console.log('Processing Stripe webhook for:', { userId, eventId, registrationId, referralCode });
 
       // Check if this is a VENDOR payment (Bazaar/Booth) or STUDENT event payment
       if (registrationId) {
@@ -804,7 +916,73 @@ export const stripeWebhook = async (req, res) => {
 
         // Mark as paid
         registration.paymentStatus = 'paid';
-        await user.save();
+        await user.save(); // ✅ CRITICAL: Save the payment status change!
+        
+        // 🔗 Handle referral tracking if referral code was used
+        let referrerUserId = null;
+        if (referralCode) {
+          // Convert eventId to ObjectId for proper comparison
+          const eventObjectId = new mongoose.Types.ObjectId(eventId);
+          
+          const allUsers = await User.find({
+            'registeredEvents': {
+              $elemMatch: {
+                event: eventObjectId,
+                referralCode: referralCode,
+                paymentStatus: 'paid'
+              }
+            }
+          });
+
+          if (allUsers.length > 0) {
+            referrerUserId = allUsers[0]._id;
+            
+            // Check if user is trying to use their own code
+            if (referrerUserId.equals(userId)) {
+              referrerUserId = null; // Don't track self-referral
+            } else {
+              // Check if this code has reached max usage (1)
+              const usageCount = eventDoc.referrals.filter(
+                ref => ref.referralCode === referralCode
+              ).length;
+
+              if (usageCount >= 1) {
+                referrerUserId = null; // Don't track referral
+              } else if (eventDoc.referrals.some(ref => ref.referredUserId.equals(userId))) {
+                referrerUserId = null; // Don't track duplicate referral
+              } else {
+                // Track referral relationship
+                registration.referredBy = referrerUserId;
+                eventDoc.referrals.push({
+                  referrerUserId: referrerUserId,
+                  referredUserId: userId,
+                  referralCode: referralCode,
+                  referrerPaid: true,
+                  referredPaid: true,
+                  rewardGranted: false,
+                  createdAt: new Date()
+                });
+                await eventDoc.save();
+              }
+            }
+          }
+        }
+
+        // 🔗 Generate referral code ONLY if user did NOT use a referral (they're the original payer)
+        let referralLink = null;
+        if (!referralCode) {
+          // User paid without a referral code, so they get their own referral link
+          const userReferralCode = generateReferralCode(userId.toString(), eventId);
+          registration.referralCode = userReferralCode;
+          
+          await user.save();
+
+          const clientUrl = process.env.CLIENT_URL || 'http://localhost:5000';
+          referralLink = `${clientUrl}/login?ref=${userReferralCode}&eventId=${eventId}`;
+          console.log(`✅ Referral link generated for original payer (Stripe): ${referralLink}`);
+        } else {
+          console.log(`ℹ️ User used a referral code (Stripe), so no referral link generated for them`);
+        }
 
         // Send payment receipt
         await user.populate('registeredEvents.event');
@@ -813,7 +991,7 @@ export const stripeWebhook = async (req, res) => {
         );
 
         if (populatedReg && populatedReg.event) {
-          await sendPaymentReceipt(user, populatedReg, 'Credit Card');
+          await sendPaymentReceipt(user, populatedReg, 'Credit Card', referralLink);
         } else {
           console.warn(`⚠️ Event ${eventId} was deleted, skipping payment receipt`);
         }
@@ -868,6 +1046,86 @@ export const checkWaitlistSpot = async (req, res) => {
 
   } catch (err) {
     console.error('Error checking waitlist spot:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};
+
+// --- VALIDATE REFERRAL CODE ---
+export const validateReferralCode = async (req, res) => {
+  try {
+    const { eventId, referralCode } = req.body;
+    const userId = req.user?._id; // Optional - may not be logged in
+
+    if (!referralCode) {
+      return res.status(400).json({ error: 'Referral code is required' });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    // Convert to ObjectId for proper comparison
+    const eventObjectId = new mongoose.Types.ObjectId(eventId);
+
+    // Find the referrer by searching for a user with this referral code for this event
+    const allUsers = await User.find({
+      'registeredEvents': {
+        $elemMatch: {
+          event: eventObjectId,
+          referralCode: referralCode,
+          paymentStatus: 'paid'
+        }
+      }
+    });
+
+    if (allUsers.length === 0) {
+      return res.status(400).json({ 
+        error: "Invalid referral code. The person who shared this link may not have paid yet, or the code is for a different event." 
+      });
+    }
+
+    const referrerId = allUsers[0]._id;
+
+    // Check if user is trying to use their own code (only if logged in)
+    if (userId && referrerId.equals(userId)) {
+      return res.status(400).json({ error: "You cannot use your own referral code." });
+    }
+
+    // Check if this code has reached max usage (1)
+    const usageCount = event.referrals.filter(
+      ref => ref.referralCode === referralCode
+    ).length;
+
+    if (usageCount >= 1) {
+      return res.status(400).json({ 
+        error: "This referral code has already been used." 
+      });
+    }
+
+    // Check if user already used a referral for this event (only if logged in)
+    if (userId) {
+      const alreadyUsedReferral = event.referrals.some(
+        ref => ref.referredUserId.equals(userId)
+      );
+
+      if (alreadyUsedReferral) {
+        return res.status(400).json({ 
+          error: "You have already used a referral code for this event." 
+        });
+      }
+    }
+
+    // Referral code is valid
+    res.status(200).json({ 
+      message: "Referral code is valid",
+      referrerEmail: allUsers[0].email,
+      usageCount: usageCount,
+      remainingUses: 1 - usageCount
+    });
+
+  } catch (err) {
+    console.error('Error validating referral code:', err);
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 };

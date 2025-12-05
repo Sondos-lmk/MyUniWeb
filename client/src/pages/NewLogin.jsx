@@ -1,19 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { GraduationCap } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { extractReferralFromURL, storeReferralCode, clearReferralCode } from "../utils/referralHelper";
+import API from "../services/api";
 
 export default function NewLogin() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Capture and validate referral code from URL on mount
+  useEffect(() => {
+    const validateReferral = async () => {
+      const referralData = extractReferralFromURL(searchParams);
+      if (referralData) {
+        try {
+          // Validate the referral code with the backend (public endpoint)
+          const response = await API.post("/payment/check-referral", {
+            eventId: referralData.eventId,
+            referralCode: referralData.code
+          });
+          
+          // If valid, store it and show success message
+          storeReferralCode(referralData.code, referralData.eventId);
+          toast.success("Referral code applied! Register and pay for the event to get 15% back.");
+        } catch (err) {
+          // If invalid, show error and don't store it
+          const errorMessage = err.response?.data?.error || "Invalid referral code";
+          toast.error(errorMessage);
+          clearReferralCode();
+        }
+      }
+    };
+    
+    validateReferral();
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
