@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Info } from "lucide-react";
+import { Calendar, MapPin, Users, DollarSign, GraduationCap, Info } from "lucide-react";
+import RequestEditModal from "./WorkshopRequestEditModal";
 
 export default function ApproveWorkshops() {
   const navigate = useNavigate();
@@ -9,6 +10,9 @@ export default function ApproveWorkshops() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedWorkshopId, setSelectedWorkshopId] = useState(null);
+
 
   // ✅ Fetch pending workshops (only Event Officer can)
   useEffect(() => {
@@ -60,152 +64,209 @@ export default function ApproveWorkshops() {
   };
 
   const handleRequestEdit = (id) => {
-    navigate(`/workshops/${id}/request-edit`);
+    setSelectedWorkshopId(id);
+    setEditModalOpen(true);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-blue-50 to-indigo-100 p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
+    <div className="min-h-screen bg-slate-50 p-6">
+      <h1 className="text-3xl font-bold mb-6 text-slate-800">
         Approve or Reject Workshops
       </h1>
 
       {message && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-center">
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
           {message}
         </div>
       )}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-center">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
           {error}
         </div>
       )}
 
       {loading ? (
-        <p className="text-center text-gray-600">Loading workshops...</p>
+        <p className="text-center text-slate-600">Loading workshops...</p>
       ) : workshops.length === 0 ? (
-        <p className="text-center text-gray-600">No pending workshops for approval.</p>
+        <p className="text-center text-slate-600">No pending workshops for approval.</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {workshops.map((w) => (
             <div
               key={w._id}
-              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+              className="bg-white rounded-xl shadow-md border border-slate-200 p-6"
             >
-              <div className="flex flex-col md:flex-row gap-4">
-                {/* Left side: Title and Description */}
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold text-gray-800 mb-2">
-                    {w.title}
-                  </h2>
-                  {/* Hover Details Button */}
-                  <div className="relative inline-block group mt-3">
-                    <button
-                      className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg cursor-default border border-gray-300"
-                      onMouseDown={(e) => e.preventDefault()}
-                    >
-                      <Info className="w-4 h-4" />
-                      <span>View Details</span>
-                    </button>
-                    
-                    {/* Tooltip with all details */}
-                    <div className="absolute left-0 top-full mt-2 w-80 bg-gray-900 text-white text-sm rounded-lg shadow-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                      <div className="space-y-2">
-                                                <div>
-                                                  <span className="font-semibold">Description:</span>{" "}
-                                                  {w.desc || "No description provided"}
-                                                </div>
-                        <div>
-                          <span className="font-semibold">Location:</span>{" "}
-                          {w.location || "-"}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Start Date:</span>{" "}
-                          {w.startDate
-                            ? new Date(w.startDate).toLocaleString()
-                            : "-"}
-                        </div>
-                        <div>
-                          <span className="font-semibold">End Date:</span>{" "}
-                          {w.endDate
-                            ? new Date(w.endDate).toLocaleString()
-                            : "-"}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Capacity:</span>{" "}
-                          {w.capacity || "Not specified"}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Required Budget:</span>{" "}
-                          {w.requiredBudget ? `$${w.requiredBudget}` : "Not specified"}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Fundraising Source:</span>{" "}
-                          {w.fundraisingSource || "-"}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Responsible Faculty:</span>{" "}
-                          {w.responsibleFaculty || "-"}
-                        </div>
-                        {((w.professorNames && w.professorNames.length > 0) || 
-                          (w.professorsParticipating && w.professorsParticipating.length > 0)) && (
-                          <div>
-                            <span className="font-semibold">Professors Participating:</span>{" "}
-                            {w.professorNames && w.professorNames.length > 0
-                              ? w.professorNames.join(", ")
-                              : w.professorsParticipating && w.professorsParticipating.length > 0
-                              ? w.professorsParticipating.map(p => p.name || p.email).join(", ")
-                              : "-"}
-                          </div>
-                        )}
-                        {w.fullAgenda && (
-                          <div>
-                            <span className="font-semibold">Full Agenda:</span>{" "}
-                            <div className="mt-1 text-gray-300">{w.fullAgenda}</div>
-                          </div>
-                        )}
-                        {w.extraRequiredResource && (
-                          <div>
-                            <span className="font-semibold">Extra Resources:</span>{" "}
-                            {w.extraRequiredResource}
-                          </div>
-                        )}
-                        {w.createdBy && (
-                          <div>
-                            <span className="font-semibold">Created By:</span>{" "}
-                            {w.createdBy.name || w.createdBy.email || "Unknown"}
-                          </div>
-                        )}
+              {/* Title */}
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">
+                {w.title}
+              </h2>
+
+              {/* Description */}
+              {w.desc && (
+                <p className="text-slate-600 mb-4 leading-relaxed">
+                  {w.desc}
+                </p>
+              )}
+
+              {/* Workshop Info Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* Location */}
+                {w.location && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium">Location</div>
+                      <div className="text-sm font-semibold text-slate-900">{w.location}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Start Date */}
+                {w.startDate && (
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium">Start Date</div>
+                      <div className="text-sm font-semibold text-slate-900">
+                        {new Date(w.startDate).toLocaleString()}
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Right side: Action buttons */}
-                <div className="flex flex-col gap-2 md:min-w-[200px]">
-                  <button
-                    onClick={() => handleApprove(w._id)}
-                    className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-medium"
-                  >
-                    Accept & Publish
-                  </button>
-                  <button
-                    onClick={() => handleRequestEdit(w._id)}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium"
-                  >
-                    Request to Edit
-                  </button>
-                  <button
-                    onClick={() => handleReject(w._id)}
-                    className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-lg hover:from-red-700 hover:to-red-800 transition-all font-medium"
-                  >
-                    Reject
-                  </button>
+                {/* End Date */}
+                {w.endDate && (
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium">End Date</div>
+                      <div className="text-sm font-semibold text-slate-900">
+                        {new Date(w.endDate).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Capacity */}
+                {w.capacity && (
+                  <div className="flex items-start gap-3">
+                    <Users className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium">Capacity</div>
+                      <div className="text-sm font-semibold text-slate-900">{w.capacity}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Budget */}
+                {w.requiredBudget && (
+                  <div className="flex items-start gap-3">
+                    <DollarSign className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium">Required Budget</div>
+                      <div className="text-sm font-semibold text-slate-900">${w.requiredBudget}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fundraising Source */}
+                {w.fundraisingSource && (
+                  <div className="flex items-start gap-3">
+                    <DollarSign className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium">Fundraising Source</div>
+                      <div className="text-sm font-semibold text-slate-900">{w.fundraisingSource}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Responsible Faculty */}
+                {w.responsibleFaculty && (
+                  <div className="flex items-start gap-3">
+                    <GraduationCap className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium">Responsible Faculty</div>
+                      <div className="text-sm font-semibold text-slate-900">{w.responsibleFaculty}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Professors */}
+                {((w.professorNames && w.professorNames.length > 0) || 
+                  (w.professorsParticipating && w.professorsParticipating.length > 0)) && (
+                  <div className="flex items-start gap-3 md:col-span-2">
+                    <GraduationCap className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium">Professors Participating</div>
+                      <div className="text-sm font-semibold text-slate-900">
+                        {w.professorNames && w.professorNames.length > 0
+                          ? w.professorNames.join(", ")
+                          : w.professorsParticipating && w.professorsParticipating.length > 0
+                          ? w.professorsParticipating.map(p => p.name || p.email).join(", ")
+                          : "-"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Details */}
+              {(w.fullAgenda || w.extraRequiredResource) && (
+                <div className="bg-slate-50 rounded-lg p-4 mb-6 space-y-3">
+                  {w.fullAgenda && (
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium mb-1">Full Agenda</div>
+                      <p className="text-sm text-slate-700">{w.fullAgenda}</p>
+                    </div>
+                  )}
+                  {w.extraRequiredResource && (
+                    <div>
+                      <div className="text-xs text-slate-500 font-medium mb-1">Extra Resources</div>
+                      <p className="text-sm text-slate-700">{w.extraRequiredResource}</p>
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* Created By */}
+              {w.createdBy && (
+                <p className="text-sm text-slate-500 mb-4">
+                  Created by: <span className="font-medium text-slate-700">{w.createdBy.name || w.createdBy.email || "Unknown"}</span>
+                </p>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => handleApprove(w._id)}
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Accept & Publish
+                </button>
+                <button
+                  onClick={() => handleRequestEdit(w._id)}
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Request to Edit
+                </button>
+                <button
+                  onClick={() => handleReject(w._id)}
+                  className="bg-red-600 text-white px-6 py-2.5 rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Reject
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
+      {editModalOpen && (
+      <RequestEditModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        workshopId={selectedWorkshopId}
+      />
+    )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ export default function MyRegisteredEvents() {
   const [alertMessage, setAlertMessage] = useState(null);
   const [alertType, setAlertType] = useState("success");
   const [confirmAction, setConfirmAction] = useState(null);
+  const [waitlistSpots, setWaitlistSpots] = useState({}); // Track spot availability for waitlisted events
 
   const showAlert = (message, type = "success") => {
     setAlertMessage(message);
@@ -23,6 +24,38 @@ export default function MyRegisteredEvents() {
   useEffect(() => {
     fetchEvents();
   }, []);
+
+  // Check waitlist spots for all waitlisted events
+  useEffect(() => {
+    const checkWaitlistSpots = async () => {
+      const waitlistedEvents = registrations.filter(
+        reg => reg.paymentStatus === 'waitlisted'
+      );
+
+      for (const reg of waitlistedEvents) {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await API.get(`/payment/waitlist/${reg.event._id}/check`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          setWaitlistSpots(prev => ({
+            ...prev,
+            [reg.event._id]: response.data.spotAvailable
+          }));
+        } catch (err) {
+          console.error(`Error checking waitlist for event ${reg.event._id}:`, err);
+        }
+      }
+    };
+
+    if (registrations.length > 0) {
+      checkWaitlistSpots();
+      // Check every 10 seconds for spot availability
+      const interval = setInterval(checkWaitlistSpots, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [registrations]);
 
   // --- FETCH/REFRESH FUNCTION ---
   const fetchEvents = async () => {
@@ -60,9 +93,14 @@ export default function MyRegisteredEvents() {
     setPaymentError("");
 
     try {
-      await API.post("/payment/pay-with-wallet", { 
+      const response = await API.post("/payment/pay-with-wallet", { 
         eventId: selectedEvent.event._id 
       });
+      
+      // Check if user was waitlisted and successfully got the spot
+      if (response.data.wasWaitlisted) {
+        showAlert("🎉 Congratulations! You got the spot and payment was successful!", "success");
+      }
       
       // Success! Close modal and refresh events
       setIsModalOpen(false);
@@ -71,7 +109,18 @@ export default function MyRegisteredEvents() {
 
     } catch (err) {
       console.error("Wallet payment error:", err);
-      setPaymentError(err.response?.data?.error || "Wallet payment failed.");
+      const errorData = err.response?.data;
+      
+      // Check if spot was taken by another user
+      if (errorData?.spotTaken) {
+        setPaymentError(errorData.error);
+        setIsModalOpen(false);
+        showAlert(errorData.error, "error");
+        // Refresh to update waitlist status
+        await fetchEvents();
+      } else {
+        setPaymentError(errorData?.error || "Wallet payment failed.");
+      }
     } finally {
       setLoading(false); // Stop loading state
     }
@@ -97,7 +146,18 @@ export default function MyRegisteredEvents() {
 
     } catch (err) {
       console.error("Stripe payment error:", err);
-      setPaymentError(err.response?.data?.error || "Could not connect to Stripe.");
+      const errorData = err.response?.data;
+      
+      // Check if spot was taken by another user
+      if (errorData?.spotTaken) {
+        setPaymentError(errorData.error);
+        setIsModalOpen(false);
+        showAlert(errorData.error, "error");
+        // Refresh to update waitlist status
+        await fetchEvents();
+      } else {
+        setPaymentError(errorData?.error || "Could not connect to Stripe.");
+      }
       setLoading(false);
     }
     // No 'finally' here, as the page will redirect on success
@@ -328,6 +388,59 @@ export default function MyRegisteredEvents() {
                           </button>
                         </>
                       );
+                    }
+
+                    // Case 0: "waitlisted"
+                    if (reg.paymentStatus === "waitlisted") {
+                      const spotAvailable = waitlistSpots[reg.event._id];
+                      
+                      if (spotAvailable) {
+                        // Spot is available - show Pay Now button
+                        return (
+                          <>
+                            <div className="bg-green-50 border border-green-300 rounded-md p-3 mb-2">
+                              <p className="text-sm font-semibold text-green-700 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                🎉 Spot Available!
+                              </p>
+                              <p className="text-xs text-green-600 mt-1">
+                                A spot opened up! Pay now to secure your registration.
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handlePayment(reg)}
+                              className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition animate-pulse"
+                            >
+                              Pay Now - Get Your Spot!
+                            </button>
+                          </>
+                        );
+                      } else {
+                        // No spot available yet - show waitlist status
+                        return (
+                          <>
+                            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-2">
+                              <p className="text-sm font-semibold text-amber-700 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                </svg>
+                                Waitlisted
+                              </p>
+                              <p className="text-xs text-amber-600 mt-1">
+                                You'll be notified by email if a spot opens up. First to pay gets the spot!
+                              </p>
+                            </div>
+                            <button
+                              disabled
+                              className="w-full bg-gray-300 text-gray-600 py-2 px-4 rounded-md cursor-not-allowed"
+                            >
+                              Waitlisted - No Spot Yet
+                            </button>
+                          </>
+                        );
+                      }
                     }
 
                     // Case 1: "not paid"

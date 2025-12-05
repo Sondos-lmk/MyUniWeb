@@ -89,11 +89,6 @@ export default function RevenueReport() {
 
       {data && (
         <>
-          <div className="mb-4 p-4 bg-green-100 rounded-lg">
-            <h3 className="text-lg font-bold text-green-800">
-              Total Revenue: ${totalRevenue.toFixed(2)}
-            </h3>
-          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full border border-gray-300 rounded-lg shadow-md">
               <thead className="bg-gray-100">
@@ -112,11 +107,16 @@ export default function RevenueReport() {
                     <td className="p-2 border capitalize">{r.type}</td>
                     <td className="p-2 border">{r.startDate ? new Date(r.startDate).toLocaleDateString() : '-'}</td>
                     <td className="p-2 border">{r.endDate ? new Date(r.endDate).toLocaleDateString() : '-'}</td>
-                    <td className="p-2 border font-semibold text-green-700">${r.revenue.toFixed(2)}</td>
+                    <td className="p-2 border font-semibold text-indigo-700">${r.revenue.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="mt-4 p-4 bg-indigo-100 rounded-lg border-l-4 border-indigo-600">
+            <h3 className="text-lg font-bold text-indigo-800">
+              Total Revenue: ${totalRevenue.toFixed(2)}
+            </h3>
           </div>
         </>
       )}

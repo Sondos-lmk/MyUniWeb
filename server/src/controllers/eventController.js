@@ -292,6 +292,11 @@ export const getUpcomingEvents = async (req, res) => {
           type === "bazaar" || type === "booth"
             ? event.registeredVendors || []
             : [],
+        // Include capacity fields for full event detection
+        registeredUsers: event.registeredUsers || [],
+        maxParticipants: event.maxParticipants,
+        capacity: event.capacity,
+        waitlist: event.waitlist || [],
       };
 
       // Only include status for workshops and booths (which require approval)
@@ -348,6 +353,18 @@ export const getUpcomingEvents = async (req, res) => {
       return aDate - bDate;
     });
 
+    // Log sample event to verify capacity fields are included
+    if (allUpcoming.length > 0) {
+      console.log("📊 Sample event data:", {
+        title: allUpcoming[0].title,
+        registeredUsers: allUpcoming[0].registeredUsers?.length,
+        maxParticipants: allUpcoming[0].maxParticipants,
+        capacity: allUpcoming[0].capacity,
+      });
+    }
+
+    // Disable caching to ensure fresh data
+    res.set('Cache-Control', 'no-store');
     res.status(200).json({
       message: "Approved upcoming events fetched successfully",
       count: allUpcoming.length,
@@ -378,6 +395,11 @@ export const searchEvents = async (req, res) => {
         location: event.location || event.locationInPlatform || "N/A",
         startDate: event.startDate,
         endDate: event.endDate,
+        // Include capacity fields for full event detection
+        registeredUsers: event.registeredUsers || [],
+        maxParticipants: event.maxParticipants,
+        capacity: event.capacity,
+        waitlist: event.waitlist || [],
       };
 
       // Only include status for workshops and booths (which require approval)
@@ -993,6 +1015,14 @@ export const registerForWorkshopOrTrip = async (req, res) => {
     // 4. Validate event type
     if (event.type !== "workshop" && event.type !== "trip") {
       throw new Error("You can only register for workshops or trips");
+    }
+
+    // 🆕 CHECK IF EVENT IS FULL
+    const maxParticipants = event.maxParticipants || event.capacity || 0;
+    const currentRegistrations = event.registeredUsers?.length || 0;
+    
+    if (maxParticipants > 0 && currentRegistrations >= maxParticipants) {
+      throw new Error("This event is full. Please join the waitlist instead.");
     }
 
     // 5. Validate user role

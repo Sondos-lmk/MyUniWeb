@@ -54,8 +54,11 @@ export const getGymSchedule = async (req, res) => {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     
-    // Only show gym sessions from today onwards
-    const gymSessions = await GymSession.find({ date: { $gte: startOfToday } })
+    // Only show gym sessions from today onwards, exclude cancelled sessions
+    const gymSessions = await GymSession.find({ 
+      date: { $gte: startOfToday },
+      status: { $ne: 'cancelled' }
+    })
       .populate('participants', '_id')
       .sort({ date: 1, time: 1 });
     res.status(200).json(gymSessions);
@@ -252,6 +255,7 @@ export const getMyRegisteredSessions = async (req, res) => {
 
     const sessions = await GymSession.find({
       participants: userId,
+      status: { $ne: 'cancelled' }
     }).sort({ date: 1, time: 1 });
 
     res.status(200).json({

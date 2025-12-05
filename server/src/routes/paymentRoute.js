@@ -5,7 +5,9 @@ import {
   createStripeCheckout, 
   stripeWebhook ,
   getWallet,
-  createBazaarBoothStripeCheckout
+  createBazaarBoothStripeCheckout,
+  joinWaitlist,
+  checkWaitlistSpot
   
 } from '../controllers/paymentController.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -21,6 +23,12 @@ router.post('/pay-with-wallet', requireAuth, payWithWallet);
 // Request a refund for an event back to the internal wallet
 router.post('/request-refund', requireAuth, requestRefund);
 router.get("/wallet", requireAuth, getWallet);
+
+// Join waitlist for full events
+router.post('/join-waitlist', requireAuth, joinWaitlist);
+
+// Check if waitlist spot is available
+router.get('/waitlist/:eventId/check', requireAuth, checkWaitlistSpot);
 
 
 // --- STRIPE CHECKOUT ROUTE ---

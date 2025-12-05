@@ -66,7 +66,7 @@ const sidebarItems = [
 
 
   return (
-    <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={sidebarItems} activeKey={activeSection} extraSidebarProps={{ isReportsOpen, selectedReport }}>
+    <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-blue-600" sidebarItems={sidebarItems} activeKey={activeSection} extraSidebarProps={{ isReportsOpen, selectedReport }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Overview Section */}
         {activeSection === 'overview' && (
@@ -80,7 +80,7 @@ const sidebarItems = [
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <button
                     onClick={() => setActiveQuickAction((v) => (v === 'create-event' ? null : 'create-event'))}
-                    className={`w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg ${activeQuickAction === 'create-event' ? 'ring-2 ring-cyan-500' : ''}`}
+                    className={`w-full h-16 text-sm font-medium bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 text-white rounded-lg transition-colors ${activeQuickAction === 'create-event' ? 'ring-2 ring-blue-500' : ''}`}
                   >
                     <Calendar className="w-5 h-5" />
                     Create Event
@@ -88,7 +88,7 @@ const sidebarItems = [
 
                   <button
                     onClick={() => setActiveQuickAction((v) => (v === 'approve-vendors' ? null : 'approve-vendors'))}
-                    className={`w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg ${activeQuickAction === 'approve-vendors' ? 'ring-2 ring-cyan-500' : ''}`}
+                    className={`w-full h-16 text-sm font-medium bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 text-white rounded-lg transition-colors ${activeQuickAction === 'approve-vendors' ? 'ring-2 ring-blue-500' : ''}`}
                   >
                     <Store className="w-5 h-5" />
                     Approve Vendors
@@ -96,7 +96,7 @@ const sidebarItems = [
 
                   <button
                     onClick={() => setActiveQuickAction((v) => (v === 'create-gym-session' ? null : 'create-gym-session'))}
-                    className={`w-full h-16 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 flex items-center justify-center gap-2 text-white rounded-lg ${activeQuickAction === 'create-gym-session' ? 'ring-2 ring-cyan-500' : ''}`}
+                    className={`w-full h-16 text-sm font-medium bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 text-white rounded-lg transition-colors ${activeQuickAction === 'create-gym-session' ? 'ring-2 ring-blue-500' : ''}`}
                   >
                     <Dumbbell className="w-5 h-5" />
                     Create Gym Session

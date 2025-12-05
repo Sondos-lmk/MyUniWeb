@@ -86,6 +86,21 @@ const eventSchema = new mongoose.Schema(
         },
       },
     ],
+
+    // 📋 Waitlist: users waiting for spots when event is full
+    waitlist: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        joinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
 
   baseOptions

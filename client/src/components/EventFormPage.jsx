@@ -215,13 +215,15 @@ export default function EventFormPage() {
           {renderFormFields()}
 
           {!isReadOnly && (
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md mt-4"
-            >
-              {loading ? "Saving..." : id ? "Update Event" : "Create Event"}
-            </button>
+            <div className="flex justify-center mt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                {loading ? "Saving..." : id ? "Update Event" : "Create Event"}
+              </button>
+            </div>
           )}
         </form>
       )}

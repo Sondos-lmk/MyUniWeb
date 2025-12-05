@@ -262,6 +262,11 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
 
           const primaryClass = typeClassMap[event.type] || typeClassMap.default;
 
+          // Check if event is full
+          const maxParticipants = event.maxParticipants || event.capacity || 0;
+          const currentRegistrations = event.registeredUsers?.length || event.registeredStudents?.length || 0;
+          const isFull = maxParticipants > 0 && currentRegistrations >= maxParticipants;
+
           const handleRegister = async () => {
             try {
               setLoading(true);
@@ -277,15 +282,46 @@ const UpcomingEvents = ({ favoritesSet, onToggleFavorite, userRole = "student" }
             }
           };
 
+          const handleJoinWaitlist = async () => {
+            try {
+              setLoading(true);
+              const token = localStorage.getItem("token");
+              await API.post('/payments/join-waitlist', 
+                { eventId: id },
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              showAlert('✅ You\'ve joined the waitlist! Check your Registered Events tab.', 'success');
+              // Refresh event list
+              await fetchEvents();
+            } catch (err) {
+              console.error('Waitlist error', err);
+              showAlert(err.response?.data?.error || 'Failed to join waitlist', 'error');
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          // Determine button label and action based on event status
+          const shouldShowRegister = userRole === 'student' || userRole === 'staff' || userRole === 'ta' || userRole === 'professor';
+          const buttonLabel = isFull ? 'Join Waitlist' : 'Register';
+          const buttonAction = isFull ? handleJoinWaitlist : handleRegister;
+          
+          // Add full event badge to the event object for EventCard to display
+          const eventWithFullStatus = {
+            ...event,
+            isFull,
+            fullEventMessage: isFull ? '⚠️ Event is Full - Join Waitlist!' : null
+          };
+
           return (
             <EventCard
               key={id}
-              event={event}
+              event={eventWithFullStatus}
               userRole={userRole}
               isFavorite={favoritesSet?.has(id)}
               onToggleFavorite={onToggleFavorite}
-              onPrimary={userRole === 'student' ? handleRegister : undefined}
-              primaryLabel={userRole === 'student' ? 'Register' : undefined}
+              onPrimary={shouldShowRegister ? buttonAction : undefined}
+              primaryLabel={shouldShowRegister ? buttonLabel : undefined}
               primaryClass={primaryClass}
             />
           );

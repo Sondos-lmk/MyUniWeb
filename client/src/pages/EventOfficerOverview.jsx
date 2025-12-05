@@ -37,7 +37,7 @@ export default function EventOfficerOverview() {
   ];
 
   return (
-    <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-cyan-600" sidebarItems={sidebarItems} extraSidebarProps={{ isReportsOpen, selectedReport }}>
+    <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-blue-600" sidebarItems={sidebarItems} extraSidebarProps={{ isReportsOpen, selectedReport }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         <Card className="mb-8 shadow-lg">
           <CardHeader>
