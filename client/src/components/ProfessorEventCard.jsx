@@ -538,7 +538,7 @@ export default function ProfessorEventCard({
                   type="submit"
                   disabled={registering}
                   className={`flex-1 px-4 py-2 text-white rounded-lg disabled:bg-gray-400 ${
-                    isFull ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700"
+                    isFull ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700"
                   }`}
                 >
                   {registering ? (isFull ? "Joining..." : "Registering...") : (isFull ? "Join Waitlist" : "Register")}
