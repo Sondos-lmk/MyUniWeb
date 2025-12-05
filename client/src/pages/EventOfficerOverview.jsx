@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import DashboardLayout from "../components/DashboardLayout";
 import EventOfficerAnalytics from "../components/EventOfficerAnalytics";
 import { Calendar, GraduationCap, Dumbbell, Store, ClipboardList, Archive, FileText, Users, Folder, ShoppingBag } from "lucide-react";
+import EventOfficerChatbot from "../components/EventOfficerChatbot.jsx";
 
 export default function EventOfficerOverview() {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
@@ -39,6 +40,7 @@ export default function EventOfficerOverview() {
   return (
     <DashboardLayout dashboardTitle="Event Officer Dashboard" roleLabel="Events Officer" roleColor="bg-blue-600" sidebarItems={sidebarItems} extraSidebarProps={{ isReportsOpen, selectedReport }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
+        <EventOfficerChatbot />
         <Card className="mb-8 shadow-lg">
           <CardHeader>
             <CardTitle className="text-xl">Quick Actions</CardTitle>

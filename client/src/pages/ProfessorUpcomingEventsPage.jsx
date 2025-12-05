@@ -1,6 +1,8 @@
 import DashboardLayout from "../components/DashboardLayout";
 import UpcomingEvents from "../components/UpcomingEvents";
 import { useState } from "react";
+import ProfessorChatbot from "../components/ProfessorChatbot";
+
 
 function ProfessorUpcomingEventsPage() {
   const [activeTab] = useState("events"); // just to keep DashboardLayout happy
@@ -13,6 +15,8 @@ function ProfessorUpcomingEventsPage() {
       sidebarItems={[]}
       activeKey={activeTab}
     >
+      {/* Chatbot Component */}
+      <ProfessorChatbot />
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-4">Upcoming Events</h2>
         <p className="text-gray-600 mb-6">

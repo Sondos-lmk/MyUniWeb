@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import VendorRequestsAdmin from '../components/VendorRequestsAdmin';
 import DashboardLayout from '../components/DashboardLayout';
 import { GraduationCap, ListChecks, ClipboardList, ShoppingBag, Dumbbell, Store, Folder, FileText } from 'lucide-react';
+import EventOfficerChatbot from "../components/EventOfficerChatbot.jsx";
 
 function EventOfficerVendorRequests() {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ function EventOfficerVendorRequests() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <VendorRequestsAdmin />
       </div>
+      <EventOfficerChatbot />
     </DashboardLayout>
   );
 }

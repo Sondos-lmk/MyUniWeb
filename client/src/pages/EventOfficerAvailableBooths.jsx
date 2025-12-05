@@ -3,6 +3,8 @@ import DashboardLayout from "../components/DashboardLayout";
 import { GraduationCap, ListChecks, ClipboardList, ShoppingBag, Dumbbell, Store, Folder, FileText } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import EventOfficerChatbot from "../components/EventOfficerChatbot.jsx";
+
 
 function EventOfficerAvailableBooths() {
   const navigate = useNavigate();
@@ -39,6 +41,7 @@ function EventOfficerAvailableBooths() {
       sidebarItems={sidebarItems} 
       extraSidebarProps={{ isReportsOpen: reportsOpen, selectedReport }}
     >
+      <EventOfficerChatbot />
       <div className="max-w-7xl mx-auto px-6 py-8">
         <AvailableBooths showActions={true} />
       </div>

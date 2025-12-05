@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { getWorkshopParticipants } from "../services/workshop";
+import ProfessorChatbot from "../components/ProfessorChatbot";
+
 
 export default function ProfessorWorkshopParticipants() {
   const { id } = useParams();
@@ -58,11 +60,14 @@ export default function ProfessorWorkshopParticipants() {
     );
 
   return (
+    
     <div className="p-10">
       <button
         onClick={() => navigate(-1)}
         className="mb-4 flex items-center gap-2 text-slate-600 hover:text-cyan-600 font-medium"
       >
+        {/* Chatbot Component */}
+        <ProfessorChatbot />
         <ArrowLeft size={20} />
         Back
       </button>

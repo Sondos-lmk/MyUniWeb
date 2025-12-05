@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import ViewDocuments from './ViewDocuments.jsx';
 import { ListChecks,GraduationCap, ClipboardList, Dumbbell, Calendar, Archive, Store, Users, Clipboard, FileText, Folder, ShoppingBag } from 'lucide-react';
+import EventOfficerChatbot from "../components/EventOfficerChatbot.jsx";
 
 export default function EventOfficerDocuments() {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ export default function EventOfficerDocuments() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <ViewDocuments />
       </div>
+      <EventOfficerChatbot />
     </DashboardLayout>
   );
 }

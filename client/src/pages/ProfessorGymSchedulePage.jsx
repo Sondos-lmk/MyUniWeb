@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import GymSchedule from "./GymSchedule";
+import ProfessorChatbot from "../components/ProfessorChatbot";
 
 function ProfessorGymSchedulePage() {
   const { user } = useAuth();
@@ -20,6 +21,8 @@ function ProfessorGymSchedulePage() {
       sidebarItems={sidebarItems}
       activeKey={activeTab}
     >
+      {/* Chatbot Component */}
+      <ProfessorChatbot />
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-4 text-blue-700">
           Gym Schedule
