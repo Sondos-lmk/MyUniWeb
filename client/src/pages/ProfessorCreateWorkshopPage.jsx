@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import CreateWorkshop from "./CreateWorkshop";
+import ProfessorChatbot from "../components/ProfessorChatbot";
 
 function ProfessorCreateWorkshopPage() {
   const { user } = useAuth();
@@ -15,6 +16,8 @@ function ProfessorCreateWorkshopPage() {
       sidebarItems={[]}
       activeKey={activeTab}
     >
+      {/* Chatbot Component */}
+      <ProfessorChatbot />
       <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">
             Create New Workshop

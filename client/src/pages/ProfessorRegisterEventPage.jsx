@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import RegisterForEvent from "./RegisterForEvent";
+import ProfessorChatbot from "../components/ProfessorChatbot";
 
 function ProfessorRegisterEventPage() {
   const { user } = useAuth();
@@ -18,6 +19,8 @@ function ProfessorRegisterEventPage() {
       ]}
       activeKey={activeTab}
     >
+      {/* Chatbot Component */}
+      <ProfessorChatbot />
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-4">Register for Event</h2>
         <p className="text-gray-600 mb-6">

@@ -10,7 +10,7 @@ import API from "../services/api";
 import DashboardLayout from "../components/DashboardLayout";
 import AttendedEvents from "./AttendedEvents";
 import VendorPolls from "../components/VendorPolls";
-
+import StudentChatbot from "../components/StudentChatbot";
 // Favorites imports
 import { fetchMyFavorites } from "../services/favorites";
 import EventCard from "../components/EventCard";
@@ -317,6 +317,7 @@ const StudentDashboard = () => {
       sidebarItems={sidebarItems}
       activeKey={activeSection}
     >
+      <StudentChatbot />
       <div className="mt-6">
 
         {/* Events Section with Tabs */}

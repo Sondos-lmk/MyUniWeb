@@ -8,6 +8,258 @@ import LoyaltyManager from "../components/LoyalityProgrameManger";
 import DashboardLayout from "../components/DashboardLayout";
 import ModernAlert from "../components/ui/ModernAlert";
 import { Store, Calendar, FileText, Award } from "lucide-react";
+import {MessageCircle, X, Send, Sparkles } from "lucide-react";
+
+// Chatbot Component
+function VendorChatbot() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      type: 'bot',
+      text: "👋 Hi! I'm your Vendor Assistant. I can help you with:",
+      options: [
+        "Apply for a bazaar booth",
+        "Check my applications",
+        "Update company logo",
+        "Manage loyalty program",
+        "View upcoming events"
+      ]
+    }
+  ]);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+
+  const knowledgeBase = {
+    "apply for a bazaar booth": {
+      steps: [
+        "1. Click on 'Bazaar Events' in the sidebar",
+        "2. Browse the list of upcoming bazaar events",
+        "3. Click the 'Apply' button on your preferred event",
+        "4. Fill in the application form with:",
+        "   • Select your booth size (2x2 or 4x4)",
+        "   • Add representative details (name & email)",
+        "   • You can add up to 5 representatives",
+        "5. Review the estimated price",
+        "6. Click 'Submit Application'",
+        "7. You'll receive a confirmation once submitted!"
+      ]
+    },
+    "check my applications": {
+      steps: [
+        "1. Go to the 'Overview' section (it's selected by default)",
+        "2. Scroll down to 'My Applications' section",
+        "3. Here you can see all your booth applications with:",
+        "   • Event name and dates",
+        "   • Application status (Pending/Approved/Rejected)",
+        "   • Booth details",
+        "4. You can track the progress of each application"
+      ]
+    },
+    "update company logo": {
+      steps: [
+        "1. Look at the top of your dashboard",
+        "2. Hover over your company logo/avatar",
+        "3. Click the camera icon that appears",
+        "4. Click 'Select Image' in the popup",
+        "5. Choose an image file (JPG, PNG, or GIF)",
+        "6. Make sure it's under 5MB in size",
+        "7. The logo will upload automatically",
+        "8. Your new logo will be displayed instantly!"
+      ]
+    },
+    "manage loyalty program": {
+      steps: [
+        "1. Click on 'Loyalty Program' in the sidebar",
+        "2. Here you can:",
+        "   • View your current loyalty tier",
+        "   • Check your points balance",
+        "   • See available rewards",
+        "   • Track your benefits",
+        "3. Earn points by:",
+        "   • Participating in bazaars",
+        "   • Completing applications",
+        "   • Being an active vendor"
+      ]
+    },
+    "view upcoming events": {
+      steps: [
+        "1. Click on 'Bazaar Events' in the sidebar",
+        "2. You'll see a list of all upcoming bazaars",
+        "3. Each event shows:",
+        "   • Event name and description",
+        "   • Start and end dates",
+        "   • Apply button (if not already applied)",
+        "4. Events marked 'Applied' show you've already registered",
+        "5. Click any 'Apply' button to start your application"
+      ]
+    }
+  };
+
+  const handleSendMessage = (text = inputValue) => {
+    if (!text.trim()) return;
+
+    // Add user message
+    setMessages(prev => [...prev, { type: 'user', text }]);
+    setInputValue('');
+    setIsTyping(true);
+
+    // Simulate bot response
+    setTimeout(() => {
+      const lowerText = text.toLowerCase();
+      let response = null;
+
+      // Check for keywords in knowledge base
+      Object.keys(knowledgeBase).forEach(key => {
+        if (lowerText.includes(key) || lowerText.includes(key.replace(/\s+/g, ''))) {
+          response = knowledgeBase[key];
+        }
+      });
+
+      if (response) {
+        setMessages(prev => [...prev, {
+          type: 'bot',
+          text: "Here are the steps:",
+          steps: response.steps
+        }]);
+      } else if (lowerText.includes('help') || lowerText.includes('hi') || lowerText.includes('hello')) {
+        setMessages(prev => [...prev, {
+          type: 'bot',
+          text: "I can help you with these topics:",
+          options: [
+            "Apply for a bazaar booth",
+            "Check my applications",
+            "Update company logo",
+            "Manage loyalty program",
+            "View upcoming events"
+          ]
+        }]);
+      } else {
+        setMessages(prev => [...prev, {
+          type: 'bot',
+          text: "I'm not sure about that. Here's what I can help you with:",
+          options: [
+            "Apply for a bazaar booth",
+            "Check my applications",
+            "Update company logo",
+            "Manage loyalty program",
+            "View upcoming events"
+          ]
+        }]);
+      }
+      setIsTyping(false);
+    }, 1000);
+  };
+
+  const handleOptionClick = (option) => {
+    handleSendMessage(option);
+  };
+
+  return (
+    <>
+      {/* Chat Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`fixed bottom-6 right-6 w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 flex items-center justify-center z-50 group ${
+          isOpen ? 'scale-0' : 'scale-100'
+        }`}
+      >
+        <MessageCircle className="w-7 h-7 group-hover:scale-110 transition-transform" />
+        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse"></span>
+      </button>
+
+      {/* Chat Window */}
+      {isOpen && (
+        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white">Vendor Assistant</h3>
+                <p className="text-xs text-blue-100">Always here to help</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-white hover:bg-white/20 rounded-full p-2 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] ${msg.type === 'user' ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
+                  <p className={`text-sm ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>{msg.text}</p>
+                  
+                  {msg.steps && (
+                    <div className="mt-3 space-y-2">
+                      {msg.steps.map((step, i) => (
+                        <p key={i} className="text-sm text-gray-700 leading-relaxed">
+                          {step}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {msg.options && (
+                    <div className="mt-3 space-y-2">
+                      {msg.options.map((option, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleOptionClick(option)}
+                          className="block w-full text-left text-sm bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 text-gray-700 rounded-lg p-2 transition border border-blue-200"
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="p-4 border-t border-gray-200 bg-white">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Ask me anything..."
+                className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <button
+                onClick={() => handleSendMessage()}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full p-2 hover:shadow-lg transition"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -458,6 +710,9 @@ function Dashboard() {
 
         {renderContent()}
       </div>
+
+      {/* Chatbot Component */}
+      <VendorChatbot />
 
       {/* Modern Alert Component */}
       <ModernAlert 

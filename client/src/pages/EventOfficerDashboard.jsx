@@ -14,6 +14,8 @@ import EventFormPage from "../components/EventFormPage";
 import ApprovedEvents from "../components/ApprovingEvents";
 import CreateGymSession from "./CreateGymSession";
 import EventOfficerAnalytics from "../components/EventOfficerAnalytics";
+import EventOfficerChatbot from "../components/EventOfficerChatbot.jsx";
+
 
 function EventOfficerDashboard() {
   const { user } = useAuth();
@@ -71,6 +73,7 @@ const sidebarItems = [
         {/* Overview Section */}
         {activeSection === 'overview' && (
           <>
+            <EventOfficerChatbot />
             {/* Quick Actions */}
             <Card className="mb-8 shadow-lg">
               <CardHeader>

@@ -3,6 +3,8 @@ import { useAuth } from "../context/AuthContext";
 import { getMyWorkshops } from "../services/workshop";
 import DashboardLayout from "../components/DashboardLayout";
 import { Link } from "react-router-dom";
+import ProfessorChatbot from "../components/ProfessorChatbot";
+
 
 function ProfessorMyWorkshopsPage() {
   const { user } = useAuth();
@@ -28,6 +30,8 @@ function ProfessorMyWorkshopsPage() {
       sidebarItems={[]}
       activeKey="my-workshops"
     >
+      {/* Chatbot Component */}
+      <ProfessorChatbot />
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6">My Workshops</h1>
 
