@@ -185,9 +185,9 @@ export async function getActivePolls(req, res) {
     // 1. Fetch all polls that are "active" and within time window
     let polls = await Poll.find({
       status: "active",
-      startAt: { $lte: now },
       endAt: { $gte: now }
     }).populate("booth");
+
 
     // 2. Auto close polls that expired using ensurePollStatus()
     const updated = [];
