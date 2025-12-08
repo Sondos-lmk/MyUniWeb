@@ -16,6 +16,7 @@ import LoyaltyVendors from "./LoyaltyVendors";
 import AvailableBooths from "./AvailableBooths";
 import EventsReviews from "./EventsReviews";
 import VendorPolls from "../components/VendorPolls";
+import StaffChatbot from "../components/StaffChatbot";
 
 
 
@@ -180,6 +181,7 @@ const StaffDashboard = () => {
 			sidebarItems={sidebarItems}
 			activeKey={activeSection}
 		>
+			<StaffChatbot />
 			<div className="mt-6">
 
 				{/* Events Section with Tabs */}

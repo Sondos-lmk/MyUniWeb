@@ -16,7 +16,7 @@ import AvailableBooths from "./AvailableBooths";
 import EventsReviews from "./EventsReviews";
 import VendorPolls from "../components/VendorPolls";
 import Voting from "../components/Voting";
-
+import TAChatbot from "../components/TAChatbot";
 const TADashboard = () => {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("events");
@@ -179,6 +179,7 @@ const TADashboard = () => {
       sidebarItems={sidebarItems}
       activeKey={activeSection}
     >
+      <TAChatbot />
       <div className="mt-6">
 
         {/* Events Section with Tabs */}

@@ -33,6 +33,7 @@ import AvailableBooths from "./AvailableBooths";
 import { useAuth } from "../context/AuthContext";
 import API from "../services/api";
 import { startOfDay, endOfDay, isAfter, format } from "date-fns";
+import AdminChatbot from "../components/AdminChatbot";
 const AdminDashboard = () => {
   const { user } = useAuth();
   const location = useLocation();
@@ -151,6 +152,7 @@ const AdminDashboard = () => {
       activeKey={activeTab}
       extraSidebarProps={{ isReportsOpen, selectedReport }}
     >
+      <AdminChatbot />
       <div className="max-w-7xl mx-auto">
 
         {/* Overview — EXACT SAME LOOK AS YOU HAD */}
