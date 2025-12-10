@@ -8,30 +8,67 @@ import LoyaltyManager from "../components/LoyalityProgrameManger";
 import DashboardLayout from "../components/DashboardLayout";
 import ModernAlert from "../components/ui/ModernAlert";
 import { Store, Calendar, FileText, Award } from "lucide-react";
-import {MessageCircle, X, Send, Sparkles } from "lucide-react";
+import { MessageCircle, X, Send, Sparkles, ArrowRight, Download, Trash2, Search,Map,Mail,MapPin,Navigation } from "lucide-react";
+import { useRef } from "react";
 
-// Chatbot Component
-function VendorChatbot() {
+function VendorChatbot({ onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      type: 'bot',
-      text: "👋 Hi! I'm your Vendor Assistant. I can help you with:",
-      options: [
-        "Apply for a bazaar booth",
-        "Check my applications",
-        "Update company logo",
-        "Manage loyalty program",
-        "View upcoming events"
-      ]
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const messagesEndRef = useRef(null);
+  const chatHistoryKey = 'vendor-chat-history';
+
+  // Load chat history on mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem(chatHistoryKey);
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        setMessages(parsed);
+      } catch (e) {
+        initializeChat();
+      }
+    } else {
+      initializeChat();
+    }
+  }, []);
+
+  const initializeChat = () => {
+    setMessages([
+      {
+        type: 'bot',
+        text: "👋 Hi Vendor! I'm your Vendor Assistant. I can help you with:",
+        timestamp: new Date().toISOString(),
+        quickActions: [
+          { label: "Overview & Applications", section: "overview", tab: null },
+          { label: "Apply for Booth", section: "applyBooth", tab: null },
+          { label: "View Bazaar Events", section: "bazaarEvents", tab: null },
+          { label: "Loyalty Program", section: "loyalty", tab: null }
+        ]
+      }
+    ]);
+  };
+
+  // Save chat history whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
 
   const knowledgeBase = {
     "apply for a bazaar booth": {
       steps: [
+        "To apply for a bazaar booth:",
+        "",
         "1. Click on 'Bazaar Events' in the sidebar",
         "2. Browse the list of upcoming bazaar events",
         "3. Click the 'Apply' button on your preferred event",
@@ -42,116 +79,393 @@ function VendorChatbot() {
         "5. Review the estimated price",
         "6. Click 'Submit Application'",
         "7. You'll receive a confirmation once submitted!"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Bazaar Events", section: "bazaarEvents", tab: null }
+      ],
+      keywords: ["apply", "booth", "bazaar", "application", "register"]
     },
     "check my applications": {
       steps: [
-        "1. Go to the 'Overview' section (it's selected by default)",
+        "To check your applications:",
+        "",
+        "1. Go to the 'Overview' section (default view)",
         "2. Scroll down to 'My Applications' section",
         "3. Here you can see all your booth applications with:",
         "   • Event name and dates",
         "   • Application status (Pending/Approved/Rejected)",
-        "   • Booth details",
-        "4. You can track the progress of each application"
-      ]
+        "   • Booth details and size",
+        "   • Representatives listed",
+        "4. You can track the progress of each application",
+        "5. Approved applications show booth assignment details"
+      ],
+      quickActions: [
+        { label: "Go to Overview", section: "overview", tab: null }
+      ],
+      keywords: ["applications", "my applications", "check status", "track"]
     },
     "update company logo": {
       steps: [
+        "To update your company logo:",
+        "",
         "1. Look at the top of your dashboard",
         "2. Hover over your company logo/avatar",
         "3. Click the camera icon that appears",
-        "4. Click 'Select Image' in the popup",
+        "4. In the popup, click 'Select Image'",
         "5. Choose an image file (JPG, PNG, or GIF)",
         "6. Make sure it's under 5MB in size",
         "7. The logo will upload automatically",
-        "8. Your new logo will be displayed instantly!"
-      ]
+        "8. Your new logo will be displayed instantly!",
+        "",
+        "Note: A good logo should be square and high resolution"
+      ],
+      keywords: ["logo", "company logo", "upload logo", "change logo", "profile"]
     },
     "manage loyalty program": {
       steps: [
+        "To manage your loyalty program:",
+        "",
         "1. Click on 'Loyalty Program' in the sidebar",
         "2. Here you can:",
         "   • View your current loyalty tier",
         "   • Check your points balance",
-        "   • See available rewards",
-        "   • Track your benefits",
+        "   • See available rewards and benefits",
+        "   • Track your participation history",
         "3. Earn points by:",
         "   • Participating in bazaars",
         "   • Completing applications",
-        "   • Being an active vendor"
-      ]
+        "   • Being an active vendor",
+        "   • Getting positive reviews",
+        "4. Higher tiers unlock better benefits!"
+      ],
+      quickActions: [
+        { label: "Go to Loyalty Program", section: "loyalty", tab: null }
+      ],
+      keywords: ["loyalty", "rewards", "points", "program", "benefits"]
     },
     "view upcoming events": {
       steps: [
+        "To view upcoming bazaar events:",
+        "",
         "1. Click on 'Bazaar Events' in the sidebar",
         "2. You'll see a list of all upcoming bazaars",
         "3. Each event shows:",
         "   • Event name and description",
         "   • Start and end dates",
+        "   • Location and venue details",
         "   • Apply button (if not already applied)",
         "4. Events marked 'Applied' show you've already registered",
-        "5. Click any 'Apply' button to start your application"
-      ]
+        "5. Click any 'Apply' button to start your application",
+        "6. Filter events by date or location"
+      ],
+      quickActions: [
+        { label: "Go to Bazaar Events", section: "bazaarEvents", tab: null }
+      ],
+      keywords: ["events", "upcoming", "bazaar", "calendar", "schedule"]
+    },
+    "apply for booth": {
+      steps: [
+        "To apply for a booth directly:",
+        "",
+        "1. Click 'Apply for Booth' in the sidebar",
+        "2. You'll see the direct application form",
+        "3. Select an event from the dropdown",
+        "4. Choose your booth size (2x2 or 4x4)",
+        "5. Add representatives (up to 5 people)",
+        "6. Review estimated price based on duration",
+        "7. Submit your application",
+        "8. You can also browse events first in 'Bazaar Events'"
+      ],
+      quickActions: [
+        { label: "Go to Apply Booth", section: "applyBooth", tab: null }
+      ],
+      keywords: ["apply booth", "register booth", "booth application", "sign up"]
+    },
+    "vendor dashboard": {
+      steps: [
+        "Your Vendor Dashboard includes:",
+        "",
+        "🏢 Overview Section:",
+        "   • Company profile and logo",
+        "   • My Applications list",
+        "   • Quick status overview",
+        "",
+        "📝 Apply for Booth:",
+        "   • Direct application form",
+        "   • Event selection dropdown",
+        "   • Booth size options",
+        "   • Representative management",
+        "",
+        "📅 Bazaar Events:",
+        "   • List of upcoming bazaars",
+        "   • Event details and dates",
+        "   • One-click applications",
+        "   • Filter and search options",
+        "",
+        "🏆 Loyalty Program:",
+        "   • Points and tier system",
+        "   • Rewards and benefits",
+        "   • Participation history",
+        "   • Program details"
+      ],
+      quickActions: [
+        { label: "Go to Overview", section: "overview", tab: null },
+        { label: "View Bazaar Events", section: "bazaarEvents", tab: null },
+        { label: "Check Loyalty", section: "loyalty", tab: null }
+      ],
+      keywords: ["dashboard", "vendor", "overview", "navigation", "sections"]
+    },
+    "booth sizes": {
+      steps: [
+        "Available booth sizes:",
+        "",
+        "📦 2x2 Booth (Standard):",
+        "   • 4 square meters space",
+        "   • Standard pricing",
+        "   • Suitable for most vendors",
+        "   • Basic setup included",
+        "",
+        "🚀 4x4 Booth (Premium):",
+        "   • 16 square meters space",
+        "   • 50% higher price than 2x2",
+        "   • More display space",
+        "   • Priority location",
+        "   • Enhanced visibility",
+        "",
+        "Prices are calculated per day of the event duration."
+      ],
+      keywords: ["booth size", "2x2", "4x4", "premium", "standard", "space"]
+    },
+    "representatives": {
+      steps: [
+        "About booth representatives:",
+        "",
+        "👥 Each application can have:",
+        "   • Up to 5 representatives",
+        "   • Each needs name and email",
+        "   • All receive event notifications",
+        "   • Primary contact is first representative",
+        "",
+        "📋 Representative roles:",
+        "   • Booth setup and management",
+        "   • Customer interaction",
+        "   • Sales and transactions",
+        "   • Event coordination",
+        "",
+        "🔐 Important notes:",
+        "   • All reps get event access passes",
+        "   • Updates sent to all emails",
+        "   • Can be modified before approval",
+        "   • IDs may be required at event"
+      ],
+      keywords: ["representatives", "staff", "team", "contacts", "people"]
+    },
+    "pricing and payment": {
+      steps: [
+        "Booth pricing information:",
+        "",
+        "💰 Price calculation:",
+        "   • Base price per day × number of days",
+        "   • 4x4 booths cost 50% more than 2x2",
+        "   • Prices shown are estimates",
+        "   • Final price confirmed upon approval",
+        "",
+        "📅 Event duration:",
+        "   • Price includes all event days",
+        "   • Multi-day events prorated",
+        "   • Setup/teardown days may be included",
+        "",
+        "💳 Payment process:",
+        "   • Invoice sent after approval",
+        "   • Multiple payment methods",
+        "   • Payment deadlines apply",
+        "   • Receipt provided upon payment"
+      ],
+      keywords: ["pricing", "payment", "price", "cost", "fee", "invoice"]
+    },
+    "application status": {
+      steps: [
+        "Understanding application status:",
+        "",
+        "⏳ Pending:",
+        "   • Application submitted",
+        "   • Under review by admin",
+        "   • Usually takes 1-3 business days",
+        "   • You'll be notified of any updates",
+        "",
+        "✅ Approved:",
+        "   • Application accepted!",
+        "   • Booth assigned",
+        "   • Invoice will be sent",
+        "   • Next steps provided",
+        "",
+        "❌ Rejected:",
+        "   • Application not accepted",
+        "   • Reason provided",
+        "   • Can apply for other events",
+        "   • Feedback given for improvement",
+        "",
+        "📊 Withdrawn:",
+        "   • You cancelled application",
+        "   • Can reapply if event open"
+      ],
+      keywords: ["status", "pending", "approved", "rejected", "tracking"]
     }
+  };
+
+  const findBestMatch = (text) => {
+    const lowerText = text.toLowerCase();
+    let bestMatch = null;
+    let highestScore = 0;
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      let score = 0;
+      
+      // Check if query contains the key
+      if (lowerText.includes(key)) score += 10;
+      
+      // Check keywords
+      value.keywords?.forEach(keyword => {
+        if (lowerText.includes(keyword)) score += 5;
+      });
+
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = { key, ...value };
+      }
+    });
+
+    return highestScore > 0 ? bestMatch : null;
   };
 
   const handleSendMessage = (text = inputValue) => {
     if (!text.trim()) return;
 
-    // Add user message
-    setMessages(prev => [...prev, { type: 'user', text }]);
+    const userMessage = {
+      type: 'user',
+      text: text.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate bot response
     setTimeout(() => {
-      const lowerText = text.toLowerCase();
-      let response = null;
+      const match = findBestMatch(text);
 
-      // Check for keywords in knowledge base
-      Object.keys(knowledgeBase).forEach(key => {
-        if (lowerText.includes(key) || lowerText.includes(key.replace(/\s+/g, ''))) {
-          response = knowledgeBase[key];
-        }
-      });
-
-      if (response) {
+      if (match) {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "Here are the steps:",
-          steps: response.steps
+          text: "Here's what you need to know:",
+          steps: match.steps,
+          quickActions: match.quickActions,
+          timestamp: new Date().toISOString()
         }]);
-      } else if (lowerText.includes('help') || lowerText.includes('hi') || lowerText.includes('hello')) {
+      } else if (text.toLowerCase().includes('help') || text.toLowerCase().includes('hi') || text.toLowerCase().includes('hello')) {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I can help you with these topics:",
-          options: [
-            "Apply for a bazaar booth",
-            "Check my applications",
-            "Update company logo",
-            "Manage loyalty program",
-            "View upcoming events"
-          ]
+          text: "I'm here to help! Here are some things I can assist you with:",
+          quickActions: [
+            { label: "Overview & Applications", section: "overview", tab: null },
+            { label: "Apply for Booth", section: "applyBooth", tab: null },
+            { label: "View Bazaar Events", section: "bazaarEvents", tab: null },
+            { label: "Loyalty Program", section: "loyalty", tab: null }
+          ],
+          timestamp: new Date().toISOString()
         }]);
       } else {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I'm not sure about that. Here's what I can help you with:",
-          options: [
-            "Apply for a bazaar booth",
-            "Check my applications",
-            "Update company logo",
-            "Manage loyalty program",
-            "View upcoming events"
-          ]
+          text: "I'm not sure about that. Try asking about:\n• Applying for booths\n• Checking applications\n• Bazaar events\n• Loyalty program\n• Booth sizes and pricing\n\nOr use the search feature to find what you need!",
+          timestamp: new Date().toISOString()
         }]);
       }
       setIsTyping(false);
-    }, 1000);
+    }, 800);
   };
 
-  const handleOptionClick = (option) => {
-    handleSendMessage(option);
+  const handleQuickAction = (action) => {
+    console.log("Vendor chatbot navigating to:", action);
+    
+    // Add confirmation message
+    setMessages(prev => [...prev, {
+      type: 'bot',
+      text: `✓ Taking you to ${action.label}...`,
+      timestamp: new Date().toISOString()
+    }]);
+    
+    // Close chat and navigate
+    setTimeout(() => {
+      
+      
+      if (onNavigate && typeof onNavigate === 'function') {
+        onNavigate(action.section);
+      } else {
+        console.log("Would navigate to:", action.section);
+      }
+    }, 500);
+  };
+
+  const handleExportChat = () => {
+    const chatText = messages.map(msg => {
+      const time = new Date(msg.timestamp).toLocaleString();
+      const sender = msg.type === 'user' ? 'You' : 'Vendor Assistant';
+      let content = `[${time}] ${sender}: ${msg.text}`;
+      
+      if (msg.steps) {
+        content += '\n' + msg.steps.join('\n');
+      }
+      
+      return content;
+    }).join('\n\n');
+
+    const blob = new Blob([chatText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vendor-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleClearChat = () => {
+    
+      localStorage.removeItem(chatHistoryKey);
+      initializeChat();
+    
+  };
+
+  const searchInKnowledgeBase = () => {
+    const query = searchQuery.toLowerCase();
+    const results = [];
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      if (key.includes(query) || value.keywords?.some(k => k.includes(query))) {
+        results.push({ key, ...value });
+      }
+    });
+
+    setShowSearch(false);
+    setSearchQuery('');
+
+    if (results.length > 0) {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `Found ${results.length} result(s) for "${searchQuery}":`,
+        searchResults: results.map(r => ({
+          label: r.key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          query: r.key
+        })),
+        timestamp: new Date().toISOString()
+      }]);
+    } else {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `No results found for "${searchQuery}". Try different keywords!`,
+        timestamp: new Date().toISOString()
+      }]);
+    }
   };
 
   return (
@@ -178,46 +492,114 @@ function VendorChatbot() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Vendor Assistant</h3>
-                <p className="text-xs text-blue-100">Always here to help</p>
+                <p className="text-xs text-blue-100">Smart Vendor Support</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSearch(!showSearch)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Search Knowledge Base"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleExportChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Export Chat"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleClearChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Clear Chat"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {/* Search Bar */}
+          {showSearch && (
+            <div className="p-3 bg-blue-50 border-b border-blue-200">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchInKnowledgeBase()}
+                  placeholder="Search knowledge base..."
+                  className="flex-1 border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+                <button
+                  onClick={searchInKnowledgeBase}
+                  className="bg-blue-500 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-600 transition"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] ${msg.type === 'user' ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
-                  <p className={`text-sm ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>{msg.text}</p>
+                <div className={`max-w-[85%] ${msg.type === 'user' ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
+                  <p className={`text-sm whitespace-pre-line ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                    {msg.text}
+                  </p>
                   
                   {msg.steps && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-1.5 text-sm text-gray-700">
                       {msg.steps.map((step, i) => (
-                        <p key={i} className="text-sm text-gray-700 leading-relaxed">
-                          {step}
-                        </p>
+                        <p key={i} className="leading-relaxed">{step}</p>
                       ))}
                     </div>
                   )}
 
-                  {msg.options && (
+                  {msg.searchResults && (
                     <div className="mt-3 space-y-2">
-                      {msg.options.map((option, i) => (
+                      {msg.searchResults.map((result, i) => (
                         <button
                           key={i}
-                          onClick={() => handleOptionClick(option)}
-                          className="block w-full text-left text-sm bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 text-gray-700 rounded-lg p-2 transition border border-blue-200"
+                          onClick={() => handleSendMessage(result.query)}
+                          className="block w-full text-left text-sm bg-blue-50 hover:bg-blue-100 text-gray-700 rounded-lg p-2 transition border border-blue-200"
                         >
-                          {option}
+                          {result.label}
                         </button>
                       ))}
                     </div>
+                  )}
+
+                  {msg.quickActions && msg.quickActions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-gray-500 font-semibold">Quick Actions:</p>
+                      {msg.quickActions.map((action, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleQuickAction(action)}
+                          className="flex items-center justify-between w-full text-left text-sm bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 text-gray-700 rounded-lg p-2.5 transition border border-blue-200 group"
+                        >
+                          <span>{action.label}</span>
+                          <ArrowRight className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {msg.type === 'bot' && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </p>
                   )}
                 </div>
               </div>
@@ -227,13 +609,14 @@ function VendorChatbot() {
               <div className="flex justify-start">
                 <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
@@ -245,15 +628,19 @@ function VendorChatbot() {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Ask me anything..."
-                className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <button
                 onClick={() => handleSendMessage()}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full p-2 hover:shadow-lg transition"
+                disabled={!inputValue.trim()}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full p-2 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-5 h-5" />
               </button>
             </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Vendor support • Quick navigation • Smart help
+            </p>
           </div>
         </div>
       )}
@@ -712,7 +1099,10 @@ function Dashboard() {
       </div>
 
       {/* Chatbot Component */}
-      <VendorChatbot />
+      <VendorChatbot onNavigate={(section) => {
+  console.log("Vendor chatbot navigating to:", section);
+  setActiveSection(section);
+}} />
 
       {/* Modern Alert Component */}
       <ModernAlert 

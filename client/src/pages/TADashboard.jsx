@@ -152,6 +152,8 @@ const TADashboard = () => {
       return s;
     });
 
+  
+
     setFavorites((prev) => {
       if (willBeFav) {
         return prev.some((e) => (e._id || e.id) === eventId)
@@ -179,7 +181,7 @@ const TADashboard = () => {
       sidebarItems={sidebarItems}
       activeKey={activeSection}
     >
-      <TAChatbot />
+      <TAChatbot onNavigate={setActiveSection} />
       <div className="mt-6">
 
         {/* Events Section with Tabs */}

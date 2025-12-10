@@ -79,6 +79,13 @@ const StaffDashboard = () => {
 			setLoadingEvents(false);
 		}
 	};
+	const handleChatbotNavigate = (section, tab) => {
+  setActiveSection(section);
+  if (tab ) {
+    setEventsTab(tab);
+  }
+};
+
 
 	// Filter and sort events
 	const getEventStart = (event) => event.startDate || event.date;
@@ -181,7 +188,7 @@ const StaffDashboard = () => {
 			sidebarItems={sidebarItems}
 			activeKey={activeSection}
 		>
-			<StaffChatbot />
+			<StaffChatbot onNavigate={handleChatbotNavigate} />
 			<div className="mt-6">
 
 				{/* Events Section with Tabs */}

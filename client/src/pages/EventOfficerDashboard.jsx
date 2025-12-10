@@ -73,7 +73,10 @@ const sidebarItems = [
         {/* Overview Section */}
         {activeSection === 'overview' && (
           <>
-            <EventOfficerChatbot />
+            <EventOfficerChatbot onNavigate={(page) => {
+              console.log("Chatbot navigating to page:", page);
+              navigate(page);
+            }} />
             {/* Quick Actions */}
             <Card className="mb-8 shadow-lg">
               <CardHeader>

@@ -41,7 +41,7 @@ function EventOfficerAvailableBooths() {
       sidebarItems={sidebarItems} 
       extraSidebarProps={{ isReportsOpen: reportsOpen, selectedReport }}
     >
-      <EventOfficerChatbot />
+      <EventOfficerChatbot onNavigate={(page) => navigate(page)} />
       <div className="max-w-7xl mx-auto px-6 py-8">
         <AvailableBooths showActions={true} />
       </div>

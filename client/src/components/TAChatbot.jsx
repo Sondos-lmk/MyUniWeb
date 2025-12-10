@@ -1,28 +1,60 @@
-import { useState } from "react";
-import { MessageCircle, X, Send, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageCircle, X, Send, Sparkles, ArrowRight, Download, Trash2, Search } from "lucide-react";
 
-// Reusable TA Chatbot Component
-export default function TAChatbot() {
+// Modern TA Chatbot Component with Professional Features
+export default function TAChatbot({ onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      type: 'bot',
-      text: "👋 Hi! I'm your TA Assistant. I can help you with:",
-      options: [
-        "Register for events",
-        "View my registrations",
-        "Manage favorites",
-        "View attended events",
-        "Check events reviews",
-        "Vote on booth polls",
-        "View available booths",
-        "Browse loyalty vendors",
-        "Check gym schedule"
-      ]
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const messagesEndRef = useRef(null);
+  const chatHistoryKey = 'ta-chat-history';
+
+  // Load chat history on mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem(chatHistoryKey);
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        setMessages(parsed);
+      } catch (e) {
+        // If parsing fails, start fresh
+        initializeChat();
+      }
+    } else {
+      initializeChat();
+    }
+  }, []);
+
+  const initializeChat = () => {
+    setMessages([
+      {
+        type: 'bot',
+        text: "👋 Hi! I'm your TA Assistant. I can help you with:",
+        timestamp: new Date().toISOString(),
+        quickActions: [
+          { label: "Register for Events", section: "events", tab: "upcoming" },
+          { label: "My Registrations", section: "events", tab: "registered" },
+          { label: "Manage Favorites", section: "events", tab: "favorites" },
+          { label: "Gym Schedule", section: "gymSchedule" }
+        ]
+      }
+    ]);
+  };
+
+  // Save chat history whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
 
   const knowledgeBase = {
     "register for events": {
@@ -40,7 +72,12 @@ export default function TAChatbot() {
         "6. Fill in the registration form with required information",
         "7. Submit to complete your registration",
         "8. Check 'My Registrations' tab to see your registration status"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Events", section: "events", tab: "upcoming" },
+        { label: "My Registrations", section: "events", tab: "registered" }
+      ],
+      keywords: ["register", "event", "sign up", "join event", "enroll"]
     },
     "view my registrations": {
       steps: [
@@ -57,7 +94,11 @@ export default function TAChatbot() {
         "   • Cancel registrations if needed",
         "5. Keep track of all your upcoming event commitments",
         "6. Receive notifications for any status changes"
-      ]
+      ],
+      quickActions: [
+        { label: "View Registrations", section: "events", tab: "registered" }
+      ],
+      keywords: ["registration", "registered", "my events", "signed up"]
     },
     "manage favorites": {
       steps: [
@@ -73,7 +114,11 @@ export default function TAChatbot() {
         "   • Remove events by clicking the heart icon again",
         "5. Use favorites to bookmark events you're interested in",
         "6. Plan ahead by saving events you want to attend"
-      ]
+      ],
+      quickActions: [
+        { label: "View Favorites", section: "events", tab: "favorites" }
+      ],
+      keywords: ["favorite", "saved", "bookmark", "heart"]
     },
     "attended events": {
       steps: [
@@ -88,7 +133,11 @@ export default function TAChatbot() {
         "5. Your reviews help improve future events",
         "6. Other TAs and staff can benefit from your feedback",
         "7. Organizers use feedback to enhance event quality"
-      ]
+      ],
+      quickActions: [
+        { label: "View Attended Events", section: "events", tab: "attended" }
+      ],
+      keywords: ["attended", "past events", "rate", "review"]
     },
     "events reviews": {
       steps: [
@@ -103,7 +152,11 @@ export default function TAChatbot() {
         "5. Filter or search for specific event reviews",
         "6. Add your own reviews for events you've attended",
         "7. See what colleagues thought about past events"
-      ]
+      ],
+      quickActions: [
+        { label: "View Reviews", section: "eventsReviews" }
+      ],
+      keywords: ["review", "feedback", "rating", "comments"]
     },
     "booth polls": {
       steps: [
@@ -119,7 +172,11 @@ export default function TAChatbot() {
         "6. Poll results may influence which vendors are invited",
         "7. Help shape future bazaar offerings",
         "8. Your input as a TA is valuable for the community"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Booth Polls", section: "boothPolls" }
+      ],
+      keywords: ["booth", "poll", "vote", "vendor"]
     },
     "available booths": {
       steps: [
@@ -134,7 +191,11 @@ export default function TAChatbot() {
         "5. This helps you plan your bazaar visits",
         "6. Discover vendors and products before attending",
         "7. Make a list of booths you want to visit"
-      ]
+      ],
+      quickActions: [
+        { label: "View Booths", section: "availableBooths" }
+      ],
+      keywords: ["booth", "vendor", "bazaar", "shop"]
     },
     "loyalty vendors": {
       steps: [
@@ -149,7 +210,11 @@ export default function TAChatbot() {
         "5. Join loyalty programs that interest you",
         "6. Track your accumulated rewards and benefits",
         "7. Take advantage of special TA discounts or offers"
-      ]
+      ],
+      quickActions: [
+        { label: "View Loyalty Vendors", section: "loyaltyVendors" }
+      ],
+      keywords: ["loyalty", "rewards", "vendor", "benefits"]
     },
     "gym schedule": {
       steps: [
@@ -165,7 +230,11 @@ export default function TAChatbot() {
         "5. Note any restrictions or membership requirements",
         "6. Plan your workout schedule around available times",
         "7. Check back regularly for schedule updates"
-      ]
+      ],
+      quickActions: [
+        { label: "View Gym Schedule", section: "gymSchedule" }
+      ],
+      keywords: ["gym", "workout", "fitness", "schedule"]
     },
     "search events": {
       steps: [
@@ -181,7 +250,8 @@ export default function TAChatbot() {
         "4. Click 'Reset Filters' to clear all filters",
         "5. Filters work together to narrow results",
         "6. Results update automatically as you type/select"
-      ]
+      ],
+      keywords: ["search", "filter", "find events", "sort"]
     },
     "event filters": {
       steps: [
@@ -197,7 +267,8 @@ export default function TAChatbot() {
         "   • Latest First",
         "5. Click 'Reset Filters' to start over",
         "6. Filters help you find exactly what you're looking for"
-      ]
+      ],
+      keywords: ["filter", "sort", "search", "type", "location", "date"]
     },
     "event types": {
       steps: [
@@ -224,7 +295,8 @@ export default function TAChatbot() {
         "   • Speaker sessions and panels",
         "   • Academic discussions",
         "   • Industry updates"
-      ]
+      ],
+      keywords: ["workshop", "trip", "bazaar", "conference", "type"]
     },
     "how to rate": {
       steps: [
@@ -245,7 +317,8 @@ export default function TAChatbot() {
         "7. Submit your review",
         "8. Your feedback will be visible to other TAs and staff",
         "9. Organizers will see your input for improvements"
-      ]
+      ],
+      keywords: ["rate", "review", "feedback", "star", "comment"]
     },
     "vote on booths": {
       steps: [
@@ -263,7 +336,8 @@ export default function TAChatbot() {
         "7. You can typically vote for multiple booths",
         "8. Your votes help decide which vendors get selected",
         "9. Check back to see voting results and winners"
-      ]
+      ],
+      keywords: ["vote", "poll", "booth", "vendor", "proposal"]
     },
     "ta role": {
       steps: [
@@ -292,7 +366,8 @@ export default function TAChatbot() {
         "   • Browse loyalty vendor programs",
         "   • Access special TA discounts",
         "   • Join rewards programs"
-      ]
+      ],
+      keywords: ["ta", "role", "teaching assistant", "access", "permissions"]
     },
     "dashboard overview": {
       steps: [
@@ -316,66 +391,156 @@ export default function TAChatbot() {
         "",
         "Use the sidebar to navigate between sections!",
         "The dashboard is designed for easy access to all TA features."
-      ]
+      ],
+      keywords: ["dashboard", "overview", "sections", "navigation"]
     }
+  };
+
+  const findBestMatch = (text) => {
+    const lowerText = text.toLowerCase();
+    let bestMatch = null;
+    let highestScore = 0;
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      let score = 0;
+      
+      // Check if query contains the key
+      if (lowerText.includes(key)) score += 10;
+      
+      // Check keywords
+      value.keywords?.forEach(keyword => {
+        if (lowerText.includes(keyword)) score += 5;
+      });
+
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = { key, ...value };
+      }
+    });
+
+    return highestScore > 0 ? bestMatch : null;
   };
 
   const handleSendMessage = (text = inputValue) => {
     if (!text.trim()) return;
 
-    setMessages(prev => [...prev, { type: 'user', text }]);
+    const userMessage = {
+      type: 'user',
+      text: text.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
     setTimeout(() => {
-      const lowerText = text.toLowerCase();
-      let response = null;
+      const match = findBestMatch(text);
 
-      Object.keys(knowledgeBase).forEach(key => {
-        if (lowerText.includes(key) || lowerText.includes(key.replace(/\s+/g, ''))) {
-          response = knowledgeBase[key];
-        }
-      });
-
-      if (response) {
+      if (match) {
         setMessages(prev => [...prev, {
           type: 'bot',
           text: "Here's what you need to know:",
-          steps: response.steps
+          steps: match.steps,
+          quickActions: match.quickActions,
+          timestamp: new Date().toISOString()
         }]);
-      } else if (lowerText.includes('help') || lowerText.includes('hi') || lowerText.includes('hello')) {
+      } else if (text.toLowerCase().includes('help') || text.toLowerCase().includes('hi') || text.toLowerCase().includes('hello')) {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I'm here to help! I can assist you with:",
-          options: [
-            "Register for events",
-            "View my registrations",
-            "Manage favorites",
-            "View attended events",
-            "Check gym schedule",
-            "Vote on booth polls"
-          ]
+          text: "I'm here to help! Here are some things I can assist you with:",
+          quickActions: [
+            { label: "Register for Events", section: "events", tab: "upcoming" },
+            { label: "My Registrations", section: "events", tab: "registered" },
+            { label: "Manage Favorites", section: "events", tab: "favorites" },
+            { label: "Gym Schedule", section: "gymSchedule" },
+            { label: "Booth Polls", section: "boothPolls" },
+            { label: "Events Reviews", section: "eventsReviews" }
+          ],
+          timestamp: new Date().toISOString()
         }]);
       } else {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I'm not sure about that. Here's what I can help you with:",
-          options: [
-            "Register for events",
-            "View my registrations",
-            "Events reviews",
-            "Available booths",
-            "Loyalty vendors",
-            "Dashboard overview"
-          ]
+          text: "I'm not sure about that. Try asking about:\n• Registering for events\n• Managing favorites\n• Gym schedule\n• Booth polls\n• Reviews\n• Event filters and search\n\nOr use the search feature to find what you need!",
+          timestamp: new Date().toISOString()
         }]);
       }
       setIsTyping(false);
-    }, 1000);
+    }, 800);
   };
 
-  const handleOptionClick = (option) => {
-    handleSendMessage(option);
+  const handleQuickAction = (action) => {
+    if (onNavigate) {
+      onNavigate(action.section, action.tab);
+    }
+    
+    setMessages(prev => [...prev, {
+      type: 'bot',
+      text: `✓ Taking you to ${action.label}...`,
+      timestamp: new Date().toISOString()
+    }]);
+  };
+
+  const handleExportChat = () => {
+    const chatText = messages.map(msg => {
+      const time = new Date(msg.timestamp).toLocaleString();
+      const sender = msg.type === 'user' ? 'You' : 'TA Assistant';
+      let content = `[${time}] ${sender}: ${msg.text}`;
+      
+      if (msg.steps) {
+        content += '\n' + msg.steps.join('\n');
+      }
+      
+      return content;
+    }).join('\n\n');
+
+    const blob = new Blob([chatText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ta-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleClearChat = () => {
+    
+      localStorage.removeItem(chatHistoryKey);
+      initializeChat();
+    
+  };
+
+  const searchInKnowledgeBase = () => {
+    const query = searchQuery.toLowerCase();
+    const results = [];
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      if (key.includes(query) || value.keywords?.some(k => k.includes(query))) {
+        results.push({ key, ...value });
+      }
+    });
+
+    setShowSearch(false);
+    setSearchQuery('');
+
+    if (results.length > 0) {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `Found ${results.length} result(s) for "${searchQuery}":`,
+        searchResults: results.map(r => ({
+          label: r.key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          query: r.key
+        })),
+        timestamp: new Date().toISOString()
+      }]);
+    } else {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `No results found for "${searchQuery}". Try different keywords!`,
+        timestamp: new Date().toISOString()
+      }]);
+    }
   };
 
   return (
@@ -402,46 +567,114 @@ export default function TAChatbot() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">TA Assistant</h3>
-                <p className="text-xs text-green-100">Here to help Teaching Assistants</p>
+                <p className="text-xs text-green-100">Smart & Helpful for TAs</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSearch(!showSearch)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Search Knowledge Base"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleExportChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Export Chat"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleClearChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Clear Chat"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {/* Search Bar */}
+          {showSearch && (
+            <div className="p-3 bg-green-50 border-b border-green-200">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchInKnowledgeBase()}
+                  placeholder="Search knowledge base..."
+                  className="flex-1 border border-green-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  autoFocus
+                />
+                <button
+                  onClick={searchInKnowledgeBase}
+                  className="bg-green-500 text-white rounded-lg px-4 py-2 text-sm hover:bg-green-600 transition"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] ${msg.type === 'user' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
-                  <p className={`text-sm ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>{msg.text}</p>
+                <div className={`max-w-[85%] ${msg.type === 'user' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
+                  <p className={`text-sm whitespace-pre-line ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                    {msg.text}
+                  </p>
                   
                   {msg.steps && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-1.5 text-sm text-gray-700">
                       {msg.steps.map((step, i) => (
-                        <p key={i} className="text-sm text-gray-700 leading-relaxed">
-                          {step}
-                        </p>
+                        <p key={i} className="leading-relaxed">{step}</p>
                       ))}
                     </div>
                   )}
 
-                  {msg.options && (
+                  {msg.searchResults && (
                     <div className="mt-3 space-y-2">
-                      {msg.options.map((option, i) => (
+                      {msg.searchResults.map((result, i) => (
                         <button
                           key={i}
-                          onClick={() => handleOptionClick(option)}
-                          className="block w-full text-left text-sm bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-gray-700 rounded-lg p-2 transition border border-green-200"
+                          onClick={() => handleSendMessage(result.query)}
+                          className="block w-full text-left text-sm bg-green-50 hover:bg-green-100 text-gray-700 rounded-lg p-2 transition border border-green-200"
                         >
-                          {option}
+                          {result.label}
                         </button>
                       ))}
                     </div>
+                  )}
+
+                  {msg.quickActions && msg.quickActions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-gray-500 font-semibold">Quick Actions:</p>
+                      {msg.quickActions.map((action, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleQuickAction(action)}
+                          className="flex items-center justify-between w-full text-left text-sm bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-gray-700 rounded-lg p-2.5 transition border border-green-200 group"
+                        >
+                          <span>{action.label}</span>
+                          <ArrowRight className="w-4 h-4 text-green-600 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {msg.type === 'bot' && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </p>
                   )}
                 </div>
               </div>
@@ -451,13 +684,14 @@ export default function TAChatbot() {
               <div className="flex justify-start">
                 <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
@@ -473,11 +707,15 @@ export default function TAChatbot() {
               />
               <button
                 onClick={() => handleSendMessage()}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full p-2 hover:shadow-lg transition"
+                disabled={!inputValue.trim()}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full p-2 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-5 h-5" />
               </button>
             </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Smart matching • Quick navigation • Chat history
+            </p>
           </div>
         </div>
       )}

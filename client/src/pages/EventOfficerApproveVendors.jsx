@@ -37,7 +37,7 @@ export default function EventOfficerApproveVendors() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <ApprovedEvents />
       </div>
-      <EventOfficerChatbot />
+      <EventOfficerChatbot onNavigate={(page) => navigate(page)} />
     </DashboardLayout>
   );
 }

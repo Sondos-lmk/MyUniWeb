@@ -1,29 +1,59 @@
-import { useState } from "react";
-import { MessageCircle, X, Send, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageCircle, X, Send, Sparkles, ArrowRight, Download, Trash2, Search } from "lucide-react";
 
-// Reusable Professor Chatbot Component
-export default function ProfessorChatbot() {
+// Modern Professor Chatbot Component with Professional Features
+export default function ProfessorChatbot({ onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      type: 'bot',
-      text: "👋 Hi Professor! I'm your Academic Assistant. I can help you with:",
-      options: [
-        "Create a workshop",
-        "View my workshops",
-        "Register for events",
-        "Check gym schedule",
-        "View booth polls",
-        "Browse loyalty vendors",
-        "Manage favorites",
-        "Check registrations",
-        "View attended events",
-        "Browse events reviews"
-      ]
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const messagesEndRef = useRef(null);
+  const chatHistoryKey = 'professor-chat-history';
+
+  // Load chat history on mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem(chatHistoryKey);
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        setMessages(parsed);
+      } catch (e) {
+        initializeChat();
+      }
+    } else {
+      initializeChat();
+    }
+  }, []);
+
+  const initializeChat = () => {
+    setMessages([
+      {
+        type: 'bot',
+        text: "👋 Hi Professor! I'm your Academic Assistant. I can help you with:",
+        timestamp: new Date().toISOString(),
+        quickActions: [
+          { label: "Create Workshop", section: "overview", tab: "createWorkshop" },
+          { label: "My Workshops", section: "overview", tab: "myWorkshops" },
+          { label: "Events Management", section: "events", tab: null },
+          { label: "Gym Schedule", section: "gymSchedule", tab: null }
+        ]
+      }
+    ]);
+  };
+
+  // Save chat history whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
 
   const knowledgeBase = {
     "create a workshop": {
@@ -40,7 +70,11 @@ export default function ProfessorChatbot() {
         "5. Click 'Submit' to create your workshop",
         "6. Your workshop will be pending admin approval",
         "7. You'll be notified once it's approved or if edits are needed"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Create Workshop", section: "overview", tab: "createWorkshop" }
+      ],
+      keywords: ["create", "workshop", "new workshop", "organize"]
     },
     "view my workshops": {
       steps: [
@@ -56,7 +90,11 @@ export default function ProfessorChatbot() {
         "   • Click 'Edit' to modify details",
         "   • Click 'Participants' to see who registered",
         "6. If edits were requested, update and resubmit"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to My Workshops", section: "overview", tab: "myWorkshops" }
+      ],
+      keywords: ["my workshops", "created", "view", "manage", "workshops"]
     },
     "register for events": {
       steps: [
@@ -72,7 +110,11 @@ export default function ProfessorChatbot() {
         "6. Fill in the registration form",
         "7. Submit to complete your registration",
         "8. Check 'My Registrations' tab to see status"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Events", section: "events", tab: "upcoming" }
+      ],
+      keywords: ["register", "events", "sign up", "join", "enroll"]
     },
     "check gym schedule": {
       steps: [
@@ -85,7 +127,11 @@ export default function ProfessorChatbot() {
         "   • Session types or focus areas",
         "4. You can filter or search for specific times",
         "5. Note any restrictions or capacity limits"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Gym Schedule", section: "gymSchedule", tab: null }
+      ],
+      keywords: ["gym", "schedule", "workout", "fitness", "timetable"]
     },
     "view booth polls": {
       steps: [
@@ -98,7 +144,11 @@ export default function ProfessorChatbot() {
         "4. Cast your vote on booths you're interested in",
         "5. Your votes help determine popular vendors",
         "6. Results may influence future bazaar selections"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Booth Polls", section: "boothPolls", tab: null }
+      ],
+      keywords: ["booth", "polls", "vote", "vendor", "bazaar"]
     },
     "browse loyalty vendors": {
       steps: [
@@ -112,7 +162,11 @@ export default function ProfessorChatbot() {
         "4. Click on a vendor to view full details",
         "5. Join loyalty programs you're interested in",
         "6. Track your rewards and benefits"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Loyalty Vendors", section: "loyaltyVendors", tab: null }
+      ],
+      keywords: ["loyalty", "vendors", "rewards", "benefits", "program"]
     },
     "manage favorites": {
       steps: [
@@ -126,7 +180,11 @@ export default function ProfessorChatbot() {
         "   • Quickly access event details",
         "   • Remove events by clicking the heart again",
         "5. Favorites help you track events of interest"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Favorites", section: "events", tab: "favorites" }
+      ],
+      keywords: ["favorites", "saved", "heart", "bookmark"]
     },
     "check registrations": {
       steps: [
@@ -142,7 +200,11 @@ export default function ProfessorChatbot() {
         "   • Make payments if required",
         "   • Cancel registrations if needed",
         "5. Keep track of upcoming commitments"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to My Registrations", section: "events", tab: "registered" }
+      ],
+      keywords: ["registrations", "registered", "my events", "status"]
     },
     "attended events": {
       steps: [
@@ -155,7 +217,11 @@ export default function ProfessorChatbot() {
         "   • Share your experience and feedback",
         "5. Your reviews help improve future events",
         "6. Other professors can see your feedback"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Attended Events", section: "events", tab: "attended" }
+      ],
+      keywords: ["attended", "past events", "rate", "review"]
     },
     "events reviews": {
       steps: [
@@ -168,7 +234,11 @@ export default function ProfessorChatbot() {
         "4. Use reviews to decide on future events",
         "5. Filter or search for specific event reviews",
         "6. Add your own reviews for attended events"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Events Reviews", section: "eventsReviews", tab: null }
+      ],
+      keywords: ["reviews", "feedback", "ratings", "comments"]
     },
     "available booths": {
       steps: [
@@ -182,7 +252,11 @@ export default function ProfessorChatbot() {
         "4. Browse by category or search",
         "5. This is informational only for professors",
         "6. Use this to plan your bazaar visits"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Available Booths", section: "availableBooths", tab: null }
+      ],
+      keywords: ["available", "booths", "vendor", "bazaar", "shop"]
     },
     "edit workshop": {
       steps: [
@@ -196,7 +270,11 @@ export default function ProfessorChatbot() {
         "5. If admin requested edits, address them",
         "6. Save your changes",
         "7. Workshop may need re-approval if significantly changed"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to My Workshops", section: "overview", tab: "myWorkshops" }
+      ],
+      keywords: ["edit", "workshop", "modify", "update"]
     },
     "view participants": {
       steps: [
@@ -210,66 +288,259 @@ export default function ProfessorChatbot() {
         "   • Total capacity vs registered count",
         "5. You can export this list if needed",
         "6. Use this to prepare materials and plan logistics"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to My Workshops", section: "overview", tab: "myWorkshops" }
+      ],
+      keywords: ["participants", "attendees", "registered", "list"]
+    },
+    "events management": {
+      steps: [
+        "The Events section includes:",
+        "",
+        "📅 Upcoming Events:",
+        "   • Browse all upcoming events",
+        "   • Search, filter, and sort",
+        "   • Register for events",
+        "   • Add to favorites",
+        "",
+        "📋 My Registrations:",
+        "   • View your registered events",
+        "   • Check registration status",
+        "   • Make payments if needed",
+        "   • Cancel registrations",
+        "",
+        "❤️ Favorites:",
+        "   • View saved events",
+        "   • Quick access to preferred events",
+        "   • Remove favorites",
+        "",
+        "✅ Attended Events:",
+        "   • View past events",
+        "   • Rate and review",
+        "   • Share feedback"
+      ],
+      quickActions: [
+        { label: "Go to Events", section: "events", tab: "upcoming" },
+        { label: "My Registrations", section: "events", tab: "registered" },
+        { label: "Favorites", section: "events", tab: "favorites" }
+      ],
+      keywords: ["events", "management", "dashboard", "tabs"]
+    },
+    "professor dashboard": {
+      steps: [
+        "Your Professor Dashboard includes:",
+        "",
+        "🏠 Overview:",
+        "   • Quick Actions (Create Workshop, My Workshops)",
+        "   • Workshop management tools",
+        "",
+        "📅 Events:",
+        "   • Complete event management",
+        "   • Registration, favorites, attended",
+        "   • Search and filter capabilities",
+        "",
+        "💬 Events Reviews:",
+        "   • Browse all event feedback",
+        "   • Ratings and comments",
+        "",
+        "🗳️ Booth Polls:",
+        "   • Vote on vendor booths",
+        "   • Influence bazaar selections",
+        "",
+        "🛍️ Available Booths:",
+        "   • View bazaar vendors",
+        "   • Plan your visits",
+        "",
+        "🏪 Loyalty Vendors:",
+        "   • Browse loyalty programs",
+        "   • Track rewards",
+        "",
+        "💪 Gym Schedule:",
+        "   • Check facility times",
+        "   • Plan workouts"
+      ],
+      quickActions: [
+        { label: "Go to Overview", section: "overview", tab: null },
+        { label: "Go to Events", section: "events", tab: null },
+        { label: "Go to Gym Schedule", section: "gymSchedule", tab: null }
+      ],
+      keywords: ["dashboard", "overview", "navigation", "sections"]
     }
+  };
+
+  const findBestMatch = (text) => {
+    const lowerText = text.toLowerCase();
+    let bestMatch = null;
+    let highestScore = 0;
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      let score = 0;
+      
+      // Check if query contains the key
+      if (lowerText.includes(key)) score += 10;
+      
+      // Check keywords
+      value.keywords?.forEach(keyword => {
+        if (lowerText.includes(keyword)) score += 5;
+      });
+
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = { key, ...value };
+      }
+    });
+
+    return highestScore > 0 ? bestMatch : null;
   };
 
   const handleSendMessage = (text = inputValue) => {
     if (!text.trim()) return;
 
-    setMessages(prev => [...prev, { type: 'user', text }]);
+    const userMessage = {
+      type: 'user',
+      text: text.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
     setTimeout(() => {
-      const lowerText = text.toLowerCase();
-      let response = null;
+      const match = findBestMatch(text);
 
-      Object.keys(knowledgeBase).forEach(key => {
-        if (lowerText.includes(key) || lowerText.includes(key.replace(/\s+/g, ''))) {
-          response = knowledgeBase[key];
-        }
-      });
-
-      if (response) {
+      if (match) {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "Here are the steps:",
-          steps: response.steps
+          text: "Here's what you need to know:",
+          steps: match.steps,
+          quickActions: match.quickActions,
+          timestamp: new Date().toISOString()
         }]);
-      } else if (lowerText.includes('help') || lowerText.includes('hi') || lowerText.includes('hello')) {
+      } else if (text.toLowerCase().includes('help') || text.toLowerCase().includes('hi') || text.toLowerCase().includes('hello')) {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I can help you with these topics:",
-          options: [
-            "Create a workshop",
-            "View my workshops",
-            "Register for events",
-            "Check gym schedule",
-            "View booth polls",
-            "Browse loyalty vendors"
-          ]
+          text: "I'm here to help! Here are some things I can assist you with:",
+          quickActions: [
+            { label: "Create Workshop", section: "overview", tab: "createWorkshop" },
+            { label: "My Workshops", section: "overview", tab: "myWorkshops" },
+            { label: "Events Management", section: "events", tab: "upcoming" },
+            { label: "Gym Schedule", section: "gymSchedule", tab: null },
+            { label: "Booth Polls", section: "boothPolls", tab: null },
+            { label: "Events Reviews", section: "eventsReviews", tab: null }
+          ],
+          timestamp: new Date().toISOString()
         }]);
       } else {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I'm not sure about that. Here's what I can help you with:",
-          options: [
-            "Create a workshop",
-            "View my workshops",
-            "Register for events",
-            "Check gym schedule",
-            "View booth polls",
-            "Browse loyalty vendors"
-          ]
+          text: "I'm not sure about that. Try asking about:\n• Creating/managing workshops\n• Events registration\n• Gym schedule\n• Booth polls\n• Events reviews\n• Loyalty vendors\n\nOr use the search feature to find what you need!",
+          timestamp: new Date().toISOString()
         }]);
       }
       setIsTyping(false);
-    }, 1000);
+      
+      // Auto-scroll after adding response
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }, 800);
   };
 
-  const handleOptionClick = (option) => {
-    handleSendMessage(option);
+  const handleQuickAction = (action) => {
+    console.log("Professor chatbot navigating to:", action);
+    
+    // Add navigation confirmation message
+    const navigationMessage = {
+      type: 'bot',
+      text: `📍 **Navigating to ${action.label}**\n\nI've taken you there! The chat will stay open so you can continue asking questions.`,
+      timestamp: new Date().toISOString(),
+      isNavigationMessage: true
+    };
+    
+    setMessages(prev => [...prev, navigationMessage]);
+    
+    // Trigger navigation WITHOUT closing chat
+    setTimeout(() => {
+      if (onNavigate && typeof onNavigate === 'function') {
+        // Check if we need to handle special tab navigation
+        if (action.section === "overview" && action.tab) {
+          // For overview tabs, we need to set both section and activeQuickAction
+          onNavigate(action.section, action.tab);
+        } else {
+          onNavigate(action.section);
+        }
+      } else {
+        console.log("Would navigate to:", action.section, "tab:", action.tab);
+      }
+    }, 300);
+    
+    // Auto-scroll to see the navigation message
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 350);
+  };
+
+  const handleExportChat = () => {
+    const chatText = messages.map(msg => {
+      const time = new Date(msg.timestamp).toLocaleString();
+      const sender = msg.type === 'user' ? 'You' : 'Academic Assistant';
+      let content = `[${time}] ${sender}: ${msg.text}`;
+      
+      if (msg.steps) {
+        content += '\n' + msg.steps.join('\n');
+      }
+      
+      return content;
+    }).join('\n\n');
+
+    const blob = new Blob([chatText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `professor-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleClearChat = () => {
+    
+      localStorage.removeItem(chatHistoryKey);
+      initializeChat();
+    
+  };
+
+  const searchInKnowledgeBase = () => {
+    const query = searchQuery.toLowerCase();
+    const results = [];
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      if (key.includes(query) || value.keywords?.some(k => k.includes(query))) {
+        results.push({ key, ...value });
+      }
+    });
+
+    setShowSearch(false);
+    setSearchQuery('');
+
+    if (results.length > 0) {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `Found ${results.length} result(s) for "${searchQuery}":`,
+        searchResults: results.map(r => ({
+          label: r.key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          query: r.key
+        })),
+        timestamp: new Date().toISOString()
+      }]);
+    } else {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `No results found for "${searchQuery}". Try different keywords!`,
+        timestamp: new Date().toISOString()
+      }]);
+    }
   };
 
   return (
@@ -296,46 +567,122 @@ export default function ProfessorChatbot() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Academic Assistant</h3>
-                <p className="text-xs text-green-100">Here to help professors</p>
+                <p className="text-xs text-green-100">Smart Professor Support</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSearch(!showSearch)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Search Knowledge Base"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleExportChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Export Chat"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleClearChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Clear Chat"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {/* Search Bar */}
+          {showSearch && (
+            <div className="p-3 bg-green-50 border-b border-green-200">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchInKnowledgeBase()}
+                  placeholder="Search knowledge base..."
+                  className="flex-1 border border-green-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  autoFocus
+                />
+                <button
+                  onClick={searchInKnowledgeBase}
+                  className="bg-green-500 text-white rounded-lg px-4 py-2 text-sm hover:bg-green-600 transition"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] ${msg.type === 'user' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
-                  <p className={`text-sm ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>{msg.text}</p>
+                <div className={`max-w-[85%] ${msg.type === 'user' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
+                  <p className={`text-sm whitespace-pre-line ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                    {msg.text}
+                  </p>
                   
                   {msg.steps && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-1.5 text-sm text-gray-700">
                       {msg.steps.map((step, i) => (
-                        <p key={i} className="text-sm text-gray-700 leading-relaxed">
-                          {step}
-                        </p>
+                        <p key={i} className="leading-relaxed">{step}</p>
                       ))}
                     </div>
                   )}
 
-                  {msg.options && (
+                  {msg.searchResults && (
                     <div className="mt-3 space-y-2">
-                      {msg.options.map((option, i) => (
+                      {msg.searchResults.map((result, i) => (
                         <button
                           key={i}
-                          onClick={() => handleOptionClick(option)}
-                          className="block w-full text-left text-sm bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-gray-700 rounded-lg p-2 transition border border-green-200"
+                          onClick={() => handleSendMessage(result.query)}
+                          className="block w-full text-left text-sm bg-green-50 hover:bg-green-100 text-gray-700 rounded-lg p-2 transition border border-green-200"
                         >
-                          {option}
+                          {result.label}
                         </button>
                       ))}
                     </div>
+                  )}
+
+                  {msg.quickActions && msg.quickActions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-gray-500 font-semibold">Quick Actions:</p>
+                      {msg.quickActions.map((action, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleQuickAction(action)}
+                          className="flex items-center justify-between w-full text-left text-sm bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-gray-700 rounded-lg p-2.5 transition border border-green-200 group"
+                        >
+                          <span>{action.label}</span>
+                          <ArrowRight className="w-4 h-4 text-green-600 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {msg.isNavigationMessage && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-xs text-green-700">
+                        💬 Chat remains open. Continue asking questions!
+                      </p>
+                    </div>
+                  )}
+
+                  {msg.type === 'bot' && !msg.isNavigationMessage && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </p>
                   )}
                 </div>
               </div>
@@ -345,13 +692,14 @@ export default function ProfessorChatbot() {
               <div className="flex justify-start">
                 <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
@@ -367,11 +715,15 @@ export default function ProfessorChatbot() {
               />
               <button
                 onClick={() => handleSendMessage()}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full p-2 hover:shadow-lg transition"
+                disabled={!inputValue.trim()}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full p-2 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-5 h-5" />
               </button>
             </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Academic support • Quick navigation • Smart help
+            </p>
           </div>
         </div>
       )}

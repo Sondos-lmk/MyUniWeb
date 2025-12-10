@@ -37,7 +37,7 @@ export default function EventOfficerLoyalty() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <LoyaltyVendors />
       </div>
-      <EventOfficerChatbot />
+      <EventOfficerChatbot onNavigate={(page) => navigate(page)} />
     </DashboardLayout>
   );
 }

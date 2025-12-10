@@ -1,26 +1,59 @@
-import { useState } from "react";
-import { MessageCircle, X, Send, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageCircle, X, Send, Sparkles, ArrowRight, Download, Trash2, Search } from "lucide-react";
 
-// Reusable Event Officer Chatbot Component
-export default function EventOfficerChatbot() {
+// Modern Event Officer Chatbot Component with Professional Features
+export default function EventOfficerChatbot({ onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      type: 'bot',
-      text: "👋 Hi! I'm your Event Officer Assistant. I can help you with:",
-      options: [
-        "Create an event",
-        "Approve workshops",
-        "Manage vendors",
-        "Create gym session",
-        "View reports",
-        "Manage booths",
-        "View documents"
-      ]
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const messagesEndRef = useRef(null);
+  const chatHistoryKey = 'event-officer-chat-history';
+
+  // Load chat history on mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem(chatHistoryKey);
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        setMessages(parsed);
+      } catch (e) {
+        initializeChat();
+      }
+    } else {
+      initializeChat();
+    }
+  }, []);
+
+  const initializeChat = () => {
+    setMessages([
+      {
+        type: 'bot',
+        text: "👋 Hi Event Officer! I'm your Assistant. I can help you with:",
+        timestamp: new Date().toISOString(),
+        quickActions: [
+          { label: "Create Event", page: "/eventOfficer/create-event" },
+          { label: "Approve Workshops", page: "/eventOfficer/approveWorkshops" },
+          { label: "Approve Vendors", page: "/eventOfficer/dashboard" },
+          { label: "Gym Schedule", page: "/gym-schedule" }
+        ]
+      }
+    ]);
+  };
+
+  // Save chat history whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
 
   const knowledgeBase = {
     "create an event": {
@@ -39,7 +72,11 @@ export default function EventOfficerChatbot() {
         "6. Review all information carefully",
         "7. Click 'Create Event' to publish",
         "8. Event will be visible to professors and students"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Create Event", page: "/eventOfficer/create-event" }
+      ],
+      keywords: ["create", "event", "new event", "organize event", "add event"]
     },
     "approve workshops": {
       steps: [
@@ -60,7 +97,11 @@ export default function EventOfficerChatbot() {
         "   • Click 'Reject'",
         "   • Provide reason for rejection",
         "7. Professor will be notified of your decision"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Approve Workshops", page: "/eventOfficer/approveWorkshops" }
+      ],
+      keywords: ["approve", "workshops", "review", "pending", "workshop approval"]
     },
     "manage vendors": {
       steps: [
@@ -80,7 +121,11 @@ export default function EventOfficerChatbot() {
         "   • Apply for booth spaces",
         "   • Access loyalty program features",
         "   • Participate in vendor polls"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Approve Vendors", page: "/eventOfficer/dashboard" }
+      ],
+      keywords: ["manage", "vendors", "vendor approval", "approve vendors", "vendor management"]
     },
     "create gym session": {
       steps: [
@@ -97,7 +142,11 @@ export default function EventOfficerChatbot() {
         "6. Click 'Create Session'",
         "7. Session appears in the gym schedule",
         "8. Professors can view and plan gym visits"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Gym Schedule", page: "/gym-schedule" }
+      ],
+      keywords: ["gym", "session", "create gym", "gym schedule", "fitness"]
     },
     "view reports": {
       steps: [
@@ -120,7 +169,12 @@ export default function EventOfficerChatbot() {
         "   • Filter by event type",
         "   • Search specific events",
         "6. Export reports as PDF or Excel"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Attendees Report", page: "/eventOfficer/attendees-report" },
+        { label: "Go to Revenue Report", page: "/eventOfficer/revenue-report" }
+      ],
+      keywords: ["reports", "view reports", "attendees", "revenue", "analytics"]
     },
     "manage booths": {
       steps: [
@@ -142,7 +196,11 @@ export default function EventOfficerChatbot() {
         "   • Provide reason to vendor",
         "6. Track all booth assignments",
         "7. Manage booth layout and capacity"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Available Booths", page: "/eventOfficer/available-booths" }
+      ],
+      keywords: ["manage", "booths", "booth assignment", "available booths", "booth management"]
     },
     "view documents": {
       steps: [
@@ -164,7 +222,11 @@ export default function EventOfficerChatbot() {
         "   • Filter by category or date",
         "5. Upload new documents as needed",
         "6. Manage document permissions"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Documents", page: "/eventOfficer/documents" }
+      ],
+      keywords: ["documents", "view documents", "files", "uploads", "records"]
     },
     "loyalty vendors": {
       steps: [
@@ -179,7 +241,11 @@ export default function EventOfficerChatbot() {
         "5. Review vendor benefits and rewards",
         "6. Monitor program engagement",
         "7. Handle vendor loyalty program disputes"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Loyalty Vendors", page: "/eventOfficer/loyalty-vendors" }
+      ],
+      keywords: ["loyalty", "vendors", "rewards", "benefits", "loyalty program"]
     },
     "gym schedule": {
       steps: [
@@ -199,7 +265,11 @@ export default function EventOfficerChatbot() {
         "   • Click 'Cancel'",
         "   • Users will be notified",
         "6. Add new sessions via Quick Actions"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Gym Schedule", page: "/gym-schedule" }
+      ],
+      keywords: ["gym", "schedule", "workout", "fitness", "timetable"]
     },
     "all events": {
       steps: [
@@ -223,7 +293,11 @@ export default function EventOfficerChatbot() {
         "   • View participant lists",
         "   • Generate event reports",
         "   • Archive past events"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to All Events", page: "/eventOfficer/all-events" }
+      ],
+      keywords: ["all events", "events list", "view events", "event management"]
     },
     "attendees report": {
       steps: [
@@ -244,7 +318,11 @@ export default function EventOfficerChatbot() {
         "   • Attendance patterns",
         "6. Export data for further analysis",
         "7. Use insights to plan future events"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Attendees Report", page: "/eventOfficer/attendees-report" }
+      ],
+      keywords: ["attendees", "report", "attendance", "statistics", "analytics"]
     },
     "revenue report": {
       steps: [
@@ -264,68 +342,224 @@ export default function EventOfficerChatbot() {
         "6. Identify highest-earning events",
         "7. Export financial reports",
         "8. Use for budget planning"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Revenue Report", page: "/eventOfficer/revenue-report" }
+      ],
+      keywords: ["revenue", "report", "financial", "income", "payments"]
+    },
+    "event officer dashboard": {
+      steps: [
+        "Your Event Officer Dashboard includes:",
+        "",
+        "🏠 Overview:",
+        "   • Quick Actions (Create Event, Approve Vendors, Create Gym Session)",
+        "   • Event analytics and statistics",
+        "",
+        "📝 Workshops:",
+        "   • Approve/reject professor workshop requests",
+        "   • Request edits for workshops",
+        "",
+        "📅 All Events:",
+        "   • View all platform events",
+        "   • Manage event details and status",
+        "",
+        "🛍️ Available Booths:",
+        "   • Manage vendor booth assignments",
+        "   • Review booth applications",
+        "",
+        "💪 Gym Schedule:",
+        "   • View and manage gym sessions",
+        "   • Create new workout sessions",
+        "",
+        "🏪 Loyalty Vendors:",
+        "   • Manage vendor loyalty programs",
+        "",
+        "📁 Documents:",
+        "   • Access event-related documents",
+        "",
+        "📊 Reports:",
+        "   • Attendees Report (registration analytics)",
+        "   • Revenue Report (financial analytics)"
+      ],
+      quickActions: [
+        { label: "Go to Overview", page: "/eventOfficer/dashboard" },
+        { label: "View Workshops", page: "/eventOfficer/approveWorkshops" },
+        { label: "View All Events", page: "/eventOfficer/all-events" }
+      ],
+      keywords: ["dashboard", "overview", "navigation", "event officer"]
     }
+  };
+
+  const findBestMatch = (text) => {
+    const lowerText = text.toLowerCase();
+    let bestMatch = null;
+    let highestScore = 0;
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      let score = 0;
+      
+      // Check if query contains the key
+      if (lowerText.includes(key)) score += 10;
+      
+      // Check keywords
+      value.keywords?.forEach(keyword => {
+        if (lowerText.includes(keyword)) score += 5;
+      });
+
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = { key, ...value };
+      }
+    });
+
+    return highestScore > 0 ? bestMatch : null;
   };
 
   const handleSendMessage = (text = inputValue) => {
     if (!text.trim()) return;
 
-    setMessages(prev => [...prev, { type: 'user', text }]);
+    const userMessage = {
+      type: 'user',
+      text: text.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
     setTimeout(() => {
-      const lowerText = text.toLowerCase();
-      let response = null;
+      const match = findBestMatch(text);
 
-      Object.keys(knowledgeBase).forEach(key => {
-        if (lowerText.includes(key) || lowerText.includes(key.replace(/\s+/g, ''))) {
-          response = knowledgeBase[key];
-        }
-      });
-
-      if (response) {
+      if (match) {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "Here are the steps:",
-          steps: response.steps
+          text: "Here's what you need to know:",
+          steps: match.steps,
+          quickActions: match.quickActions,
+          timestamp: new Date().toISOString()
         }]);
-      } else if (lowerText.includes('help') || lowerText.includes('hi') || lowerText.includes('hello')) {
+      } else if (text.toLowerCase().includes('help') || text.toLowerCase().includes('hi') || text.toLowerCase().includes('hello')) {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I can help you with these topics:",
-          options: [
-            "Create an event",
-            "Approve workshops",
-            "Manage vendors",
-            "Create gym session",
-            "View reports",
-            "Manage booths",
-            "View documents"
-          ]
+          text: "I'm here to help! Here are some things I can assist you with:",
+          quickActions: [
+            { label: "Create Event", page: "/eventOfficer/create-event" },
+            { label: "Approve Workshops", page: "/eventOfficer/approveWorkshops" },
+            { label: "Approve Vendors", page: "/eventOfficer/dashboard" },
+            { label: "View Reports", page: "/eventOfficer/attendees-report" },
+            { label: "Gym Schedule", page: "/gym-schedule" },
+            { label: "Available Booths", page: "/eventOfficer/available-booths" }
+          ],
+          timestamp: new Date().toISOString()
         }]);
       } else {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I'm not sure about that. Here's what I can help you with:",
-          options: [
-            "Create an event",
-            "Approve workshops",
-            "Manage vendors",
-            "Create gym session",
-            "View reports",
-            "Manage booths",
-            "View documents"
-          ]
+          text: "I'm not sure about that. Try asking about:\n• Creating events\n• Approving workshops/vendors\n• Managing booths\n• Gym schedule\n• Reports generation\n• Documents management\n\nOr use the search feature to find what you need!",
+          timestamp: new Date().toISOString()
         }]);
       }
       setIsTyping(false);
-    }, 1000);
+      
+      // Auto-scroll after adding response
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }, 800);
   };
 
-  const handleOptionClick = (option) => {
-    handleSendMessage(option);
+  const handleQuickAction = (action) => {
+    console.log("Event Officer chatbot navigating to:", action);
+    
+    // Add navigation confirmation message
+    const navigationMessage = {
+      type: 'bot',
+      text: `📍 **Navigating to ${action.label}**\n\nI'm taking you to that page now. The chat will stay open so you can continue asking questions.`,
+      timestamp: new Date().toISOString(),
+      isNavigationMessage: true
+    };
+    
+    setMessages(prev => [...prev, navigationMessage]);
+    
+    // Navigate to the page
+    setTimeout(() => {
+      if (action.page) {
+        if (onNavigate && typeof onNavigate === 'function') {
+          onNavigate(action.page);
+        } else {
+          // Fallback: Use window location or react-router
+          window.location.href = action.page;
+        }
+      }
+    }, 300);
+    
+    // Auto-scroll to see the navigation message
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 350);
+  };
+
+  const handleExportChat = () => {
+    const chatText = messages.map(msg => {
+      const time = new Date(msg.timestamp).toLocaleString();
+      const sender = msg.type === 'user' ? 'You' : 'Event Officer Assistant';
+      let content = `[${time}] ${sender}: ${msg.text}`;
+      
+      if (msg.steps) {
+        content += '\n' + msg.steps.join('\n');
+      }
+      
+      return content;
+    }).join('\n\n');
+
+    const blob = new Blob([chatText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `event-officer-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleClearChat = () => {
+    
+      localStorage.removeItem(chatHistoryKey);
+      initializeChat();
+    
+  };
+
+  const searchInKnowledgeBase = () => {
+    const query = searchQuery.toLowerCase();
+    const results = [];
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      if (key.includes(query) || value.keywords?.some(k => k.includes(query))) {
+        results.push({ key, ...value });
+      }
+    });
+
+    setShowSearch(false);
+    setSearchQuery('');
+
+    if (results.length > 0) {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `Found ${results.length} result(s) for "${searchQuery}":`,
+        searchResults: results.map(r => ({
+          label: r.key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          query: r.key
+        })),
+        timestamp: new Date().toISOString()
+      }]);
+    } else {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `No results found for "${searchQuery}". Try different keywords!`,
+        timestamp: new Date().toISOString()
+      }]);
+    }
   };
 
   return (
@@ -352,46 +586,122 @@ export default function EventOfficerChatbot() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Event Officer Assistant</h3>
-                <p className="text-xs text-blue-100">Managing events made easy</p>
+                <p className="text-xs text-blue-100">Smart Event Management</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSearch(!showSearch)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Search Knowledge Base"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleExportChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Export Chat"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleClearChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Clear Chat"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {/* Search Bar */}
+          {showSearch && (
+            <div className="p-3 bg-blue-50 border-b border-blue-200">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchInKnowledgeBase()}
+                  placeholder="Search knowledge base..."
+                  className="flex-1 border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+                <button
+                  onClick={searchInKnowledgeBase}
+                  className="bg-blue-500 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-600 transition"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] ${msg.type === 'user' ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
-                  <p className={`text-sm ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>{msg.text}</p>
+                <div className={`max-w-[85%] ${msg.type === 'user' ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
+                  <p className={`text-sm whitespace-pre-line ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                    {msg.text}
+                  </p>
                   
                   {msg.steps && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-1.5 text-sm text-gray-700">
                       {msg.steps.map((step, i) => (
-                        <p key={i} className="text-sm text-gray-700 leading-relaxed">
-                          {step}
-                        </p>
+                        <p key={i} className="leading-relaxed">{step}</p>
                       ))}
                     </div>
                   )}
 
-                  {msg.options && (
+                  {msg.searchResults && (
                     <div className="mt-3 space-y-2">
-                      {msg.options.map((option, i) => (
+                      {msg.searchResults.map((result, i) => (
                         <button
                           key={i}
-                          onClick={() => handleOptionClick(option)}
-                          className="block w-full text-left text-sm bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-gray-700 rounded-lg p-2 transition border border-blue-200"
+                          onClick={() => handleSendMessage(result.query)}
+                          className="block w-full text-left text-sm bg-blue-50 hover:bg-blue-100 text-gray-700 rounded-lg p-2 transition border border-blue-200"
                         >
-                          {option}
+                          {result.label}
                         </button>
                       ))}
                     </div>
+                  )}
+
+                  {msg.quickActions && msg.quickActions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-gray-500 font-semibold">Quick Actions:</p>
+                      {msg.quickActions.map((action, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleQuickAction(action)}
+                          className="flex items-center justify-between w-full text-left text-sm bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-gray-700 rounded-lg p-2.5 transition border border-blue-200 group"
+                        >
+                          <span>{action.label}</span>
+                          <ArrowRight className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {msg.isNavigationMessage && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-blue-700">
+                        💬 Chat remains open. Continue asking questions!
+                      </p>
+                    </div>
+                  )}
+
+                  {msg.type === 'bot' && !msg.isNavigationMessage && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </p>
                   )}
                 </div>
               </div>
@@ -401,13 +711,14 @@ export default function EventOfficerChatbot() {
               <div className="flex justify-start">
                 <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
@@ -423,11 +734,15 @@ export default function EventOfficerChatbot() {
               />
               <button
                 onClick={() => handleSendMessage()}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full p-2 hover:shadow-lg transition"
+                disabled={!inputValue.trim()}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full p-2 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-5 h-5" />
               </button>
             </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Event management • Page navigation • Smart help
+            </p>
           </div>
         </div>
       )}

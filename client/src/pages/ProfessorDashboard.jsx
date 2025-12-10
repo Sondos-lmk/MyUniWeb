@@ -541,7 +541,19 @@ function ProfessorDashboard() {
         )}
       </div>
       {/* Chatbot Component */}
-      <ProfessorChatbot />
+      <ProfessorChatbot onNavigate={(section, tab) => {
+  console.log("Professor chatbot navigating to:", section, tab);
+  setActiveSection(section);
+  
+  // Handle special cases for overview tabs
+  if (section === "overview" && tab) {
+    if (tab === "createWorkshop") {
+      setActiveQuickAction('createWorkshop');
+    } else if (tab === "myWorkshops") {
+      setActiveQuickAction('myWorkshops');
+    }
+  }
+}} />
     </DashboardLayout>
   );
 }

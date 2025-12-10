@@ -1,30 +1,61 @@
-import { useState } from "react";
-import { MessageCircle, X, Send, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageCircle, X, Send, Sparkles, ArrowRight, Download, Trash2, Search } from "lucide-react";
 
-// Reusable Admin Chatbot Component
-export default function AdminChatbot() {
+// Modern Admin Chatbot Component with Professional Features
+export default function AdminChatbot({ onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const messagesEndRef = useRef(null);
+  const chatHistoryKey = 'admin-chat-history';
+
+  // Load chat history on mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem(chatHistoryKey);
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        setMessages(parsed);
+      } catch (e) {
+        // If parsing fails, start fresh
+        initializeChat();
+      }
+    } else {
+      initializeChat();
+    }
+  }, []);
+
+  const initializeChat = () => {
+  setMessages([
     {
       type: 'bot',
       text: "👋 Hi Admin! I'm your Administrative Assistant. I can help you with:",
-      options: [
-        "Create admin/officer",
-        "Manage admins/officers",
-        "Pending users",
-        "Manage upcoming events",
-        "View events reviews",
-        "Manage vendor requests",
-        "View available booths",
-        "Loyalty vendors",
-        "View documents",
-        "All users",
-        "Generate reports"
+      timestamp: new Date().toISOString(),
+      quickActions: [
+        // Match your dashboard's tab keys
+        { label: "Create Admin/Officer", section: "overview", tab: null },
+        { label: "Manage Admins/Officers", section: "overview", tab: null },
+        { label: "Pending Users", section: "overview", tab: null },
+        { label: "Upcoming Events", section: "upcoming", tab: null }
       ]
     }
   ]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+};
+
+  // Save chat history whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
 
   const knowledgeBase = {
     "create admin": {
@@ -43,7 +74,11 @@ export default function AdminChatbot() {
         "5. Click 'Create Account' to submit",
         "6. The new admin/officer will receive login credentials",
         "7. They can change their password on first login"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Overview", section: "overview", tab: null }
+      ],
+      keywords: ["create", "admin", "officer", "new account", "add admin"]
     },
     "manage admins": {
       steps: [
@@ -62,7 +97,11 @@ export default function AdminChatbot() {
         "   • View activity logs",
         "5. Use search to find specific admins",
         "6. Changes take effect immediately"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Overview", section: "overview", tab: "quickActions" }
+      ],
+      keywords: ["manage", "admins", "officers", "edit", "permissions"]
     },
     "pending users": {
       steps: [
@@ -83,7 +122,11 @@ export default function AdminChatbot() {
         "   • Request additional information",
         "5. Approved users receive email confirmation",
         "6. They can then log in to the platform"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Overview", section: "overview", tab: "quickActions" }
+      ],
+      keywords: ["pending", "users", "verification", "approve", "reject"]
     },
     "upcoming events": {
       steps: [
@@ -104,7 +147,11 @@ export default function AdminChatbot() {
         "   • Send notifications to attendees",
         "4. Use filters to find specific events",
         "5. Monitor event capacity and registrations"
-      ]
+      ],
+      quickActions: [
+        { label: "View Events", section: "upcoming", tab: null }
+      ],
+      keywords: ["upcoming", "events", "approve", "manage", "schedule"]
     },
     "events reviews": {
       steps: [
@@ -124,7 +171,11 @@ export default function AdminChatbot() {
         "4. Use insights to improve events",
         "5. Filter by event or rating level",
         "6. Export review data for analysis"
-      ]
+      ],
+      quickActions: [
+        { label: "View Reviews", section: "allComments", tab: null }
+      ],
+      keywords: ["reviews", "comments", "ratings", "moderate", "feedback"]
     },
     "vendor requests": {
       steps: [
@@ -148,7 +199,11 @@ export default function AdminChatbot() {
         "   • Negotiate booth terms",
         "5. Approved vendors appear in Available Booths",
         "6. Send confirmation and next steps"
-      ]
+      ],
+      quickActions: [
+        { label: "View Requests", section: "vendorRequests", tab: null }
+      ],
+      keywords: ["vendor", "requests", "booth", "approve", "applications"]
     },
     "available booths": {
       steps: [
@@ -169,7 +224,11 @@ export default function AdminChatbot() {
         "   • Update booth information",
         "   • Monitor vendor compliance",
         "5. This is informational for planning bazaar layouts"
-      ]
+      ],
+      quickActions: [
+        { label: "View Booths", section: "availableBooths", tab: null }
+      ],
+      keywords: ["available", "booths", "vendor", "assignments", "locations"]
     },
     "loyalty vendors": {
       steps: [
@@ -192,7 +251,11 @@ export default function AdminChatbot() {
         "   • Handle user complaints",
         "5. Update vendor listings as needed",
         "6. Track participation metrics"
-      ]
+      ],
+      quickActions: [
+        { label: "View Vendors", section: "loyaltyVendors", tab: null }
+      ],
+      keywords: ["loyalty", "vendors", "programs", "rewards", "compliance"]
     },
     "view documents": {
       steps: [
@@ -215,7 +278,11 @@ export default function AdminChatbot() {
         "   • Retention policies enforced",
         "5. Search and filter documents",
         "6. Archive or delete as needed"
-      ]
+      ],
+      quickActions: [
+        { label: "View Documents", section: "documents", tab: null }
+      ],
+      keywords: ["documents", "files", "uploads", "verification", "certificates"]
     },
     "all users": {
       steps: [
@@ -239,7 +306,11 @@ export default function AdminChatbot() {
         "   • By status",
         "5. Export user data for reports",
         "6. Monitor user activity and engagement"
-      ]
+      ],
+      quickActions: [
+        { label: "View All Users", section: "users", tab: null }
+      ],
+      keywords: ["all users", "professors", "tas", "staff", "database", "manage"]
     },
     "reports": {
       steps: [
@@ -267,7 +338,11 @@ export default function AdminChatbot() {
         "3. Select date ranges for analysis",
         "4. Filter by specific criteria",
         "5. Download reports for records"
-      ]
+      ],
+      quickActions: [
+        { label: "Generate Reports", section: "reports", tab: null }
+      ],
+      keywords: ["reports", "attendees", "revenue", "statistics", "export"]
     },
     "attendees report": {
       steps: [
@@ -292,7 +367,11 @@ export default function AdminChatbot() {
         "   • Download as Excel",
         "   • Export as PDF",
         "   • Print for meetings"
-      ]
+      ],
+      quickActions: [
+        { label: "View Reports", section: "reports", tab: null }
+      ],
+      keywords: ["attendees", "attendance", "statistics", "metrics", "analytics"]
     },
     "revenue report": {
       steps: [
@@ -318,7 +397,11 @@ export default function AdminChatbot() {
         "   • Excel format for accounting",
         "   • PDF for reports",
         "   • Share with stakeholders"
-      ]
+      ],
+      quickActions: [
+        { label: "View Reports", section: "reports", tab: null }
+      ],
+      keywords: ["revenue", "financial", "payments", "income", "budget"]
     },
     "platform statistics": {
       steps: [
@@ -347,7 +430,8 @@ export default function AdminChatbot() {
         "   • Total scheduled activities",
         "",
         "These statistics help you monitor platform health at a glance!"
-      ]
+      ],
+      keywords: ["statistics", "metrics", "platform", "stats", "dashboard"]
     },
     "quick actions": {
       steps: [
@@ -375,7 +459,11 @@ export default function AdminChatbot() {
         "",
         "These are your most common administrative tasks,",
         "designed for quick access from the dashboard."
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Overview", section: "overview", tab: "quickActions" }
+      ],
+      keywords: ["quick actions", "overview", "dashboard", "actions", "tasks"]
     },
     "dashboard overview": {
       steps: [
@@ -416,7 +504,11 @@ export default function AdminChatbot() {
         "📊 Reports",
         "   • Attendees Report",
         "   • Revenue Report"
-      ]
+      ],
+      quickActions: [
+        { label: "Go to Overview", section: "overview", tab: null }
+      ],
+      keywords: ["dashboard", "overview", "sections", "navigation", "admin"]
     },
     "approve events": {
       steps: [
@@ -436,7 +528,11 @@ export default function AdminChatbot() {
         "5. Approved events become visible to users",
         "6. Creator receives notification of decision",
         "7. Requested edits return event to creator"
-      ]
+      ],
+      quickActions: [
+        { label: "View Events", section: "upcoming", tab: null }
+      ],
+      keywords: ["approve", "events", "pending", "publish", "review"]
     },
     "moderate reviews": {
       steps: [
@@ -457,66 +553,159 @@ export default function AdminChatbot() {
         "5. Document moderation decisions",
         "6. Maintain fair and consistent policies",
         "7. Protect platform integrity"
-      ]
+      ],
+      quickActions: [
+        { label: "View Reviews", section: "allComments", tab: null }
+      ],
+      keywords: ["moderate", "reviews", "comments", "moderation", "content"]
     }
+  };
+
+  const findBestMatch = (text) => {
+    const lowerText = text.toLowerCase();
+    let bestMatch = null;
+    let highestScore = 0;
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      let score = 0;
+      
+      // Check if query contains the key
+      if (lowerText.includes(key)) score += 10;
+      
+      // Check keywords
+      value.keywords?.forEach(keyword => {
+        if (lowerText.includes(keyword)) score += 5;
+      });
+
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = { key, ...value };
+      }
+    });
+
+    return highestScore > 0 ? bestMatch : null;
   };
 
   const handleSendMessage = (text = inputValue) => {
     if (!text.trim()) return;
 
-    setMessages(prev => [...prev, { type: 'user', text }]);
+    const userMessage = {
+      type: 'user',
+      text: text.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
     setTimeout(() => {
-      const lowerText = text.toLowerCase();
-      let response = null;
+      const match = findBestMatch(text);
 
-      Object.keys(knowledgeBase).forEach(key => {
-        if (lowerText.includes(key) || lowerText.includes(key.replace(/\s+/g, ''))) {
-          response = knowledgeBase[key];
-        }
-      });
-
-      if (response) {
+      if (match) {
         setMessages(prev => [...prev, {
           type: 'bot',
           text: "Here's what you need to know:",
-          steps: response.steps
+          steps: match.steps,
+          quickActions: match.quickActions,
+          timestamp: new Date().toISOString()
         }]);
-      } else if (lowerText.includes('help') || lowerText.includes('hi') || lowerText.includes('hello')) {
+      } else if (text.toLowerCase().includes('help') || text.toLowerCase().includes('hi') || text.toLowerCase().includes('hello')) {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I'm here to help! I can assist you with:",
-          options: [
-            "Create admin/officer",
-            "Manage admins/officers",
-            "Pending users",
-            "Upcoming events",
-            "Vendor requests",
-            "Generate reports"
-          ]
+          text: "I'm here to help! Here are some things I can assist you with:",
+          quickActions: [
+            { label: "Create Admin/Officer", section: "overview", tab: "quickActions" },
+            { label: "Manage Admins/Officers", section: "overview", tab: "quickActions" },
+            { label: "Pending Users", section: "overview", tab: "quickActions" },
+            { label: "Upcoming Events", section: "upcomingEvents", tab: null },
+            { label: "Vendor Requests", section: "vendorRequests", tab: null },
+            { label: "Generate Reports", section: "reports", tab: null }
+          ],
+          timestamp: new Date().toISOString()
         }]);
       } else {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I'm not sure about that. Here's what I can help you with:",
-          options: [
-            "Quick actions",
-            "Platform statistics",
-            "Dashboard overview",
-            "All users",
-            "Events reviews",
-            "Loyalty vendors"
-          ]
+          text: "I'm not sure about that. Try asking about:\n• Creating/managing admins\n• Pending users\n• Upcoming events\n• Vendor requests\n• Reports generation\n• Platform statistics\n\nOr use the search feature to find what you need!",
+          timestamp: new Date().toISOString()
         }]);
       }
       setIsTyping(false);
-    }, 1000);
+    }, 800);
   };
 
-  const handleOptionClick = (option) => {
-    handleSendMessage(option);
+  const handleQuickAction = (action) => {
+    if (onNavigate) {
+      onNavigate(action.section, action.tab);
+    }
+    
+    setMessages(prev => [...prev, {
+      type: 'bot',
+      text: `✓ Taking you to ${action.label}...`,
+      timestamp: new Date().toISOString()
+    }]);
+  };
+
+  const handleExportChat = () => {
+    const chatText = messages.map(msg => {
+      const time = new Date(msg.timestamp).toLocaleString();
+      const sender = msg.type === 'user' ? 'You' : 'Admin Assistant';
+      let content = `[${time}] ${sender}: ${msg.text}`;
+      
+      if (msg.steps) {
+        content += '\n' + msg.steps.join('\n');
+      }
+      
+      return content;
+    }).join('\n\n');
+
+    const blob = new Blob([chatText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `admin-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleClearChat = () => {
+    
+      localStorage.removeItem(chatHistoryKey);
+      initializeChat();
+    
+  };
+
+  const searchInKnowledgeBase = () => {
+    const query = searchQuery.toLowerCase();
+    const results = [];
+
+    Object.entries(knowledgeBase).forEach(([key, value]) => {
+      if (key.includes(query) || value.keywords?.some(k => k.includes(query))) {
+        results.push({ key, ...value });
+      }
+    });
+
+    setShowSearch(false);
+    setSearchQuery('');
+
+    if (results.length > 0) {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `Found ${results.length} result(s) for "${searchQuery}":`,
+        searchResults: results.map(r => ({
+          label: r.key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          query: r.key
+        })),
+        timestamp: new Date().toISOString()
+      }]);
+    } else {
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        text: `No results found for "${searchQuery}". Try different keywords!`,
+        timestamp: new Date().toISOString()
+      }]);
+    }
   };
 
   return (
@@ -543,46 +732,114 @@ export default function AdminChatbot() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Admin Assistant</h3>
-                <p className="text-xs text-indigo-100">Here to help administrators</p>
+                <p className="text-xs text-indigo-100">Administrative Support System</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSearch(!showSearch)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Search Knowledge Base"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleExportChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Export Chat"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleClearChat}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                title="Clear Chat"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {/* Search Bar */}
+          {showSearch && (
+            <div className="p-3 bg-indigo-50 border-b border-indigo-200">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchInKnowledgeBase()}
+                  placeholder="Search knowledge base..."
+                  className="flex-1 border border-indigo-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoFocus
+                />
+                <button
+                  onClick={searchInKnowledgeBase}
+                  className="bg-indigo-500 text-white rounded-lg px-4 py-2 text-sm hover:bg-indigo-600 transition"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] ${msg.type === 'user' ? 'bg-gradient-to-r from-indigo-600 to-purple-700 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
-                  <p className={`text-sm ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>{msg.text}</p>
+                <div className={`max-w-[85%] ${msg.type === 'user' ? 'bg-gradient-to-r from-indigo-600 to-purple-700 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-3 shadow-sm`}>
+                  <p className={`text-sm whitespace-pre-line ${msg.type === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                    {msg.text}
+                  </p>
                   
                   {msg.steps && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-1.5 text-sm text-gray-700">
                       {msg.steps.map((step, i) => (
-                        <p key={i} className="text-sm text-gray-700 leading-relaxed">
-                          {step}
-                        </p>
+                        <p key={i} className="leading-relaxed">{step}</p>
                       ))}
                     </div>
                   )}
 
-                  {msg.options && (
+                  {msg.searchResults && (
                     <div className="mt-3 space-y-2">
-                      {msg.options.map((option, i) => (
+                      {msg.searchResults.map((result, i) => (
                         <button
                           key={i}
-                          onClick={() => handleOptionClick(option)}
-                          className="block w-full text-left text-sm bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 text-gray-700 rounded-lg p-2 transition border border-indigo-200"
+                          onClick={() => handleSendMessage(result.query)}
+                          className="block w-full text-left text-sm bg-indigo-50 hover:bg-indigo-100 text-gray-700 rounded-lg p-2 transition border border-indigo-200"
                         >
-                          {option}
+                          {result.label}
                         </button>
                       ))}
                     </div>
+                  )}
+
+                  {msg.quickActions && msg.quickActions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-gray-500 font-semibold">Quick Actions:</p>
+                      {msg.quickActions.map((action, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleQuickAction(action)}
+                          className="flex items-center justify-between w-full text-left text-sm bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 text-gray-700 rounded-lg p-2.5 transition border border-indigo-200 group"
+                        >
+                          <span>{action.label}</span>
+                          <ArrowRight className="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {msg.type === 'bot' && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </p>
                   )}
                 </div>
               </div>
@@ -592,13 +849,14 @@ export default function AdminChatbot() {
               <div className="flex justify-start">
                 <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
@@ -614,11 +872,15 @@ export default function AdminChatbot() {
               />
               <button
                 onClick={() => handleSendMessage()}
-                className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-full p-2 hover:shadow-lg transition"
+                disabled={!inputValue.trim()}
+                className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-full p-2 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-5 h-5" />
               </button>
             </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Administrative support • Quick navigation • Smart search
+            </p>
           </div>
         </div>
       )}

@@ -37,7 +37,7 @@ export default function EventOfficerReportsAttendees() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <AttendeesReport />
       </div>
-      <EventOfficerChatbot />
+      <EventOfficerChatbot onNavigate={(page) => navigate(page)} />
     </DashboardLayout>
   );
 }

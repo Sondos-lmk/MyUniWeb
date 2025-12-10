@@ -152,7 +152,7 @@ const AdminDashboard = () => {
       activeKey={activeTab}
       extraSidebarProps={{ isReportsOpen, selectedReport }}
     >
-      <AdminChatbot />
+      <AdminChatbot onNavigate={setActiveTab} />
       <div className="max-w-7xl mx-auto">
 
         {/* Overview — EXACT SAME LOOK AS YOU HAD */}

@@ -317,7 +317,7 @@ const StudentDashboard = () => {
       sidebarItems={sidebarItems}
       activeKey={activeSection}
     >
-      <StudentChatbot />
+      <StudentChatbot onNavigate={setActiveSection} />
       <div className="mt-6">
 
         {/* Events Section with Tabs */}

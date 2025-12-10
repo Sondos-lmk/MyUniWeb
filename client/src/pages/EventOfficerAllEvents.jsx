@@ -38,7 +38,7 @@ export default function EventOfficerAllEvents() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <EventOfficerEvents />
       </div>
-      <EventOfficerChatbot />
+      <EventOfficerChatbot onNavigate={(page) => navigate(page)} />
     </DashboardLayout>
   );
 }
