@@ -3,6 +3,7 @@ import { User } from '../models/Users/User.js';
 import { Professor } from '../models/Users/Professor.js';
 import { Staff } from '../models/Users/Staff.js';
 import { TA } from '../models/Users/TA.js';
+import { Club } from "../models/Events/Club.js";
 
 // Auth middleware
 export async function requireAuth(req, res, next) {
@@ -98,5 +99,85 @@ export function requireAcademicUser(req, res, next) {
   }
 
   return next();
+}
+
+
+// Check if user is president OR HR of the club
+// Check if user is president OR HR of the club
+export async function requireClubManager(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Missing authentication" });
+  }
+
+  let clubId = req.params.clubId || req.body.clubId;
+
+  // If clubId is missing (ex: reviewing an application), get it from the application
+  if (!clubId && req.params.appId) {
+    try {
+      const application = await ClubApplication.findById(req.params.appId);
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      clubId = application.club;
+    } catch (err) {
+      console.error("Error loading application:", err);
+      return res.status(500).json({ message: "Server error loading application" });
+    }
+  }
+
+  if (!clubId) {
+    return res
+      .status(400)
+      .json({ message: "Missing clubId for club management" });
+  }
+
+  const club = await Club.findById(clubId);
+  if (!club) {
+    return res.status(404).json({ message: "Club not found" });
+  }
+
+  const userId = req.user._id.toString();
+  const isPresident = club.president.toString() === userId;
+  const isHr = (club.hrMembers || []).some(
+    (m) => m.toString() === userId
+  );
+
+  if (!isPresident && !isHr) {
+    return res.status(403).json({
+      message: "Access denied — only club president or HR members can manage this club.",
+    });
+  }
+
+  req.club = club; // attach the club for controller use
+  next();
+}
+
+
+// Only president (used for managing HR team)
+export async function requireClubPresident(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Missing authentication" });
+  }
+
+  const clubId = req.params.clubId || req.body.clubId;
+  if (!clubId) {
+    return res
+      .status(400)
+      .json({ message: "Missing clubId for club management" });
+  }
+
+  const club = await Club.findById(clubId);
+  if (!club) {
+    return res.status(404).json({ message: "Club not found" });
+  }
+
+  if (club.president.toString() !== req.user._id.toString()) {
+    return res
+      .status(403)
+      .json({ message: "Access denied — only the club president can do this." });
+  }
+
+  req.club = club;
+  next();
 }
 
