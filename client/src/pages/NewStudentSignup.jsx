@@ -31,8 +31,13 @@ export default function NewStudentSignup() {
             eventId: referralData.eventId,
             referralCode: referralData.code
           });
+          
+          // Fetch event details
+          const eventResponse = await API.get(`/events/${referralData.eventId}`);
+          const eventName = eventResponse.data.title;
+          
           storeReferralCode(referralData.code, referralData.eventId);
-          toast.success("🎉 Referral applied! You and your friend will both get 15% back after paying.");
+          sessionStorage.setItem('referralEventName', eventName);
         } catch (err) {
           const errorMessage = err.response?.data?.error || "Invalid referral code";
           toast.error(errorMessage);
@@ -74,6 +79,17 @@ export default function NewStudentSignup() {
       });
 
       toast.success("Student account created successfully!");
+      
+      // Check if registered via referral link
+      const storedEventName = sessionStorage.getItem('referralEventName');
+      if (storedEventName) {
+        setTimeout(() => {
+          toast.success(`🎉 You signed up through a referral link! Login and pay for "${storedEventName}" to get 15% cashback!`, {
+            duration: 6000
+          });
+        }, 500);
+      }
+      
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       toast.error(err.response?.data?.message || "Signup failed");
