@@ -5,6 +5,48 @@ import { Staff } from '../models/Users/Staff.js';
 import { TA } from '../models/Users/TA.js';
 import { Club } from "../models/Events/Club.js";
 
+// Helper: compute club roles (president / HR) for a user
+export async function getUserClubRoles(userId) {
+  if (!userId) {
+    return {
+      isPresident: false,
+      isHr: false,
+      presidentOf: [],
+      hrMemberOf: []
+    };
+  }
+
+  const clubs = await Club.find({
+    $or: [
+      { president: userId },
+      { hrMembers: userId }
+    ]
+  }).select('_id name president hrMembers');
+
+  const presidentOf = [];
+  const hrMemberOf = [];
+
+  const uid = userId.toString();
+
+  for (const c of clubs) {
+    if (c.president?.toString() === uid) {
+      presidentOf.push({ _id: c._id, name: c.name });
+    }
+    if ((c.hrMembers || []).some((m) => m?.toString() === uid)) {
+      hrMemberOf.push({ _id: c._id, name: c.name });
+    }
+  }
+
+  return {
+    isPresident: presidentOf.length > 0,
+    isHr: hrMemberOf.length > 0,
+    presidentOf,
+    hrMemberOf
+  };
+}
+
+
+
 // Auth middleware
 export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
@@ -24,6 +66,12 @@ export async function requireAuth(req, res, next) {
 
 
     if (!user) return res.status(401).json({ message: 'User not found' });
+
+    // 🔹 Compute club roles for this user (president / HR)
+    const clubRoles = await getUserClubRoles(user._id);
+
+    // Attach to user document (not saved in DB, just in memory for this request)
+    user.clubRoles = clubRoles;
 
     req.user = user; // ✅ Attach full Mongoose user object
     next();

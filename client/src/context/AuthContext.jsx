@@ -23,29 +23,35 @@ export function AuthProvider({ children }) {
     const res = await api.post('/auth/login', { email, password })
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('role', res.data.user.role)
-    setUser(res.data.user)
-    return res.data.user 
+
+    // Immediately refetch full user WITH clubRoles
+    const meRes = await api.get('/auth/me')
+
+    setUser(meRes.data.user)
+    return meRes.data.user
   }, [])
+
 
   // 🟢 updated register (supports both JSON and FormData)
   const register = useCallback(async (data) => {
     let res
-
     if (data instanceof FormData) {
-      // Vendor case (multipart/form-data)
       res = await api.post('/auth/register', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
     } else {
-      // Normal case (student, staff, etc.)
       res = await api.post('/auth/register', data)
     }
 
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('role', res.data.user.role)
-    setUser(res.data.user)
-    return res.data.user
+
+    // Fetch full user with clubRoles
+    const meRes = await api.get('/auth/me')
+    setUser(meRes.data.user)
+    return meRes.data.user
   }, [])
+
 
   const logout = useCallback(() => {
     localStorage.removeItem('token')
