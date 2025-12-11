@@ -14,6 +14,13 @@ const clubSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    logo: { type: String }, 
+    members: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     // Student who is the club president
     president: {
       type: mongoose.Schema.Types.ObjectId,

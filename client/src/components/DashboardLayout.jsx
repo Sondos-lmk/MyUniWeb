@@ -13,9 +13,20 @@ export default function DashboardLayout({
   roleColor = "bg-green-500",
   activeKey = null,
   extraSidebarProps = {} 
+  
 }) {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
+
+  // ⛔ STOP rendering layout until user is loaded
+  if (loading) {
+    return <div className="p-6 text-center text-lg">Loading dashboard...</div>;
+  }
+
+  if (!user) {
+    return <div className="p-6 text-center text-red-600">User not found</div>;
+  }
+
   const [walletBalance, setWalletBalance] = useState(null);
   const [walletLoading, setWalletLoading] = useState(false);
 

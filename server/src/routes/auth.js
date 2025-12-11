@@ -1,6 +1,7 @@
 import express from 'express';
 import { register, login, me, verifyEmail } from '../controllers/authController.js';
 import { requireAuth } from '../middleware/auth.js';
+import { getUserClubRoles } from "../middleware/auth.js";
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -35,6 +36,22 @@ router.post(
 
 router.post('/login', login);
 router.get('/verify/:token', verifyEmail);
-router.get('/me', requireAuth, me);
+router.get('/me', requireAuth, async (req, res) => {
+  if (!req.user)
+    return res.status(401).json({ message: 'Not authenticated' });
+
+  const clubRoles = await getUserClubRoles(req.user._id);
+
+  const safeUser = {
+    _id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+    role: req.user.role,
+    clubRoles
+  };
+
+  return res.json({ user: safeUser });
+});
+
 
 export default router;

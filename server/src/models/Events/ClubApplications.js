@@ -13,22 +13,30 @@ const clubApplicationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
+    // ⭐ ADD THESE ⭐
+    name: { type: String, trim: true },
+    gucId: { type: String, trim: true },
+    phone: { type: String, trim: true },
+
     motivation: {
       type: String,
       trim: true,
     },
+
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected"],
       default: "pending",
     },
+
     reviewMessage: {
       type: String,
       trim: true,
     },
     reviewedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // president or HR
+      ref: "User",
     },
     reviewedAt: {
       type: Date,
