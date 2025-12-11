@@ -24,6 +24,7 @@ import pollRoutes from "./routes/pollRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 import eventFeedbackRoutes from "./routes/eventFeedbackRoutes.js";
 import eventOfficerAnalyticsRoutes from "./routes/eventOfficerAnalyticsRoutes.js";
+import clubRoutes from "./routes/clubRoutes.js"
 
 //import courtRoutes from "./routes/court.js";
 
@@ -83,6 +84,7 @@ app.use("/api/documents", documentRoutes);
 app.use('/api/auth', authRoutes);
 app.use("/api/events", eventFeedbackRoutes);
 app.use("/api/eventOfficer/analytics", eventOfficerAnalyticsRoutes);
+app.use("/api/clubs", clubRoutes);
 
 
 // 404 handler
