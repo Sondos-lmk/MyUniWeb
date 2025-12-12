@@ -1133,7 +1133,17 @@ const sidebarItems = useMemo(() => {
                             {app.name && (
                               <p><span className="font-semibold">Full Name:</span> {app.name}</p>
                             )}
+                            {app.email && (
+                            <p>
+                              <span className="font-semibold">Email:</span> {app.email}
+                            </p>
+                          )}
 
+                          {app.major && (
+                            <p>
+                              <span className="font-semibold">Major:</span> {app.major}
+                            </p>
+                          )}
                             {app.gucId && (
                               <p><span className="font-semibold">GUC ID:</span> {app.gucId}</p>
                             )}
