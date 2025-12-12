@@ -68,6 +68,7 @@ import ProfessorUpcomingEventsPage from "./pages/ProfessorUpcomingEventsPage";
 import ProfessorRegisterEventPage from "./pages/ProfessorRegisterEventPage";
 import ProfessorGymSchedulePage from "./pages/ProfessorGymSchedulePage";
 import EventDetailsPage from "./pages/EventDetailsPage";
+import EventOfficerClubRequests from "./pages/EventOfficerClubRequests.jsx";
 // Removed incorrect import - using StudentDashboard directly
 
 
@@ -138,6 +139,7 @@ function App() {
           <Route path="/eventOfficer/attendees-report" element={<EventOfficerReportsAttendees />} />
           <Route path="/eventOfficer/revenue-report" element={<EventOfficerReportsRevenue />} />
           <Route path="/eventOfficer/events/:id/details" element={<EventDetailsPage />}/>
+          <Route path="/eventOfficer/club-requests" element={<EventOfficerClubRequests />} />
         </Route>
 
         {/* Professor */}
