@@ -198,6 +198,7 @@ export async function approveClubRequest(req, res) {
     const club = await Club.create({
       name: request.name,
       desc: request.desc,
+      logo: request.logo,
       president: request.student,
       hrMembers: [], // can be managed later by president
     });
@@ -426,17 +427,26 @@ export async function getClubMembers(req, res) {
 
     const club = await Club.findById(clubId).populate(
       "members",
-      "name email role"
+      "name email"
     );
 
     if (!club) {
       return res.status(404).json({ message: "Club not found" });
     }
 
-    return res.json({ members: club.members });
+    const membersWithRoles = club.members.map((u) => ({
+      _id: u._id,
+      name: u.name,
+      email: u.email,
+      isHr: club.hrMembers.some((hrId) => hrId.equals(u._id)),
+    }));
+
+    return res.json({ members: membersWithRoles });
   } catch (err) {
     console.error("Error fetching club members:", err);
     return res.status(500).json({ message: "Failed to fetch members" });
   }
 }
+
+
 

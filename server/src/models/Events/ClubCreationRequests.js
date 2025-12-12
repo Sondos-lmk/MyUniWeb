@@ -33,6 +33,9 @@ const clubCreationRequestSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    logo: {
+  type: String,
+}
   },
   { timestamps: true }
 );
