@@ -15,6 +15,7 @@ export default function EventOfficerAllEvents() {
     { to: '/eventOfficer/dashboard', label: 'Overview', icon: GraduationCap},
     { to: '/eventOfficer/approveWorkshops', label: 'Workshops', icon: ListChecks },
     { to: '/eventOfficer/all-events', label: 'All Events', icon: ClipboardList },
+    { to: "/eventOfficer/club-requests", label: "Club Requests", icon: Users },
     { to: '/eventOfficer/available-booths', label: 'Available Booths', icon: ShoppingBag },
     { to: '/gym-schedule', label: 'Gym Schedule', icon: Dumbbell },
     { to: '/eventOfficer/loyalty-vendors', label: 'Loyalty Vendors', icon: Store },

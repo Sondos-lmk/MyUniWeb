@@ -4,6 +4,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from "url";
 
 
 
@@ -67,8 +68,13 @@ app.use(express.json());
 app.use(morgan('dev'));
 app.use(cors());
 
-// ✅ serve uploaded files
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "../uploads"))
+);
 
 // ROUTES
 app.use('/api/users', userRoutes);

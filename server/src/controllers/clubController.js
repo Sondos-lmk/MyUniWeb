@@ -30,8 +30,14 @@ export async function listClubs(req, res) {
 export async function applyToClub(req, res) {
   try {
     const { clubId } = req.params;
-    const { motivation } = req.body;
+    const { name, gucId, phone, email, major, motivation  } = req.body;
     const studentId = req.user._id;
+
+    if (!email || !major) {
+    return res.status(400).json({
+      message: "Email and major are required.",
+    });
+  }
 
     const club = await Club.findById(clubId);
     if (!club) {
@@ -59,6 +65,11 @@ export async function applyToClub(req, res) {
     const application = await ClubApplication.create({
       club: clubId,
       student: studentId,
+      name,
+      gucId,
+      phone,
+      email,
+      major,
       motivation,
     });
 
@@ -106,6 +117,12 @@ export async function requestNewClub(req, res) {
         .json({ message: "Name, description, and reason are required." });
     }
 
+    let logoPath = null;
+    if (req.file) {
+      // we’ll serve this as /uploads/clubs/filename
+      logoPath = `/uploads/clubs/${req.file.filename}`;
+    }
+
     // Optional: prevent duplicate pending requests with same name
     const existing = await ClubCreationRequest.findOne({
       name,
@@ -122,6 +139,7 @@ export async function requestNewClub(req, res) {
       desc,
       reason,
       student: req.user._id,
+      logo: logoPath,
     });
 
     // TODO: notify event officers
@@ -184,19 +202,19 @@ export async function approveClubRequest(req, res) {
         .json({ message: "This request has already been processed." });
     }
 
-    // Create the club with the requester as president
+    // ✅ Create club AND add president as a member
     const club = await Club.create({
       name: request.name,
       desc: request.desc,
+      logo: request.logo,
       president: request.student,
-      hrMembers: [], // can be managed later by president
+      members: [request.student],   // ⭐ IMPORTANT
+      hrMembers: [],
     });
 
     request.status = "accepted";
     request.rejectionReason = undefined;
     await request.save();
-
-    // TODO: send notification to request.student
 
     return res.json({
       message: "Club request approved and club created.",
@@ -208,6 +226,7 @@ export async function approveClubRequest(req, res) {
     return res.status(500).json({ message: "Failed to approve club request" });
   }
 }
+
 
 // PATCH /api/clubs/admin/creation-requests/:id/reject
 export async function rejectClubRequest(req, res) {
@@ -304,6 +323,12 @@ export async function acceptClubApplication(req, res) {
     app.reviewedAt = new Date();
     app.reviewMessage = req.body.reviewMessage || "";
     await app.save();
+
+    // ⭐ Add student to club members
+    if (!club.members.includes(app.student)) {
+      club.members.push(app.student);
+      await club.save();
+    }
 
     // TODO: notification to app.student
 
@@ -403,3 +428,33 @@ export async function updateClubHrMembers(req, res) {
     return res.status(500).json({ message: "Failed to update HR members" });
   }
 }
+
+export async function getClubMembers(req, res) {
+  try {
+    const { clubId } = req.params;
+
+    const club = await Club.findById(clubId).populate(
+      "members",
+      "name email"
+    );
+
+    if (!club) {
+      return res.status(404).json({ message: "Club not found" });
+    }
+
+    const membersWithRoles = club.members.map((u) => ({
+      _id: u._id,
+      name: u.name,
+      email: u.email,
+      isHr: club.hrMembers.some((hrId) => hrId.equals(u._id)),
+    }));
+
+    return res.json({ members: membersWithRoles });
+  } catch (err) {
+    console.error("Error fetching club members:", err);
+    return res.status(500).json({ message: "Failed to fetch members" });
+  }
+}
+
+
+
