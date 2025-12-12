@@ -17,6 +17,7 @@ export default function NewLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [referralEventName, setReferralEventName] = useState(null);
 
   // Capture and validate referral code from URL on mount
   useEffect(() => {
@@ -30,9 +31,21 @@ export default function NewLogin() {
             referralCode: referralData.code
           });
           
-          // If valid, store it and show success message
+          // Fetch event details to show event name
+          const eventResponse = await API.get(`/events/${referralData.eventId}`);
+          const eventName = eventResponse.data.title;
+          
+          // If valid, store it
           storeReferralCode(referralData.code, referralData.eventId);
-          toast.success("Referral code applied! Register and pay for the event to get 15% back.");
+          setReferralEventName(eventName);
+          
+          // Store event name in sessionStorage to show after login
+          sessionStorage.setItem('referralEventName', eventName);
+          
+          // Show immediate feedback
+          toast.success(`You've unlocked 15% off! Login or signup to discover which event!`, {
+            duration: 5000
+          });
         } catch (err) {
           // If invalid, show error and don't store it
           const errorMessage = err.response?.data?.error || "Invalid referral code";
@@ -52,6 +65,20 @@ export default function NewLogin() {
     try {
       const loggedInUser = await login(email, password);
       console.log('logged in user', loggedInUser);
+      
+      // Check if user logged in via referral link
+      const storedEventName = sessionStorage.getItem('referralEventName');
+      if (storedEventName) {
+        // Add referral notification to user's notification list
+        try {
+          await API.post('/notifications/add', {
+            message: `🎉 You logged in through a referral link! Register and pay for "${storedEventName}" to get 15% cashback!`
+          });
+        } catch (err) {
+          console.error('Failed to add referral notification:', err);
+        }
+        sessionStorage.removeItem('referralEventName'); // Clear after adding
+      }
       
       toast.success("Login successful!");
       

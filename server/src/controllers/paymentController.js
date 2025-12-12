@@ -116,15 +116,15 @@ const sendPaymentReceipt = async (user, registration, paymentMethod, referralLin
     const referralSection = referralLink ? `
       <hr style="border: 0; border-top: 1px solid #eee; margin-top: 20px;">
       <h3 style="color: #004a99;">🎁 Share & Earn!</h3>
-      <p>Invite your friends to this event and both of you will receive <strong>20% credit to your wallet</strong> after the cancellation deadline!</p>
+      <p>Invite your friends to this event and both of you will receive <strong>15% credit to your wallet</strong> after the cancellation deadline!</p>
       <p style="margin: 15px 0;">
         <strong>Your Referral Link:</strong><br/>
         <a href="${referralLink}" style="color: #004a99; word-break: break-all;">${referralLink}</a>
       </p>
       <p style="font-size: 0.9em; color: #666;">
-        • Share this link with up to 3 friends<br/>
+        • Share this link with your friend<br/>
         • They must register and pay for the same event<br/>
-        • Both you and your friend get 20% back after the 2-week cancellation deadline<br/>
+        • Both you and your friend get 15% back after the 2-week cancellation deadline<br/>
         • Rewards are void if either party cancels
       </p>
     ` : '';

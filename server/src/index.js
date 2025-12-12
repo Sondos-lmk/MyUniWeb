@@ -58,15 +58,15 @@ async function bootstrap() {
   );
 
   // 📅 Schedule referral reward processing
-  // Runs every hour to check if any events have passed the 2-week cancellation deadline
-  cron.schedule('0 * * * *', async () => {
+  // Runs every minute for testing (change to '0 * * * *' for hourly in production)
+  cron.schedule('* * * * *', async () => {
     try {
       await processReferralRewards();
     } catch (err) {
       console.error('❌ Error in referral reward scheduler:', err?.message || err);
     }
   });
-  console.log('✅ Referral reward scheduler initialized (runs every hour)');
+  console.log('✅ Referral reward scheduler initialized (runs every minute for testing)');
 
   // Start cron jobs for checking expired applications
   startBoothExpirationCron();

@@ -74,3 +74,39 @@ export const clearMyNotifications = async (req, res) => {
       .json({ message: "Server error while clearing notifications." });
   }
 };
+
+// ✅ Add a notification for the logged-in user
+export const addNotification = async (req, res) => {
+  try {
+    const { role } = req.user;
+    const userId = req.user._id || req.user.id;
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ message: "Notification message is required." });
+    }
+
+    const Model = roleModelMap[role];
+    if (!Model) {
+      return res
+        .status(403)
+        .json({ message: "Notifications are not available for this role." });
+    }
+
+    const user = await Model.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: `${role} not found.` });
+    }
+
+    user.notifications = user.notifications || [];
+    user.notifications.push(message);
+    await user.save();
+
+    return res.status(200).json({ success: true, message: "Notification added." });
+  } catch (error) {
+    console.error("Error adding notification:", error);
+    res
+      .status(500)
+      .json({ message: "Server error while adding notification." });
+  }
+};
