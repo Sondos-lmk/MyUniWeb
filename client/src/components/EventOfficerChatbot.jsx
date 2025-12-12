@@ -34,9 +34,10 @@ export default function EventOfficerChatbot({ onNavigate }) {
         text: "👋 Hi Event Officer! I'm your Assistant. I can help you with:",
         timestamp: new Date().toISOString(),
         quickActions: [
-          { label: "Create Event", page: "/eventOfficer/create-event" },
+          { label: "Create Event", page: "/eventOfficer/dashboard" },
           { label: "Approve Workshops", page: "/eventOfficer/approveWorkshops" },
           { label: "Approve Vendors", page: "/eventOfficer/dashboard" },
+          { label: "Club Requests", page: "/eventOfficer/club-requests" },
           { label: "Gym Schedule", page: "/gym-schedule" }
         ]
       }
@@ -56,6 +57,34 @@ export default function EventOfficerChatbot({ onNavigate }) {
   }, [messages, isTyping]);
 
   const knowledgeBase = {
+    "club requests": {
+      steps: [
+        "1. Navigate to 'Club Requests' in the sidebar",
+        "2. View all pending club creation requests from students",
+        "3. For each club request, you'll see:",
+        "   • Club name and description",
+        "   • President/leader information",
+        "   • Club mission and goals",
+        "   • Meeting frequency and activities",
+        "   • Any supporting documents",
+        "4. To approve a club:",
+        "   • Review all information carefully",
+        "   • Click the 'Approve' button",
+        "   • Club becomes officially registered",
+        "   • Club leaders receive notification",
+        "5. To reject a club:",
+        "   • Click the 'Reject' button",
+        "   • Provide a clear rejection reason",
+        "   • Submit the rejection",
+        "   • Student will be notified with your feedback",
+        "6. Use the refresh button to load latest requests",
+        "7. Track all approved/rejected clubs in history"
+      ],
+      quickActions: [
+        { label: "Go to Club Requests", page: "/eventOfficer/club-requests" }
+      ],
+      keywords: ["club", "clubs", "club requests", "approve club", "reject club", "student clubs", "club creation"]
+    },
     "create an event": {
       steps: [
         "1. From the dashboard, click 'Create Event' in Quick Actions",
@@ -74,7 +103,7 @@ export default function EventOfficerChatbot({ onNavigate }) {
         "8. Event will be visible to professors and students"
       ],
       quickActions: [
-        { label: "Go to Create Event", page: "/eventOfficer/create-event" }
+        { label: "Go to Create Event", page: "/eventOfficer/dashboard" }
       ],
       keywords: ["create", "event", "new event", "organize event", "add event"]
     },
@@ -364,6 +393,10 @@ export default function EventOfficerChatbot({ onNavigate }) {
         "   • View all platform events",
         "   • Manage event details and status",
         "",
+        "👥 Club Requests:",
+        "   • Approve/reject student club creation requests",
+        "   • Manage club registrations and status",
+        "",
         "🛍️ Available Booths:",
         "   • Manage vendor booth assignments",
         "   • Review booth applications",
@@ -385,7 +418,8 @@ export default function EventOfficerChatbot({ onNavigate }) {
       quickActions: [
         { label: "Go to Overview", page: "/eventOfficer/dashboard" },
         { label: "View Workshops", page: "/eventOfficer/approveWorkshops" },
-        { label: "View All Events", page: "/eventOfficer/all-events" }
+        { label: "View All Events", page: "/eventOfficer/all-events" },
+        { label: "View Club Requests", page: "/eventOfficer/club-requests" }
       ],
       keywords: ["dashboard", "overview", "navigation", "event officer"]
     }
@@ -445,9 +479,10 @@ export default function EventOfficerChatbot({ onNavigate }) {
           type: 'bot',
           text: "I'm here to help! Here are some things I can assist you with:",
           quickActions: [
-            { label: "Create Event", page: "/eventOfficer/create-event" },
+            { label: "Create Event", page: "/eventOfficer/dashboard" },
             { label: "Approve Workshops", page: "/eventOfficer/approveWorkshops" },
             { label: "Approve Vendors", page: "/eventOfficer/dashboard" },
+            { label: "Club Requests", page: "/eventOfficer/club-requests" },
             { label: "View Reports", page: "/eventOfficer/attendees-report" },
             { label: "Gym Schedule", page: "/gym-schedule" },
             { label: "Available Booths", page: "/eventOfficer/available-booths" }
@@ -457,7 +492,7 @@ export default function EventOfficerChatbot({ onNavigate }) {
       } else {
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: "I'm not sure about that. Try asking about:\n• Creating events\n• Approving workshops/vendors\n• Managing booths\n• Gym schedule\n• Reports generation\n• Documents management\n\nOr use the search feature to find what you need!",
+          text: "I'm not sure about that. Try asking about:\n• Creating events\n• Approving workshops/vendors\n• Managing club requests\n• Managing booths\n• Gym schedule\n• Reports generation\n• Documents management\n\nOr use the search feature to find what you need!",
           timestamp: new Date().toISOString()
         }]);
       }
