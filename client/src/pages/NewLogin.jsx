@@ -41,6 +41,11 @@ export default function NewLogin() {
           
           // Store event name in sessionStorage to show after login
           sessionStorage.setItem('referralEventName', eventName);
+          
+          // Show immediate feedback
+          toast.success(`You've unlocked 15% off! Login or signup to discover which event!`, {
+            duration: 5000
+          });
         } catch (err) {
           // If invalid, show error and don't store it
           const errorMessage = err.response?.data?.error || "Invalid referral code";
@@ -64,13 +69,18 @@ export default function NewLogin() {
       // Check if user logged in via referral link
       const storedEventName = sessionStorage.getItem('referralEventName');
       if (storedEventName) {
-        toast.success(`🎉 You logged in through a referral link! Register and pay for "${storedEventName}" to get 15% cashback!`, {
-          duration: 6000
-        });
-        sessionStorage.removeItem('referralEventName'); // Clear after showing
-      } else {
-        toast.success("Login successful!");
+        // Add referral notification to user's notification list
+        try {
+          await API.post('/notifications/add', {
+            message: `🎉 You logged in through a referral link! Register and pay for "${storedEventName}" to get 15% cashback!`
+          });
+        } catch (err) {
+          console.error('Failed to add referral notification:', err);
+        }
+        sessionStorage.removeItem('referralEventName'); // Clear after adding
       }
+      
+      toast.success("Login successful!");
       
       // Navigate based on role
       if (loggedInUser.role === 'admin') {

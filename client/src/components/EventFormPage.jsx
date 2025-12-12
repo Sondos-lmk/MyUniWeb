@@ -75,6 +75,13 @@ export default function EventFormPage() {
       });
 
       showAlert(`Event ${id ? "updated" : "created"} successfully!`, "success");
+      
+      // Clear form fields after creating a new event
+      if (!id) {
+        setFormData({});
+        setEventType("");
+      }
+      
       navigate("/eventOfficer/dashboard");
     } catch (error) {
       console.error(error);

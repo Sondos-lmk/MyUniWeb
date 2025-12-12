@@ -8,16 +8,10 @@ import { sendEmail } from './email.js';
  */
 export const processReferralRewards = async () => {
   try {
-    console.log('🎁 Starting referral reward processing...');
-
     const now = new Date();
     
-    // Find all events where:
-    // 1. Start date is in the future (event hasn't happened yet)
-    // 2. We're past the 2-week cancellation deadline (startDate - 14 days)
-    // 3. Has referrals that haven't been rewarded
+    // Find all events where referrals haven't been rewarded yet
     const events = await Event.find({
-      startDate: { $gt: now },
       'referrals.rewardGranted': false
     });
 
@@ -32,8 +26,6 @@ export const processReferralRewards = async () => {
       if (now < twoWeeksBeforeEvent) {
         continue; // Too early for this event
       }
-
-      console.log(`📅 Processing rewards for event: ${event.title} (ID: ${event._id})`);
 
       // Process each referral for this event
       for (const referral of event.referrals) {
@@ -66,7 +58,6 @@ export const processReferralRewards = async () => {
 
           // Check if both are still paid (not refunded/cancelled)
           if (referrerReg.paymentStatus !== 'paid' || referredReg.paymentStatus !== 'paid') {
-            console.log(`❌ Reward cancelled: One or both users cancelled/refunded for event ${event._id}`);
             referral.rewardGranted = true; // Mark as processed (but no reward given)
             continue;
           }
@@ -139,10 +130,9 @@ export const processReferralRewards = async () => {
           });
 
           totalRewardsGranted++;
-          console.log(`✅ Reward granted: ${referrer.name} (+${referrerReward}) & ${referred.name} (+${referredReward}) for ${event.title}`);
 
         } catch (refError) {
-          console.error(`❌ Error processing referral ${referral._id}:`, refError);
+          console.error('Error processing referral:', refError);
         }
       }
 
@@ -150,7 +140,9 @@ export const processReferralRewards = async () => {
       await event.save();
     }
 
-    console.log(`✅ Referral reward processing complete. ${totalRewardsGranted} rewards granted.`);
+    if (totalRewardsGranted > 0) {
+      console.log(`✅ ${totalRewardsGranted} referral rewards granted`);
+    }
 
   } catch (err) {
     console.error('❌ Error in referral reward scheduler:', err);

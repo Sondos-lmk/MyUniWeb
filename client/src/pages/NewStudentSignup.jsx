@@ -38,6 +38,11 @@ export default function NewStudentSignup() {
           
           storeReferralCode(referralData.code, referralData.eventId);
           sessionStorage.setItem('referralEventName', eventName);
+          
+          // Show immediate feedback
+          toast.success(`You've unlocked 15% off! Login or signup to discover which event!`, {
+            duration: 5000
+          });
         } catch (err) {
           const errorMessage = err.response?.data?.error || "Invalid referral code";
           toast.error(errorMessage);
@@ -80,15 +85,8 @@ export default function NewStudentSignup() {
 
       toast.success("Student account created successfully!");
       
-      // Check if registered via referral link
-      const storedEventName = sessionStorage.getItem('referralEventName');
-      if (storedEventName) {
-        setTimeout(() => {
-          toast.success(`🎉 You signed up through a referral link! Login and pay for "${storedEventName}" to get 15% cashback!`, {
-            duration: 6000
-          });
-        }, 500);
-      }
+      // Don't clear referral event name - keep it for login notification
+      // The notification will be added to their account when they log in
       
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
