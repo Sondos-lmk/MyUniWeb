@@ -5,6 +5,7 @@ import API from "../services/api";
 import ModernAlert from "../components/ui/ModernAlert";
 import RejectClubRequestModal from "../components/RejectClubRequestModal";
 import ClubCreationRequestCard from "../components/ClubCreationRequestCard";
+import EventOfficerChatbot from "../components/EventOfficerChatbot.jsx";
 import {
   GraduationCap,
   ListChecks,
@@ -132,6 +133,7 @@ export default function EventOfficerClubRequests() {
       extraSidebarProps={{ isReportsOpen, selectedReport }}
       activeKey="club-requests"
     >
+       <EventOfficerChatbot onNavigate={(page) => navigate(page)} />
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold">Club Creation Requests</h2>
