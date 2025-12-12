@@ -111,17 +111,27 @@ const StudentDashboard = () => {
   const [submittingClub, setSubmittingClub] = useState(false);
   const [myClubRequests, setMyClubRequests] = useState([]);
   const [loadingMyRequests, setLoadingMyRequests] = useState(false);
-const getClubStatus = (clubId) => {
-  const app = myApplications.find(a => {
-    return (
-      a.clubId == clubId ||               // backend returns clubId string
-      a.club?._id == clubId ||            // backend populates club object
-      a.club == clubId                    // backend returns raw club id
-    );
-  });
+  const getClubStatus = (clubId) => {
+    // 1️⃣ If user is president → auto accepted
+    if (user?.clubRoles?.presidentOf?.some(c => c._id === clubId)) {
+      return "accepted";
+    }
 
-  return app?.status || null;
-};
+    // 2️⃣ If user is HR → auto accepted
+    if (user?.clubRoles?.hrMemberOf?.some(c => c._id === clubId)) {
+      return "accepted";
+    }
+
+    // 3️⃣ Otherwise check application status
+    const app = myApplications.find(a =>
+      a.clubId === clubId ||
+      a.club?._id === clubId ||
+      a.club === clubId
+    );
+
+    return app?.status || null;
+  };
+
 
 
 // ====== CLUB APPLICATION POPUPS ======
@@ -492,26 +502,34 @@ const handleSaveHrMembers = async () => {
     showAlert("Failed to update HR members", "error");
   }
 };
-  useEffect(() => {
-    if (!selectedPresidentClubId) return;
+useEffect(() => {
+  if (!selectedPresidentClubId) return;
 
-    async function loadMembers() {
-      try {
-        const res = await API.get(`/clubs/${selectedPresidentClubId}/members`);
-        setManagedMembers(res.data.members || []);
+  async function loadMembers() {
+    try {
+      const res = await API.get(
+        `/clubs/${selectedPresidentClubId}/members`
+      );
 
-        // preset HR members
-        setSelectedHr((res.data.members || [])
-          .filter(m => m.isHr)
-          .map(m => m._id)
-        );
-      } catch (err) {
-        console.error("Failed to load members:", err);
-      }
+      const members = res.data.members || [];
+      setManagedMembers(members);
+
+      // ✅ PRE-TICK existing HR members
+      const hrIds = members
+        .filter(m => m.isHr === true)
+        .map(m => m._id);
+
+      setSelectedHr(hrIds);
+      console.log("members:", members);
+      console.log("selectedHr:", hrIds);
+    } catch (err) {
+      console.error("Failed to load members:", err);
     }
+  }
 
-    loadMembers();
-  }, [selectedPresidentClubId]);
+  loadMembers();
+}, [selectedPresidentClubId]);
+
 
 
   // ====== EVENTS FILTERING ======
@@ -1215,11 +1233,11 @@ const sidebarItems = useMemo(() => {
                         checked={selectedHr.includes(m._id)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedHr([...selectedHr, m._id]);
+                            setSelectedHr(prev => [...prev, m._id]);
                           } else {
-                            setSelectedHr(
-                              selectedHr.filter((id) => id !== m._id)
-                            );
+                          setSelectedHr(prev =>
+                            prev.filter(id => id !== m._id)
+                          );
                           }
                         }}
                       />
