@@ -80,10 +80,107 @@ export default function StudentChatbot({ onNavigate }) {
         "7. Click 'Register' to sign up for events"
       ],
       quickActions: [
-        { label: "Go to Events", section: "events", tab: "upcoming" },
-        { label: "Search Events", section: "events", tab: "search" }
+        { label: "Go to Events", section: "events", tab: "upcoming" }
       ],
       keywords: ["browse", "events", "upcoming", "find events"]
+    },
+    "join clubs": {
+      steps: [
+        "1. Click on 'Clubs' in the sidebar",
+        "2. Browse all available clubs on campus",
+        "3. Each club shows:",
+        "   • Club name and description",
+        "   • Current members count",
+        "   • Your application status (if applicable)",
+        "4. To apply to a club:",
+        "   • Click the 'Apply' button on any club card",
+        "   • Fill out the application form with:",
+        "     - Your full name",
+        "     - GUC ID",
+        "     - Phone number",
+        "     - Motivation statement",
+        "   • Submit your application",
+        "5. Track your application status:",
+        "   • 'Pending' - Under review",
+        "   • 'Accepted' - You're now a member!",
+        "   • 'Rejected' - Try other clubs",
+        "6. Note: You can apply to multiple clubs"
+      ],
+      quickActions: [
+        { label: "View Clubs", section: "clubs", tab: "all" }
+      ],
+      keywords: ["clubs", "join", "apply", "membership"]
+    },
+    "create club": {
+      steps: [
+        "1. Click on 'Clubs' in the sidebar",
+        "2. Click the '+ Create Club' button",
+        "3. Fill out the club creation form:",
+        "   • Club name - Choose a unique name",
+        "   • Description - What your club is about",
+        "   • Reason - Why this club should exist",
+        "4. Submit your request",
+        "5. Your request goes to administrators",
+        "6. Track status in 'My Club Requests' tab:",
+        "   • 'Pending' - Awaiting admin review",
+        "   • 'Accepted' - Club created! You're the president",
+        "   • 'Rejected' - Includes feedback",
+        "7. Once accepted, you can:",
+        "   • Review membership applications",
+        "   • Appoint HR team members",
+        "   • Manage club activities"
+      ],
+      quickActions: [
+        { label: "View Clubs", section: "clubs", tab: "all" },
+        { label: "My Requests", section: "clubs", tab: "requests" }
+      ],
+      keywords: ["create", "club", "new club", "start club", "founder"]
+    },
+    "club applications": {
+      steps: [
+        "1. This feature is for Club Presidents and HR members",
+        "2. Click 'Club Applications' in the sidebar",
+        "3. Select which club you're managing",
+        "4. Review student applications showing:",
+        "   • Student name and contact info",
+        "   • GUC ID",
+        "   • Motivation statement",
+        "   • Application date",
+        "5. For each application you can:",
+        "   • Accept - Student becomes a member",
+        "   • Reject - Provide feedback/reason",
+        "6. Applications show status:",
+        "   • Pending - Awaiting your decision",
+        "   • Accepted - Approved members",
+        "   • Rejected - Declined with reason",
+        "7. Note: Both presidents and HR can review"
+      ],
+      quickActions: [
+        { label: "Club Applications", section: "club-applications" }
+      ],
+      keywords: ["applications", "review", "approve", "club president", "hr"]
+    },
+    "hr management": {
+      steps: [
+        "1. This feature is for Club Presidents only",
+        "2. Click 'HR Management' in the sidebar",
+        "3. Select your club from the dropdown",
+        "4. You'll see all current club members",
+        "5. To assign HR members:",
+        "   • Check the boxes next to members' names",
+        "   • HR members can review applications",
+        "   • Only president can assign/remove HR",
+        "6. Click 'Save HR Members' to update",
+        "7. HR members will be able to:",
+        "   • Review membership applications",
+        "   • Accept or reject applicants",
+        "   • Help manage club activities",
+        "8. Note: President role cannot be transferred"
+      ],
+      quickActions: [
+        { label: "HR Management", section: "hr-management" }
+      ],
+      keywords: ["hr", "human resources", "assign", "team", "president"]
     },
     "register for events": {
       steps: [
@@ -468,7 +565,8 @@ export default function StudentChatbot({ onNavigate }) {
             { label: "My Registrations", section: "events", tab: "registered" },
             { label: "Manage Favorites", section: "events", tab: "favorites" },
             { label: "Book Courts", section: "courts" },
-            { label: "Gym Schedule", section: "gymSchedule" }
+            { label: "Gym Schedule", section: "gymSchedule" },
+            { label: "Join Clubs", section: "clubs", tab: "all" }
           ],
           mapAction: { label: "View Campus Map", section: "map" },
           timestamp: new Date().toISOString()

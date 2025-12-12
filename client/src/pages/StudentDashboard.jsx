@@ -739,7 +739,16 @@ const sidebarItems = useMemo(() => {
       sidebarItems={sidebarItems}
       activeKey={activeSection}
     >
-      <StudentChatbot onNavigate={setActiveSection} />
+      <StudentChatbot 
+  onNavigate={(section, tab) => {
+    setActiveSection(section);
+    if (section === "events" && tab) {
+      setEventsTab(tab);
+    } else if (section === "clubs" && tab) {
+      setClubsTab(tab);
+    }
+  }} 
+/>
 
       <div className="mt-6">
         {/* ========== EVENTS SECTION ========== */}
