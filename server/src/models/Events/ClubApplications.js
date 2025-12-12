@@ -13,6 +13,16 @@ const clubApplicationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    email: {
+      type: String,
+      trim: true,
+      required: true,
+    },
+    major: {
+      type: String,
+      trim: true,
+      required: true,
+    },
 
     // ⭐ ADD THESE ⭐
     name: { type: String, trim: true },

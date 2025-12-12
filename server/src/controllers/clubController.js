@@ -30,8 +30,14 @@ export async function listClubs(req, res) {
 export async function applyToClub(req, res) {
   try {
     const { clubId } = req.params;
-    const { name, gucId, phone, motivation } = req.body;
+    const { name, gucId, phone, email, major, motivation  } = req.body;
     const studentId = req.user._id;
+
+    if (!email || !major) {
+    return res.status(400).json({
+      message: "Email and major are required.",
+    });
+  }
 
     const club = await Club.findById(clubId);
     if (!club) {
@@ -62,6 +68,8 @@ export async function applyToClub(req, res) {
       name,
       gucId,
       phone,
+      email,
+      major,
       motivation,
     });
 
@@ -194,20 +202,19 @@ export async function approveClubRequest(req, res) {
         .json({ message: "This request has already been processed." });
     }
 
-    // Create the club with the requester as president
+    // ✅ Create club AND add president as a member
     const club = await Club.create({
       name: request.name,
       desc: request.desc,
       logo: request.logo,
       president: request.student,
-      hrMembers: [], // can be managed later by president
+      members: [request.student],   // ⭐ IMPORTANT
+      hrMembers: [],
     });
 
     request.status = "accepted";
     request.rejectionReason = undefined;
     await request.save();
-
-    // TODO: send notification to request.student
 
     return res.json({
       message: "Club request approved and club created.",
@@ -219,6 +226,7 @@ export async function approveClubRequest(req, res) {
     return res.status(500).json({ message: "Failed to approve club request" });
   }
 }
+
 
 // PATCH /api/clubs/admin/creation-requests/:id/reject
 export async function rejectClubRequest(req, res) {
